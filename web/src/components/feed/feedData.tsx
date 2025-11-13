@@ -18,6 +18,13 @@ export type Post = {
   replies?: number;
   reposts?: number;
 };
+export type Comment = {
+  id: string;
+  postId: string; // which post this comment belongs to
+  author: string;
+  content: string;
+  createdAt: string;
+};
 
 export const samplePosts: Post[] = [
   {
@@ -110,5 +117,101 @@ export const sampleUsers: User[] = [
     created_at: '2025-09-20T12:00:00.000Z',
     updated_at: '2025-11-01T12:00:00.000Z',
     avatarColor: 'bg-blue-500',
+  },
+];
+
+export const sampleComments: Comment[] = [
+  // Comments for post 1 (Ada’s post)
+  {
+    id: 'c1',
+    postId: '1',
+    author: '@grace',
+    content: 'Nice use of markdown, Ada! 💻',
+    createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+  },
+  {
+    id: 'c2',
+    postId: '1',
+    author: '@jgrn',
+    content: 'Love seeing some old-school markdown testing.',
+    createdAt: new Date(Date.now() - 1000 * 60 * 25).toISOString(),
+  },
+  {
+    id: 'c3',
+    postId: '1',
+    author: '@mzuck',
+    content: 'Markdown forever! 😎',
+    createdAt: new Date(Date.now() - 1000 * 60 * 20).toISOString(),
+  },
+
+  // Comments for post 2 (Grace’s post)
+  {
+    id: 'c4',
+    postId: '2',
+    author: '@ada',
+    content: 'Looks great! Maybe add a code block too?',
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 10).toISOString(),
+  },
+  {
+    id: 'c5',
+    postId: '2',
+    author: '@jgrn',
+    content: '`still testing markdown` — I see what you did there 😄',
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 9).toISOString(),
+  },
+  {
+    id: 'c6',
+    postId: '2',
+    author: '@mzuck',
+    content: 'This is indeed the *realest* comment.',
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 8).toISOString(),
+  },
+
+  // Comments for post 3 (John’s post)
+  {
+    id: 'c7',
+    postId: '3',
+    author: '@ada',
+    content: 'Checked your link — works perfectly!',
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
+  },
+  {
+    id: 'c8',
+    postId: '3',
+    author: '@grace',
+    content: 'Links are essential for a connected web! 🌐',
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 1.5).toISOString(),
+  },
+
+  // Comments for post 4 (Mark’s post)
+  {
+    id: 'c9',
+    postId: '4',
+    author: '@jgrn',
+    content: 'Lists are always satisfying to read.',
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
+  },
+  {
+    id: 'c10',
+    postId: '4',
+    author: '@ada',
+    content: 'You forgot the bullet for item D 😅',
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 4.5).toISOString(),
+  },
+  {
+    id: 'c11',
+    postId: '4',
+    author: '@grace',
+    content: 'Classic markdown list — looks perfect to me!',
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 4).toISOString(),
+  },
+
+  // Comments for post 5 (Ada’s second post)
+  {
+    id: 'c12',
+    postId: '5',
+    author: '@grace',
+    content: 'Another Ada original — keep them coming!',
+    createdAt: new Date(Date.now() - 1000 * 60 * 10).toISOString(),
   },
 ];
