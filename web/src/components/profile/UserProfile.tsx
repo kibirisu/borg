@@ -3,13 +3,12 @@ import { useState } from "react";
 import { useLoaderData } from "react-router";
 import { type Post, samplePosts } from "../feed/feedData";
 import PostItem from "../feed/PostItem";
-import TopAppBar from "../TopAppBar";
 
 export function getUserInitials(username: string): string {
   if (!username) return "";
   return username.replace(/^@/, "").slice(0, 2).toUpperCase();
 }
-export default function UserProfile({ onTopBarSearch }: any) {
+export default function UserProfile() {
   // TODO: backend req
   const [isFollowed, setIsFollowed] = useState(false);
   const user = useLoaderData();
@@ -46,7 +45,6 @@ export default function UserProfile({ onTopBarSearch }: any) {
   //TODO backend for follow/unfollow V
   return (
     <div>
-      <TopAppBar onSearch={onTopBarSearch} />
       <div className="max-w-2xl mx-auto border-x border-gray-300 min-h-screen bg-white">
         <header className="p-4 border-b border-gray-300 text-xl font-bold sticky top-0 bg-white/80 backdrop-blur z-10 text-black">
           Profile
