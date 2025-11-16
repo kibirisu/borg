@@ -1,3 +1,4 @@
+import { Link } from 'react-router';
 import { useId, useState } from 'react';
 
 const Input = (onSearch) => {
@@ -45,6 +46,12 @@ export default function TopAppBar({ onSearch }: Props) {
             </li>
             <li className="menu-disabled">
               <a href="/federation">Federation</a>
+            </li>
+            <li>
+              <Link to="/login">Login</Link>
+            </li>
+            <li>
+              <Link to="/register">Register</Link>
             </li>
           </ul>
         </div>
