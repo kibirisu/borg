@@ -11,6 +11,7 @@ export default defineConfig({
       target: "src/api/api.gen.ts",
       schemas: "src/model",
       client: "react-query",
+      biome: true,
     },
   },
 });

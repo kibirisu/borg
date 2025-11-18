@@ -10,7 +10,7 @@
     "format": "biome format --write",
     "preview": "rsbuild preview",
     "ci": "pnpm install --frozen-lockfile",
-    "orval": "orval --config ./orval.config.js --output ./src/api/api.gen.ts"
+    "orval": "orval --config ./orval.config.ts --output ./src/api/api.gen.ts"
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.1.17",
