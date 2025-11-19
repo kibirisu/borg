@@ -9,13 +9,11 @@
     "dev": "rsbuild dev --open",
     "format": "biome format --write",
     "preview": "rsbuild preview",
-    "ci": "pnpm install --frozen-lockfile",
-    "orval": "orval --config ./orval.config.ts --output ./src/api/api.gen.ts"
+    "ci": "pnpm install --frozen-lockfile"
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.1.17",
     "@tailwindcss/typography": "^0.5.19",
-    "@tanstack/react-query": "^5.90.9",
     "axios": "^1.13.2",
     "daisyui": "^5.5.5",
     "lucide-react": "^0.546.0",
@@ -31,7 +29,6 @@
     "@rsbuild/plugin-react": "^1.4.2",
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",
-    "orval": "^7.16.0",
     "typescript": "^5.9.3"
   }
 }
