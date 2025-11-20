@@ -5,6 +5,21 @@ import App from "./App";
 import MainFeed from "./components/feed/MainFeed";
 import UserProfile from "./components/profile/UserProfile";
 import { sampleUsers, type User } from "./components/feed/feedData";
+import type { LoaderFunctionArgs } from "react-router";
+import { newClient, type Client } from "./lib/api/client";
+
+const client = newClient();
+
+const loader =
+  (client: Client) =>
+    async ({ params }: LoaderFunctionArgs) => {
+      const foo = client.$api.queryOptions("get", "/api/users/{id}", {
+        params: { path: { id: 1 } },
+      });
+      console.log(foo);
+      console.log(params);
+      return foo;
+    };
 
 const router = createBrowserRouter([
   {
@@ -19,6 +34,11 @@ const router = createBrowserRouter([
           const handleParam = params.handle ? `@${params.handle}` : undefined;
           return sampleUsers.find((u: User) => u.username === handleParam);
         },
+      },
+      {
+        path: "foo",
+        element: <span>bar</span>,
+        loader: loader(client),
       },
       // {
       //   path: "user/:handle",

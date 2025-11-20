@@ -17,6 +17,8 @@
     "axios": "^1.13.2",
     "daisyui": "^5.5.5",
     "lucide-react": "^0.546.0",
+    "openapi-fetch": "^0.15.0",
+    "openapi-react-query": "^0.5.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-markdown": "^10.1.0",
@@ -29,6 +31,7 @@
     "@rsbuild/plugin-react": "^1.4.2",
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",
+    "openapi-typescript": "^7.10.1",
     "typescript": "^5.9.3"
   }
 }
