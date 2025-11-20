@@ -15,7 +15,6 @@
     "@tailwindcss/postcss": "^4.1.17",
     "@tailwindcss/typography": "^0.5.19",
     "@tanstack/react-query": "^5.90.10",
-    "axios": "^1.13.2",
     "daisyui": "^5.5.5",
     "lucide-react": "^0.546.0",
     "openapi-fetch": "^0.15.0",

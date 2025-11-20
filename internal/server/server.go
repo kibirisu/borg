@@ -94,5 +94,5 @@ func (s *Server) PutApiPostsId(w http.ResponseWriter, r *http.Request, id int) {
 
 // GetApiUsersIdPosts implements api.ServerInterface.
 func (s *Server) GetApiUsersIdPosts(w http.ResponseWriter, r *http.Request, id int) {
-	getByID(s.ds.PostRepository(), id).ServeHTTP(w, r)
+	getByUserId(s.ds.PostRepository(), id).ServeHTTP(w, r)
 }
