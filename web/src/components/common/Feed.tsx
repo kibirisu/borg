@@ -1,15 +1,35 @@
 import { MessageCircle, Repeat, Heart, Share2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import type { components } from "../../lib/api/v1";
+import type { Client } from "../../lib/api/client";
+import { useLoaderData, type LoaderFunctionArgs } from "react-router";
+import { useQuery } from "@tanstack/react-query";
 
-interface Posts {
-  items: components["schemas"]["Post"][];
-}
+export const loader =
+  (client: Client) =>
+    async ({ params }: LoaderFunctionArgs) => {
+      const userId = parseInt(String(params.handle));
+      const queryParams = { params: { path: { id: userId } } };
+      const opts = client.$api.queryOptions(
+        "get",
+        "/api/users/{id}/posts",
+        queryParams,
+      );
+      console.log(opts.queryKey);
+      return { opts: opts };
+    };
 
-export default function Feed(posts: Posts) {
+export default function Feed() {
+  const { opts: opts } = useLoaderData() as Awaited<
+    ReturnType<ReturnType<typeof loader>>
+  >;
+  const { data, isPending } = useQuery(opts);
+  if (isPending) {
+    return <></>;
+  }
   return (
     <div className="max-w-2xl mx-auto border-x border-gray-300 min-h-screen bg-white">
-      {posts.items.map((post) => (
+      {data?.map((post) => (
         <Post key={post.id} data={post} />
       ))}
     </div>

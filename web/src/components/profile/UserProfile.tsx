@@ -1,11 +1,10 @@
 // If you're working on this please be familiar how react query works!!!
 // https://tanstack.com/query/latest
 
-import { useLoaderData, type LoaderFunctionArgs } from "react-router";
+import { Outlet, useLoaderData, type LoaderFunctionArgs } from "react-router";
 import type { Client } from "../../lib/api/client";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import Feed from "../common/Feed";
 
 export const loader =
   (client: Client) =>
@@ -24,15 +23,15 @@ export const loader =
       );
       client.queryClient.prefetchQuery(postOpts);
       await client.queryClient.ensureQueryData(userOpts);
-      return { userOpts: userOpts, postOpts: postOpts };
+      console.log(postOpts.queryKey);
+      return { opts: userOpts };
     };
 
 export default function User() {
-  const { userOpts, postOpts } = useLoaderData() as Awaited<
+  const { opts: opts } = useLoaderData() as Awaited<
     ReturnType<ReturnType<typeof loader>>
   >;
-  const { data: postData } = useSuspenseQuery(postOpts); // TODO: useInfiniteQuery here
-  const { data: userData } = useSuspenseQuery(userOpts);
+  const { data: userData } = useSuspenseQuery(opts);
   const [isFollowed, setIsFollowed] = useState(false);
 
   return (
@@ -62,7 +61,7 @@ export default function User() {
           </div>
         </div>
       </div>
-      <Feed items={postData} />
+      <Outlet />
     </div>
   );
 }
