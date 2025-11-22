@@ -87,7 +87,7 @@ gen-api-go:
 .PHONY: gen-api-ts
 gen-api-ts: $(NODE_MODULES)
 	@echo Generating api ts code...
-	@pnpm --prefix $(FRONTEND_DIR) run orval
+	@echo TODO: add `pnpm exec openapi-typescript` cmd with args here 
 
 .PHONY: clean
 clean:

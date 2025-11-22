@@ -16,6 +16,7 @@ export const newRouter = (client: Client) =>
           path: "profile/:handle",
           Component: User,
           loader: userLoader(client),
+          errorElement: "error",
           children: [
             {
               index: true,

@@ -15,6 +15,7 @@ export const loader =
         "/api/users/{id}/posts",
         queryParams,
       );
+      await client.queryClient.ensureQueryData(opts);
       return { opts: opts };
     };
 
