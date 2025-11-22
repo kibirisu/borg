@@ -9,10 +9,18 @@ export interface Client {
 }
 
 export default function newClient(): Client {
-  const fetchClient = createFetchClient<paths>();
+  const fetchClient = createFetchClient<paths>({
+    baseURL: import.meta.env.DEV ? '' : '', // Use proxy in dev
+  });
   const $api = createClient(fetchClient);
   const queryClient = new QueryClient({
-    defaultOptions: { queries: { staleTime: 1000 * 10 } },
+    defaultOptions: { 
+      queries: { 
+        staleTime: 1000 * 10,
+        retry: 3,
+        retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+      } 
+    },
   });
   return { queryClient, $api };
 }

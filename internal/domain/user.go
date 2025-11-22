@@ -3,6 +3,7 @@ package domain
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"borg/internal/api"
 	"borg/internal/db"
@@ -12,6 +13,7 @@ type UserRepository interface {
 	Repository[*api.User, *api.NewUser, *api.UpdateUser]
 	GetFollowed(context.Context, int32) ([]*api.User, error)
 	GetFollowers(context.Context, int32) ([]*api.User, error)
+	GetByUsername(context.Context, string) (*api.User, error)
 }
 
 type userRepository struct {
@@ -30,6 +32,14 @@ func (r *userRepository) Create(ctx context.Context, user *api.NewUser) error {
 
 func (r *userRepository) GetByID(ctx context.Context, id int32) (*api.User, error) {
 	u, err := r.GetUser(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	return userToAPI(&u), nil
+}
+
+func (r *userRepository) GetByUsername(ctx context.Context, username string) (*api.User, error) {
+	u, err := r.GetUserByUsername(ctx, username)
 	if err != nil {
 		return nil, err
 	}
@@ -69,15 +79,43 @@ func (r *userRepository) GetFollowers(ctx context.Context, id int32) ([]*api.Use
 }
 
 func userToAPI(u *db.User) *api.User {
+	bio := ""
+	if u.Bio.Valid {
+		bio = u.Bio.String
+	}
+	origin := ""
+	if u.Origin.Valid {
+		origin = u.Origin.String
+	}
+	followersCount := 0
+	if u.FollowersCount.Valid {
+		followersCount = int(u.FollowersCount.Int32)
+	}
+	followingCount := 0
+	if u.FollowingCount.Valid {
+		followingCount = int(u.FollowingCount.Int32)
+	}
+	isAdmin := false
+	if u.IsAdmin.Valid {
+		isAdmin = u.IsAdmin.Bool
+	}
+	createdAt := u.CreatedAt.Time
+	if !u.CreatedAt.Valid {
+		createdAt = time.Time{}
+	}
+	updatedAt := u.UpdatedAt.Time
+	if !u.UpdatedAt.Valid {
+		updatedAt = time.Time{}
+	}
 	return &api.User{
-		Bio:            u.Bio.String,
-		CreatedAt:      u.CreatedAt.Time,
-		FollowersCount: int(u.FollowersCount.Int32),
-		FollowingCount: int(u.FollowingCount.Int32),
+		Bio:            bio,
+		CreatedAt:      createdAt,
+		FollowersCount: followersCount,
+		FollowingCount: followingCount,
 		Id:             int(u.ID),
-		IsAdmin:        u.IsAdmin.Bool,
-		Origin:         u.Origin.String,
-		UpdatedAt:      u.UpdatedAt.Time,
+		IsAdmin:        isAdmin,
+		Origin:         origin,
+		UpdatedAt:      updatedAt,
 		Username:       u.Username,
 	}
 }

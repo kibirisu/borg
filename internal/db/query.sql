@@ -12,6 +12,9 @@ INSERT INTO users (
 -- name: GetUser :one
 SELECT * FROM users WHERE id = $1;
 
+-- name: GetUserByUsername :one
+SELECT * FROM users WHERE username = $1;
+
 -- name: GetFollowedUsers :many
 SELECT u.* FROM users u JOIN followers f ON u.id = f.following_id WHERE f.follower_id = $1;
 
@@ -91,6 +94,9 @@ DELETE FROM shares WHERE id = $1;
 -- queries that are needed for frontend
 -- name: GetPostsByOrigin :many
 SELECT p.* FROM posts p JOIN users u ON p.user_id = u.id WHERE u.origin = $1;
+
+-- name: GetAllPosts :many
+SELECT p.*, u.username FROM posts p JOIN users u ON p.user_id = u.id ORDER BY p.created_at DESC;
 
 -- name: GetAllUsers :many
 SELECT * FROM users;

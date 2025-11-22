@@ -8,8 +8,26 @@ import { useQuery } from "@tanstack/react-query";
 export const loader =
   (client: Client) =>
     async ({ params }: LoaderFunctionArgs) => {
-      const userId = parseInt(String(params.handle));
-      const queryParams = { params: { path: { id: userId } } };
+      if (!params.handle) {
+        throw new Response("Handle parameter is required", { status: 400 });
+      }
+      // Get user by username first
+      const username = String(params.handle).replace(/^@/, '');
+      const userQueryParams = { params: { path: { username } } };
+      const userOpts = client.$api.queryOptions(
+        "get",
+        "/api/users/by-username/{username}",
+        userQueryParams,
+      );
+      await client.queryClient.ensureQueryData(userOpts);
+      const userData = client.queryClient.getQueryData(userOpts.queryKey) as components["schemas"]["User"];
+      
+      if (!userData) {
+        throw new Response("User not found", { status: 404 });
+      }
+      
+      // Get posts using user ID
+      const queryParams = { params: { path: { id: userData.id } } };
       const opts = client.$api.queryOptions(
         "get",
         "/api/users/{id}/posts",

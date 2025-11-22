@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -35,6 +36,26 @@ func getByID[R domain.Repository[T, Create, Update], T, Create, Update any](
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(item)
+	}
+}
+
+func getByUsername[R interface {
+	GetByUsername(context.Context, string) (T, error)
+}, T any](
+	repo R,
+	username string,
+) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		item, err := repo.GetByUsername(r.Context(), username)
+		if err != nil {
+			log.Println(err)
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		_ = json.NewEncoder(w).Encode(item)
 	}
@@ -67,6 +88,25 @@ func getByPostID[R domain.PostScopedRepository[T, Create, Update], T, Create, Up
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(&items)
+	}
+}
+
+func getAll[R interface {
+	GetAll(context.Context) ([]T, error)
+}, T any](
+	repo R,
+) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		items, err := repo.GetAll(r.Context())
+		if err != nil {
+			log.Println(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		_ = json.NewEncoder(w).Encode(&items)
 	}
