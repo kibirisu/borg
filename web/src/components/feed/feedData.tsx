@@ -17,6 +17,7 @@ export type Post = {
   likes?: number;
   replies?: number;
   reposts?: number;
+  userID?: number; // User ID for navigation
 };
 export type Comment = {
   id: string;

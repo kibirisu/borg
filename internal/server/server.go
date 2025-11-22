@@ -62,6 +62,11 @@ func (s *Server) GetApiUsersId(w http.ResponseWriter, r *http.Request, id int) {
 	getByID(s.ds.UserRepository(), id).ServeHTTP(w, r)
 }
 
+// GetApiUsersByUsernameUsername implements api.ServerInterface.
+func (s *Server) GetApiUsersByUsernameUsername(w http.ResponseWriter, r *http.Request, username string) {
+	getByUsername(s.ds.UserRepository(), username).ServeHTTP(w, r)
+}
+
 // PostApiUsers implements api.ServerInterface.
 func (s *Server) PostApiUsers(w http.ResponseWriter, r *http.Request) {
 	create(s.ds.UserRepository()).ServeHTTP(w, r)
@@ -90,6 +95,11 @@ func (s *Server) PostApiPosts(w http.ResponseWriter, r *http.Request) {
 // PutApiPostsId implements api.ServerInterface.
 func (s *Server) PutApiPostsId(w http.ResponseWriter, r *http.Request, id int) {
 	update(s.ds.PostRepository()).ServeHTTP(w, r)
+}
+
+// GetApiPosts implements api.ServerInterface.
+func (s *Server) GetApiPosts(w http.ResponseWriter, r *http.Request) {
+	getAll(s.ds.PostRepository()).ServeHTTP(w, r)
 }
 
 // GetApiUsersIdPosts implements api.ServerInterface.

@@ -1,5 +1,16 @@
 paths:
   /api/posts:
+    get:
+      summary: Get all posts
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Post"
     post:
       summary: Create a post
       requestBody:
@@ -90,6 +101,8 @@ components:
           type: integer
         userID:
           type: integer
+        username:
+          type: string
         content:
           type: string
         likeCount:

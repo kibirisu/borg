@@ -13,6 +13,9 @@ import (
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// Get all posts
+	// (GET /api/posts)
+	GetApiPosts(w http.ResponseWriter, r *http.Request)
 	// Create a post
 	// (POST /api/posts)
 	PostApiPosts(w http.ResponseWriter, r *http.Request)
@@ -28,6 +31,9 @@ type ServerInterface interface {
 	// Create a user
 	// (POST /api/users)
 	PostApiUsers(w http.ResponseWriter, r *http.Request)
+	// Get a user by username
+	// (GET /api/users/by-username/{username})
+	GetApiUsersByUsernameUsername(w http.ResponseWriter, r *http.Request, username string)
 	// Delete a user by ID
 	// (DELETE /api/users/{id})
 	DeleteApiUsersId(w http.ResponseWriter, r *http.Request, id int)
@@ -45,6 +51,12 @@ type ServerInterface interface {
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
 
 type Unimplemented struct{}
+
+// Get all posts
+// (GET /api/posts)
+func (_ Unimplemented) GetApiPosts(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
 
 // Create a post
 // (POST /api/posts)
@@ -73,6 +85,12 @@ func (_ Unimplemented) PutApiPostsId(w http.ResponseWriter, r *http.Request, id 
 // Create a user
 // (POST /api/users)
 func (_ Unimplemented) PostApiUsers(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get a user by username
+// (GET /api/users/by-username/{username})
+func (_ Unimplemented) GetApiUsersByUsernameUsername(w http.ResponseWriter, r *http.Request, username string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -108,6 +126,20 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// GetApiPosts operation middleware
+func (siw *ServerInterfaceWrapper) GetApiPosts(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetApiPosts(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
 
 // PostApiPosts operation middleware
 func (siw *ServerInterfaceWrapper) PostApiPosts(w http.ResponseWriter, r *http.Request) {
@@ -203,6 +235,31 @@ func (siw *ServerInterfaceWrapper) PostApiUsers(w http.ResponseWriter, r *http.R
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.PostApiUsers(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetApiUsersByUsernameUsername operation middleware
+func (siw *ServerInterfaceWrapper) GetApiUsersByUsernameUsername(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "username" -------------
+	var username string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "username", chi.URLParam(r, "username"), &username, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "username", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetApiUsersByUsernameUsername(w, r, username)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -426,6 +483,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	}
 
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/posts", wrapper.GetApiPosts)
+	})
+	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/posts", wrapper.PostApiPosts)
 	})
 	r.Group(func(r chi.Router) {
@@ -439,6 +499,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/users", wrapper.PostApiUsers)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/users/by-username/{username}", wrapper.GetApiUsersByUsernameUsername)
 	})
 	r.Group(func(r chi.Router) {
 		r.Delete(options.BaseURL+"/api/users/{id}", wrapper.DeleteApiUsersId)

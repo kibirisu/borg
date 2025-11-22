@@ -58,6 +58,26 @@ paths:
         "200":
           description: Updated user
 
+  /api/users/by-username/{username}:
+    get:
+      summary: Get a user by username
+      parameters:
+        - name: username
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Username of the user (without @)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "404":
+          description: User not found
+
 components:
   schemas:
     User:

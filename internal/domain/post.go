@@ -11,6 +11,7 @@ import (
 type PostRepository interface {
 	Repository[*api.Post, *api.NewPost, *api.UpdatePost]
 	HasUserScope[*api.Post]
+	GetAll(context.Context) ([]*api.Post, error)
 }
 
 type postRepository struct {
@@ -55,16 +56,67 @@ func (r *postRepository) GetByUserID(ctx context.Context, id int32) ([]*api.Post
 	return res, nil
 }
 
+func (r *postRepository) GetAll(ctx context.Context) ([]*api.Post, error) {
+	rows, err := r.GetAllPosts(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var res []*api.Post
+	for _, row := range rows {
+		res = append(res, postRowToAPI(&row))
+	}
+	return res, nil
+}
+
 func postToAPI(p *db.Post) *api.Post {
+	likeCount := 0
+	if p.LikeCount.Valid {
+		likeCount = int(p.LikeCount.Int32)
+	}
+	shareCount := 0
+	if p.ShareCount.Valid {
+		shareCount = int(p.ShareCount.Int32)
+	}
+	commentCount := 0
+	if p.CommentCount.Valid {
+		commentCount = int(p.CommentCount.Int32)
+	}
 	return &api.Post{
-		CommentCount: 0,
+		CommentCount: commentCount,
 		Content:      p.Content,
 		CreatedAt:    p.CreatedAt.Time,
 		Id:           int(p.ID),
-		LikeCount:    int(p.LikeCount.Int32),
-		ShareCount:   int(p.ShareCount.Int32),
+		LikeCount:    likeCount,
+		ShareCount:   shareCount,
 		UpdatedAt:    p.UpdatedAt.Time,
 		UserID:       int(p.UserID),
+	}
+}
+
+func postRowToAPI(row *db.GetAllPostsRow) *api.Post {
+	likeCount := 0
+	if row.LikeCount.Valid {
+		likeCount = int(row.LikeCount.Int32)
+	}
+	shareCount := 0
+	if row.ShareCount.Valid {
+		shareCount = int(row.ShareCount.Int32)
+	}
+	commentCount := 0
+	if row.CommentCount.Valid {
+		commentCount = int(row.CommentCount.Int32)
+	}
+	username := row.Username
+	return &api.Post{
+		CommentCount: commentCount,
+		Content:      row.Content,
+		CreatedAt:    row.CreatedAt.Time,
+		Id:           int(row.ID),
+		LikeCount:    likeCount,
+		ShareCount:   shareCount,
+		UpdatedAt:    row.UpdatedAt.Time,
+		UserID:       int(row.UserID),
+		Username:     &username,
 	}
 }
 
