@@ -11,6 +11,8 @@ export interface Client {
 export default function newClient(): Client {
   const fetchClient = createFetchClient<paths>();
   const $api = createClient(fetchClient);
-  const queryClient = new QueryClient();
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { staleTime: 1000 * 10 } },
+  });
   return { queryClient, $api };
 }

@@ -15,7 +15,6 @@ export const loader =
         "/api/users/{id}/posts",
         queryParams,
       );
-      console.log(opts.queryKey);
       return { opts: opts };
     };
 

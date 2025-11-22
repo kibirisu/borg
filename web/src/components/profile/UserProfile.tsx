@@ -23,7 +23,6 @@ export const loader =
       );
       client.queryClient.prefetchQuery(postOpts);
       await client.queryClient.ensureQueryData(userOpts);
-      console.log(postOpts.queryKey);
       return { opts: userOpts };
     };
 
