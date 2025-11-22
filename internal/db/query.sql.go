@@ -15,10 +15,10 @@ INSERT INTO comments (post_id, user_id, content, parent_id) VALUES ($1, $2, $3, 
 `
 
 type AddCommentParams struct {
-	PostID   int32         `json:"postId"`
-	UserID   int32         `json:"userId"`
-	Content  string        `json:"content"`
-	ParentID sql.NullInt32 `json:"parentId"`
+	PostID   int32
+	UserID   int32
+	Content  string
+	ParentID sql.NullInt32
 }
 
 func (q *Queries) AddComment(ctx context.Context, arg AddCommentParams) error {
@@ -36,8 +36,8 @@ INSERT INTO likes (post_id, user_id) VALUES ($1, $2)
 `
 
 type AddLikeParams struct {
-	PostID int32 `json:"postId"`
-	UserID int32 `json:"userId"`
+	PostID int32
+	UserID int32
 }
 
 func (q *Queries) AddLike(ctx context.Context, arg AddLikeParams) error {
@@ -50,8 +50,8 @@ INSERT INTO posts (user_id, content) VALUES ($1, $2)
 `
 
 type AddPostParams struct {
-	UserID  int32  `json:"userId"`
-	Content string `json:"content"`
+	UserID  int32
+	Content string
 }
 
 func (q *Queries) AddPost(ctx context.Context, arg AddPostParams) error {
@@ -64,8 +64,8 @@ INSERT INTO shares (post_id, user_id) VALUES ($1, $2)
 `
 
 type AddShareParams struct {
-	PostID int32 `json:"postId"`
-	UserID int32 `json:"userId"`
+	PostID int32
+	UserID int32
 }
 
 func (q *Queries) AddShare(ctx context.Context, arg AddShareParams) error {
@@ -86,13 +86,13 @@ INSERT INTO users (
 `
 
 type AddUserParams struct {
-	Username       string         `json:"username"`
-	PasswordHash   string         `json:"passwordHash"`
-	Bio            sql.NullString `json:"bio"`
-	FollowersCount sql.NullInt32  `json:"followersCount"`
-	FollowingCount sql.NullInt32  `json:"followingCount"`
-	IsAdmin        sql.NullBool   `json:"isAdmin"`
-	Origin         sql.NullString `json:"origin"`
+	Username       string
+	PasswordHash   string
+	Bio            sql.NullString
+	FollowersCount sql.NullInt32
+	FollowingCount sql.NullInt32
+	IsAdmin        sql.NullBool
+	Origin         sql.NullString
 }
 
 func (q *Queries) AddUser(ctx context.Context, arg AddUserParams) error {
@@ -617,11 +617,11 @@ UPDATE posts SET content = $2, like_count = $3, share_count = $4, comment_count 
 `
 
 type UpdatePostParams struct {
-	ID           int32         `json:"id"`
-	Content      string        `json:"content"`
-	LikeCount    sql.NullInt32 `json:"likeCount"`
-	ShareCount   sql.NullInt32 `json:"shareCount"`
-	CommentCount sql.NullInt32 `json:"commentCount"`
+	ID           int32
+	Content      string
+	LikeCount    sql.NullInt32
+	ShareCount   sql.NullInt32
+	CommentCount sql.NullInt32
 }
 
 func (q *Queries) UpdatePost(ctx context.Context, arg UpdatePostParams) error {
@@ -640,12 +640,12 @@ UPDATE users SET password_hash = $2, bio = $3, followers_count = $4, following_c
 `
 
 type UpdateUserParams struct {
-	ID             int32          `json:"id"`
-	PasswordHash   string         `json:"passwordHash"`
-	Bio            sql.NullString `json:"bio"`
-	FollowersCount sql.NullInt32  `json:"followersCount"`
-	FollowingCount sql.NullInt32  `json:"followingCount"`
-	IsAdmin        sql.NullBool   `json:"isAdmin"`
+	ID             int32
+	PasswordHash   string
+	Bio            sql.NullString
+	FollowersCount sql.NullInt32
+	FollowingCount sql.NullInt32
+	IsAdmin        sql.NullBool
 }
 
 func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) error {

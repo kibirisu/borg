@@ -76,6 +76,19 @@ gen-sql: setup
 	@echo Generating sqlc modules...
 	@sqlc generate -f .sqlc.yaml
 
+.PHONY: gen-api
+gen-api: gen-api-go gen-api-ts
+
+.PHONY: gen-api-go
+gen-api-go:
+	@echo Generating api go code...
+	@go generate ./internal/api/codegen.go
+
+.PHONY: gen-api-ts
+gen-api-ts: $(NODE_MODULES)
+	@echo Generating api ts code...
+	@echo TODO: add `pnpm exec openapi-typescript` cmd with args here 
+
 .PHONY: clean
 clean:
 	rm -rf $(DIST_DIR)

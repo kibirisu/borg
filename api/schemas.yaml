@@ -1,0 +1,110 @@
+components:
+  schemas:
+    Like:
+      type: object
+      required:
+        - id
+        - postID
+        - userID
+        - createdAt
+      properties:
+        id:
+          type: integer
+        postID:
+          type: integer
+        userID:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+    NewLike:
+      type: object
+      required:
+        - postID
+        - userID
+      properties:
+        postID:
+          type: integer
+        userID:
+          type: integer
+    Share:
+      type: object
+      required:
+        - id
+        - postID
+        - userID
+        - createdAt
+      properties:
+        id:
+          type: integer
+        postID:
+          type: integer
+        userID:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+    NewShare:
+      type: object
+      required:
+        - postID
+        - userID
+      properties:
+        postID:
+          type: integer
+        userID:
+          type: integer
+    Follower:
+      type: object
+      required:
+        - id
+        - followerID
+        - followingID
+        - createdAt
+      properties:
+        id:
+          type: integer
+        followerID:
+          type: integer
+        followingID:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+    NewFollower:
+      type: object
+      required:
+        - followerID
+        - followingID
+      properties:
+        followerID:
+          type: integer
+        followingID:
+          type: integer
+    Comment:
+      type: object
+      required:
+        - id
+        - postID
+        - userID
+        - content
+        - parentID
+        - createdAt
+        - UpdatedAt
+      properties:
+        id:
+          type: integer
+        postID:
+          type: integer
+        userID:
+          type: integer
+        content:
+          type: string
+        parentID:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        UpdatedAt:
+          type: string
+          format: date-time

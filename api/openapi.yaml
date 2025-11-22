@@ -1,0 +1,21 @@
+openapi: 3.0.1
+info:
+  title: Borg API
+  version: 0.0.1
+  description: Borg OpenAPI specification
+  contact: {}
+
+servers:
+  - url: "http://127.0.0.1:8080"
+
+paths:
+  /api/users:
+    $ref: "users.yaml#/paths/~1api~1users"
+  /api/users/{id}:
+    $ref: "users.yaml#/paths/~1api~1users~1{id}"
+  /api/users/{id}/posts:
+    $ref: "posts.yaml#/paths/~1api~1users~1{id}~1posts"
+  /api/posts:
+    $ref: "posts.yaml#/paths/~1api~1posts"
+  /api/posts/{id}:
+    $ref: "posts.yaml#/paths/~1api~1posts~1{id}"

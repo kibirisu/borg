@@ -1,0 +1,114 @@
+paths:
+  /api/users:
+    post:
+      summary: Create a user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewUser"
+        responses:
+          "201":
+            description: Created user
+  /api/users/{id}:
+    get:
+      summary: Get a user by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+    delete:
+      summary: Delete a user by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted successfully
+
+    put:
+      summary: Update a user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUser"
+      responses:
+        "200":
+          description: Updated user
+
+components:
+  schemas:
+    User:
+      type: object
+      required:
+        - id
+        - username
+        - bio
+        - origin
+        - isAdmin
+        - followersCount
+        - followingCount
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        bio:
+          type: string
+        origin:
+          type: string
+        isAdmin:
+          type: boolean
+        followersCount:
+          type: integer
+        followingCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    NewUser:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+
+    UpdateUser:
+      type: object
+      properties:
+        bio:
+          type: string
+        isAdmin:
+          type: boolean

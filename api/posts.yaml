@@ -1,0 +1,121 @@
+paths:
+  /api/posts:
+    post:
+      summary: Create a post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewPost"
+  /api/posts/{id}:
+    get:
+      summary: Get a post by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Post"
+    delete:
+      summary: Delete a post by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted successfully
+    put:
+      summary: Update a post
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePost"
+      responses:
+        "200":
+          description: Updated user
+
+  /api/users/{id}/posts:
+    get:
+      summary: Get posts of user with ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Post"
+
+components:
+  schemas:
+    Post:
+      type: object
+      required:
+        - id
+        - userID
+        - content
+        - likeCount
+        - shareCount
+        - commentCount
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: integer
+        userID:
+          type: integer
+        content:
+          type: string
+        likeCount:
+          type: integer
+        shareCount:
+          type: integer
+        commentCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    NewPost:
+      type: object
+      required:
+        - userID
+        - content
+      properties:
+        userID:
+          type: integer
+        content:
+          type: string
+    UpdatePost:
+      type: object
+      properties:
+        content:
+          type: string

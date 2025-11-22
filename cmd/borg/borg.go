@@ -3,22 +3,24 @@ package main
 import (
 	"context"
 	"log"
-	"net/http"
 
-	"borg/pkg/config"
-	"borg/pkg/data"
-	"borg/pkg/router"
+	"borg/internal/config"
+	"borg/internal/domain"
+	"borg/internal/server"
 )
 
 func main() {
 	ctx := context.Background()
 	conf := config.GetConfig()
 
-	ds, err := data.NewDataStore(ctx, conf.DatabaseURL)
+	ds, err := domain.NewDataStore(ctx, conf.DatabaseURL)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	r := router.NewRouter(ds)
-	_ = http.ListenAndServe(":"+conf.ListenPort, r)
+	s := server.NewServer(conf.ListenPort, ds)
+	err = s.ListenAndServe()
+	if err != nil {
+		log.Fatal(err)
+	}
 }

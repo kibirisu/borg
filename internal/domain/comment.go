@@ -1,9 +1,9 @@
-package data
+package domain
 
 import (
 	"context"
 
-	"borg/pkg/db"
+	"borg/internal/db"
 )
 
 type CommentRepository interface {
