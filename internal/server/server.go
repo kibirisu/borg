@@ -31,6 +31,7 @@ func NewServer(listenPort string, ds domain.DataStore) *http.Server {
 	r := chi.NewMux()
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+	r.Use(server.createAuthMiddleware())
 	r.Route("/", func(r chi.Router) {
 		r.Get("/*", server.handleRoot)
 		r.Get("/static/*", server.handleAssets)
@@ -95,4 +96,19 @@ func (s *Server) PutApiPostsId(w http.ResponseWriter, r *http.Request, id int) {
 // GetApiUsersIdPosts implements api.ServerInterface.
 func (s *Server) GetApiUsersIdPosts(w http.ResponseWriter, r *http.Request, id int) {
 	getByUserId(s.ds.PostRepository(), id).ServeHTTP(w, r)
+}
+
+// GetApiFoo implements api.ServerInterface.
+func (s *Server) GetApiFoo(w http.ResponseWriter, r *http.Request) {
+	panic("unimplemented")
+}
+
+// PostApiAuthRegister implements api.ServerInterface.
+func (s *Server) PostApiAuthRegister(w http.ResponseWriter, r *http.Request) {
+	registerUser(s.ds.UserRepository()).ServeHTTP(w, r)
+}
+
+// PostApiAuthLogin implements api.ServerInterface.
+func (s *Server) PostApiAuthLogin(w http.ResponseWriter, r *http.Request) {
+	loginUser(s.ds.UserRepository()).ServeHTTP(w, r)
 }

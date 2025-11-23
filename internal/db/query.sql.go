@@ -577,6 +577,28 @@ func (q *Queries) GetUser(ctx context.Context, id int32) (User, error) {
 	return i, err
 }
 
+const getUserByUsername = `-- name: GetUserByUsername :one
+SELECT id, username, password_hash, bio, followers_count, following_count, is_admin, created_at, updated_at, origin FROM users WHERE username = $1
+`
+
+func (q *Queries) GetUserByUsername(ctx context.Context, username string) (User, error) {
+	row := q.db.QueryRowContext(ctx, getUserByUsername, username)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.PasswordHash,
+		&i.Bio,
+		&i.FollowersCount,
+		&i.FollowingCount,
+		&i.IsAdmin,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Origin,
+	)
+	return i, err
+}
+
 const getUserComments = `-- name: GetUserComments :many
 SELECT c.id, c.post_id, c.user_id, c.content, c.parent_id, c.created_at, c.updated_at FROM comments c JOIN users u ON c.user_id = u.id WHERE u.id = $1
 `

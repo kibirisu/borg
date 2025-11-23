@@ -3,5 +3,9 @@ package: api
 output: api.gen.go
 generate:
   chi-server: true
+  embedded-spec: true
 import-mapping:
+  ./auth.yaml: "-"
+  ./posts.yaml: "-"
   ./users.yaml: "-"
+  ./schemas.yaml: "-"

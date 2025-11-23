@@ -20,7 +20,10 @@ func create[R domain.Repository[T, Create, Update], T, Create, Update any](
 		}
 		if err := repo.Create(r.Context(), item); err != nil {
 			log.Println(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
 		}
+		w.WriteHeader(http.StatusOK)
 	}
 }
 

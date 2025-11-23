@@ -12,6 +12,9 @@ INSERT INTO users (
 -- name: GetUser :one
 SELECT * FROM users WHERE id = $1;
 
+-- name: GetUserByUsername :one
+SELECT * FROM users WHERE username = $1;
+
 -- name: GetFollowedUsers :many
 SELECT u.* FROM users u JOIN followers f ON u.id = f.following_id WHERE f.follower_id = $1;
 
