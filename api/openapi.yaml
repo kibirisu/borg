@@ -25,3 +25,10 @@ paths:
     $ref: "auth.yaml#/paths/~1api~1auth~1login"
   /api/foo:
     $ref: "auth.yaml#/paths/~1api~1foo"
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: Bearer
+      bearerFormat: JWT

@@ -11,8 +11,11 @@ import (
 	"borg/internal/domain"
 
 	"github.com/getkin/kin-openapi/openapi3filter"
+	"github.com/golang-jwt/jwt/v5"
 	middleware "github.com/oapi-codegen/nethttp-middleware"
 )
+
+const signingKey = "ultra-uncrackable-secret-key"
 
 func registerUser(repo domain.UserRepository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -44,6 +47,14 @@ func loginUser(repo domain.UserRepository) http.HandlerFunc {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+		jwt := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+			"username": creds.Username,
+		})
+		token, err := jwt.SignedString([]byte(signingKey))
+		if err != nil {
+			log.Println(err)
+		}
+		w.Header().Set("Authorization", "Bearer "+token)
 		w.WriteHeader(http.StatusOK)
 	}
 }
@@ -51,7 +62,7 @@ func loginUser(repo domain.UserRepository) http.HandlerFunc {
 func (s *Server) createAuthMiddleware() func(http.Handler) http.Handler {
 	spec, err := api.GetSwagger()
 	if err != nil {
-		return nil
+		panic(err)
 	}
 	spec.Servers = nil
 	return middleware.OapiRequestValidatorWithOptions(spec, &middleware.Options{
@@ -62,6 +73,7 @@ func (s *Server) createAuthMiddleware() func(http.Handler) http.Handler {
 }
 
 func authFunc(ctx context.Context, ai *openapi3filter.AuthenticationInput) error {
-	println(ai.RequestValidationInput.Request.URL.Path)
+	token := ai.RequestValidationInput.Request.Header.Get("Authorization")
+	log.Println(token)
 	return errors.New("error")
 }
