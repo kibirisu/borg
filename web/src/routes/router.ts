@@ -1,6 +1,11 @@
 import { createBrowserRouter } from "react-router";
 import App from "../App";
 import Feed, { loader as feedLoader } from "../components/common/Feed";
+import CommentView, {
+  CommentsFeed,
+  commentsLoader,
+  loader as masterPostLoader,
+} from "../components/feed/CommentView";
 import MainFeed from "../components/feed/MainFeed";
 import User, { loader as userLoader } from "../components/profile/UserProfile";
 import type { Client } from "../lib/api/client";
@@ -22,6 +27,19 @@ export const newRouter = (client: Client) =>
               index: true,
               Component: Feed,
               loader: feedLoader(client),
+            },
+          ],
+        },
+        {
+          path: "post/:postId",
+          Component: CommentView,
+          loader: masterPostLoader(client),
+          errorElement: "error",
+          children: [
+            {
+              index: true,
+              Component: CommentsFeed,
+              loader: commentsLoader(client),
             },
           ],
         },
