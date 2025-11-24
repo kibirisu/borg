@@ -1,5 +1,13 @@
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { UserX } from "lucide-react";
-import { useParams } from "react-router";
+import { useState } from "react";
+import {
+  type LoaderFunctionArgs,
+  Outlet,
+  useLoaderData,
+  useParams,
+} from "react-router";
+import type { Client } from "../../lib/api/client";
 import {
   type Comment,
   type Post,
@@ -8,6 +16,26 @@ import {
 } from "../feed/feedData";
 import PostItem from "../feed/PostItem";
 import TopAppBar from "../TopAppBar";
+
+export const loader =
+  (client: Client) =>
+  async ({ params }: LoaderFunctionArgs) => {
+    const postId = parseInt(String(params.postId));
+    const queryParams = { params: { path: { id: userId } } };
+    const postOpts = client.$api.queryOptions(
+      "get",
+      "/api/posts/{id}",
+      queryParams,
+    );
+    const commentOpts = client.$api.queryOptions(
+      "get",
+      "/api/posts/{id}/posts",
+      queryParams,
+    );
+    client.queryClient.prefetchQuery(postOpts);
+    await client.queryClient.ensureQueryData(commentOpts);
+    return { opts: commentOpts };
+  };
 
 /**
  * View a single post (enlarged) and display its comments below.
