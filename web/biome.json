@@ -13,12 +13,11 @@
     "useIgnoreFile": true
   },
   "formatter": {
-    "indentStyle": "space",
-    "lineWidth": 120
+    "indentStyle": "space"
   },
   "javascript": {
     "formatter": {
-      "quoteStyle": "single"
+      "quoteStyle": "double"
     }
   },
   "css": {
@@ -28,11 +27,9 @@
     }
   },
   "linter": {
+    "enabled": true,
     "rules": {
       "recommended": true
     }
-  },
-  "files": {
-    "includes": ["**", "!!dist", "!!db"]
   }
 }
