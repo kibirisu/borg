@@ -81,30 +81,3 @@ components:
           type: integer
         followingID:
           type: integer
-    Comment:
-      type: object
-      required:
-        - id
-        - postID
-        - userID
-        - content
-        - parentID
-        - createdAt
-        - UpdatedAt
-      properties:
-        id:
-          type: integer
-        postID:
-          type: integer
-        userID:
-          type: integer
-        content:
-          type: string
-        parentID:
-          type: integer
-        createdAt:
-          type: string
-          format: date-time
-        UpdatedAt:
-          type: string
-          format: date-time

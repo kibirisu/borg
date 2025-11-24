@@ -54,6 +54,24 @@ paths:
       responses:
         "200":
           description: Updated user
+  /api/posts/comments/{id}:
+    get:
+      summary: Get a post's comments by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Comment"
 
   /api/users/{id}/posts:
     get:
@@ -121,3 +139,30 @@ components:
       properties:
         content:
           type: string
+    Comment:
+      type: object
+      required:
+        - id
+        - postID
+        - userID
+        - content
+        - parentID
+        - createdAt
+        - UpdatedAt
+      properties:
+        id:
+          type: integer
+        postID:
+          type: integer
+        userID:
+          type: integer
+        content:
+          type: string
+        parentID:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        UpdatedAt:
+          type: string
+          format: date-time
