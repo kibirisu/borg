@@ -1,7 +1,7 @@
-import type { paths } from "./v1";
 import { QueryClient } from "@tanstack/react-query";
 import createFetchClient, { type Middleware } from "openapi-fetch";
 import createClient, { type OpenapiQueryClient } from "openapi-react-query";
+import type { paths } from "./v1";
 
 export interface Client {
   queryClient: QueryClient;

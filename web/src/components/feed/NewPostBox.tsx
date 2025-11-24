@@ -1,23 +1,26 @@
-import type React from 'react';
-import { useRef, useState } from 'react';
+import type React from "react";
+import { useRef, useState } from "react";
 
 type Props = {
   onPost: (content: string) => void;
 };
 
 export default function NewPostBox({ onPost }: Props) {
-  const [text, setText] = useState('');
+  const [text, setText] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!text.trim()) return;
     onPost(text);
-    setText('');
+    setText("");
   }
 
   return (
-    <form onSubmit={handleSubmit} className="border-b border-gray-300 p-3 flex items-start space-x-3 bg-white">
+    <form
+      onSubmit={handleSubmit}
+      className="border-b border-gray-300 p-3 flex items-start space-x-3 bg-white"
+    >
       <div className="flex-1 overflow-hidden">
         <textarea
           ref={textareaRef}

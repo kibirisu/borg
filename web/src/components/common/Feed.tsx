@@ -1,26 +1,26 @@
-import { MessageCircle, Repeat, Heart, Share2 } from "lucide-react";
-import ReactMarkdown from "react-markdown";
-import type { components } from "../../lib/api/v1";
-import type { Client } from "../../lib/api/client";
-import { useLoaderData, type LoaderFunctionArgs } from "react-router";
 import { useQuery } from "@tanstack/react-query";
+import { Heart, MessageCircle, Repeat, Share2 } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import { type LoaderFunctionArgs, useLoaderData } from "react-router";
+import type { Client } from "../../lib/api/client";
+import type { components } from "../../lib/api/v1";
 
 export const loader =
   (client: Client) =>
-    async ({ params }: LoaderFunctionArgs) => {
-      const userId = parseInt(String(params.handle));
-      const queryParams = { params: { path: { id: userId } } };
-      const opts = client.$api.queryOptions(
-        "get",
-        "/api/users/{id}/posts",
-        queryParams,
-      );
-      await client.queryClient.ensureQueryData(opts);
-      return { opts: opts };
-    };
+  async ({ params }: LoaderFunctionArgs) => {
+    const userId = parseInt(String(params.handle));
+    const queryParams = { params: { path: { id: userId } } };
+    const opts = client.$api.queryOptions(
+      "get",
+      "/api/users/{id}/posts",
+      queryParams,
+    );
+    await client.queryClient.ensureQueryData(opts);
+    return { opts: opts };
+  };
 
 export default function Feed() {
-  const { opts: opts } = useLoaderData() as Awaited<
+  const { opts } = useLoaderData() as Awaited<
     ReturnType<ReturnType<typeof loader>>
   >;
   const { data, isPending } = useQuery(opts);

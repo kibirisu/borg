@@ -36,6 +36,7 @@ jobs:
         with:
           node-version: 22
           cache: "pnpm"
+          cache-dependency-path: web/pnpm-lock.yaml
       - name: Install Go
         uses: actions/setup-go@v6
         with:

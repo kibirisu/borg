@@ -1,8 +1,13 @@
-import { UserX } from 'lucide-react';
-import { useParams } from 'react-router';
-import { type Comment, type Post, sampleComments, samplePosts } from '../feed/feedData';
-import PostItem from '../feed/PostItem';
-import TopAppBar from '../TopAppBar';
+import { UserX } from "lucide-react";
+import { useParams } from "react-router";
+import {
+  type Comment,
+  type Post,
+  sampleComments,
+  samplePosts,
+} from "../feed/feedData";
+import PostItem from "../feed/PostItem";
+import TopAppBar from "../TopAppBar";
 
 /**
  * View a single post (enlarged) and display its comments below.
@@ -22,8 +27,13 @@ export default function CommentView({ onTopBarSearch }: any) {
           <div className="bg-red-100 text-red-600 p-4 rounded-full">
             <UserX className="w-10 h-10" />
           </div>
-          <h1 className="text-3xl font-bold">Sorry, that post does not exist</h1>
-          <p className="text-gray-500">The post you’re looking for might have been deleted or never existed.</p>
+          <h1 className="text-3xl font-bold">
+            Sorry, that post does not exist
+          </h1>
+          <p className="text-gray-500">
+            The post you’re looking for might have been deleted or never
+            existed.
+          </p>
           <a
             href="/"
             className="mt-4 inline-block px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
@@ -51,7 +61,9 @@ export default function CommentView({ onTopBarSearch }: any) {
         {/* Comments list */}
         <section className="divide-y divide-gray-200">
           {comments.length === 0 ? (
-            <div className="p-6 text-gray-500 text-center">No comments yet. Be the first to reply!</div>
+            <div className="p-6 text-gray-500 text-center">
+              No comments yet. Be the first to reply!
+            </div>
           ) : (
             comments.map((comment) => (
               <div key={comment.id} className="p-4">

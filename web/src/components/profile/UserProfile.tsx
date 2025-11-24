@@ -1,33 +1,33 @@
 // If you're working on this please be familiar how react query works!!!
 // https://tanstack.com/query/latest
 
-import { Outlet, useLoaderData, type LoaderFunctionArgs } from "react-router";
-import type { Client } from "../../lib/api/client";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useState } from "react";
+import { type LoaderFunctionArgs, Outlet, useLoaderData } from "react-router";
+import type { Client } from "../../lib/api/client";
 
 export const loader =
   (client: Client) =>
-    async ({ params }: LoaderFunctionArgs) => {
-      const userId = parseInt(String(params.handle));
-      const queryParams = { params: { path: { id: userId } } };
-      const userOpts = client.$api.queryOptions(
-        "get",
-        "/api/users/{id}",
-        queryParams,
-      );
-      const postOpts = client.$api.queryOptions(
-        "get",
-        "/api/users/{id}/posts",
-        queryParams,
-      );
-      client.queryClient.prefetchQuery(postOpts);
-      await client.queryClient.ensureQueryData(userOpts);
-      return { opts: userOpts };
-    };
+  async ({ params }: LoaderFunctionArgs) => {
+    const userId = parseInt(String(params.handle));
+    const queryParams = { params: { path: { id: userId } } };
+    const userOpts = client.$api.queryOptions(
+      "get",
+      "/api/users/{id}",
+      queryParams,
+    );
+    const postOpts = client.$api.queryOptions(
+      "get",
+      "/api/users/{id}/posts",
+      queryParams,
+    );
+    client.queryClient.prefetchQuery(postOpts);
+    await client.queryClient.ensureQueryData(userOpts);
+    return { opts: userOpts };
+  };
 
 export default function User() {
-  const { opts: opts } = useLoaderData() as Awaited<
+  const { opts } = useLoaderData() as Awaited<
     ReturnType<ReturnType<typeof loader>>
   >;
   const { data: userData } = useSuspenseQuery(opts);
