@@ -4,9 +4,9 @@ import (
 	"context"
 	"log"
 
-	"borg/internal/config"
-	"borg/internal/domain"
-	"borg/internal/server"
+	"github.com/kibirisu/borg/internal/config"
+	"github.com/kibirisu/borg/internal/domain"
+	"github.com/kibirisu/borg/internal/server"
 )
 
 func main() {

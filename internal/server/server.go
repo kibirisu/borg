@@ -4,13 +4,13 @@ import (
 	"io/fs"
 	"net/http"
 
-	"borg/internal/api"
-	"borg/internal/config"
-	"borg/internal/domain"
-	"borg/web"
-
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+
+	"github.com/kibirisu/borg/internal/api"
+	"github.com/kibirisu/borg/internal/config"
+	"github.com/kibirisu/borg/internal/domain"
+	"github.com/kibirisu/borg/web"
 )
 
 var _ api.ServerInterface = (*Server)(nil)
@@ -109,4 +109,14 @@ func (s *Server) PostApiAuthRegister(w http.ResponseWriter, r *http.Request) {
 // PostApiAuthLogin implements api.ServerInterface.
 func (s *Server) PostApiAuthLogin(w http.ResponseWriter, r *http.Request) {
 	loginUser(s.ds.UserRepository()).ServeHTTP(w, r)
+}
+
+// GetApiUsersIdFollowers implements api.ServerInterface.
+func (s *Server) GetApiUsersIdFollowers(w http.ResponseWriter, r *http.Request, id int) {
+	getFollowers(s.ds.UserRepository(), id).ServeHTTP(w, r)
+}
+
+// GetApiUsersIdFollowing implements api.ServerInterface.
+func (s *Server) GetApiUsersIdFollowing(w http.ResponseWriter, r *http.Request, id int) {
+	getFollowing(s.ds.UserRepository(), id).ServeHTTP(w, r)
 }

@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 
-	"borg/internal/domain"
+	"github.com/kibirisu/borg/internal/domain"
 )
 
 func create[R domain.Repository[T, Create, Update], T, Create, Update any](
@@ -59,21 +59,23 @@ func getByUserId[R domain.UserScopedRepository[T, Create, Update], T, Create, Up
 	}
 }
 
-func getByPostID[R domain.PostScopedRepository[T, Create, Update], T, Create, Update any](
-	repo R,
-	id int,
-) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		items, err := repo.GetByPostID(r.Context(), int32(id))
-		if err != nil {
-			log.Println(err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		w.WriteHeader(http.StatusOK)
-		_ = json.NewEncoder(w).Encode(&items)
-	}
-}
+// Temporary commented out (linter)
+
+// func getByPostID[R domain.PostScopedRepository[T, Create, Update], T, Create, Update any](
+// 	repo R,
+// 	id int,
+// ) http.HandlerFunc {
+// 	return func(w http.ResponseWriter, r *http.Request) {
+// 		items, err := repo.GetByPostID(r.Context(), int32(id))
+// 		if err != nil {
+// 			log.Println(err)
+// 			w.WriteHeader(http.StatusInternalServerError)
+// 			return
+// 		}
+// 		w.WriteHeader(http.StatusOK)
+// 		_ = json.NewEncoder(w).Encode(&items)
+// 	}
+// }
 
 func deleteByID[R domain.Repository[T, Create, Update], T, Create, Update any](
 	repo R,
@@ -122,7 +124,7 @@ func getFollowers(repo domain.UserRepository, id int) http.HandlerFunc {
 	}
 }
 
-func getGollowing(repo domain.UserRepository, id int) http.HandlerFunc {
+func getFollowing(repo domain.UserRepository, id int) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		users, err := repo.GetFollowed(r.Context(), int32(id))
 		if err != nil {

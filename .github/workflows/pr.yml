@@ -1,0 +1,41 @@
+name: Checks
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  check-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: "1.25"
+      - name: Check go mod
+        run: go mod tidy
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - name: Install Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: "pnpm"
+          cache-dependency-path: web/pnpm-lock.yaml
+      - name: Build application
+        run: make build
+      - name: Lint Go
+        uses: golangci/golangci-lint-action@v9
+      - uses: sqlc-dev/setup-sqlc@v4
+        with:
+          sqlc-version: "1.30.0"
+      - name: Check sqlc
+        run: sqlc diff -f .sqlc.yaml && sqlc vet -f .sqlc.yaml
+      - name: Run Biome
+        run: pnpm --prefix web exec biome ci

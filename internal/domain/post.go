@@ -4,8 +4,8 @@ import (
 	"context"
 	"database/sql"
 
-	"borg/internal/api"
-	"borg/internal/db"
+	"github.com/kibirisu/borg/internal/api"
+	"github.com/kibirisu/borg/internal/db"
 )
 
 type PostRepository interface {

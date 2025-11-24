@@ -8,12 +8,12 @@ import (
 	"net/http"
 	"strings"
 
-	"borg/internal/api"
-	"borg/internal/domain"
-
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/golang-jwt/jwt/v5"
 	middleware "github.com/oapi-codegen/nethttp-middleware"
+
+	"github.com/kibirisu/borg/internal/api"
+	"github.com/kibirisu/borg/internal/domain"
 )
 
 var signingKey string

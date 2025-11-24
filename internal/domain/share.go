@@ -3,7 +3,7 @@ package domain
 import (
 	"context"
 
-	"borg/internal/db"
+	"github.com/kibirisu/borg/internal/db"
 )
 
 type ShareRepository interface {

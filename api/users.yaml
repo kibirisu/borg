@@ -11,6 +11,7 @@ paths:
         responses:
           "201":
             description: Created user
+
   /api/users/{id}:
     get:
       summary: Get a user by ID
@@ -57,6 +58,44 @@ paths:
       responses:
         "200":
           description: Updated user
+
+  /api/users/{id}/followers:
+    get:
+      summary: Get followers of the user with ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+
+  /api/users/{id}/following:
+    get:
+      summary: Get followed of the user with ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
 
 components:
   schemas:

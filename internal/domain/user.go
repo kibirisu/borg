@@ -5,10 +5,10 @@ import (
 	"database/sql"
 	"log"
 
-	"borg/internal/api"
-	"borg/internal/db"
-
 	"golang.org/x/crypto/bcrypt"
+
+	"github.com/kibirisu/borg/internal/api"
+	"github.com/kibirisu/borg/internal/db"
 )
 
 type UserRepository interface {

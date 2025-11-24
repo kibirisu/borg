@@ -14,7 +14,7 @@
 
 ### Running In Development Mode
 
-> Requires Go ≥ 1.25.3, pnpm, make and container engine running locally.
+> Requires Go ≥ 1.25, pnpm, make and container engine running locally.
 
 ```bash
 make dev

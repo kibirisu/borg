@@ -15,6 +15,10 @@ paths:
     $ref: "users.yaml#/paths/~1api~1users~1{id}"
   /api/users/{id}/posts:
     $ref: "posts.yaml#/paths/~1api~1users~1{id}~1posts"
+  /api/users/{id}/followers:
+    $ref: "users.yaml#/paths/~1api~1users~1{id}~1followers"
+  /api/users/{id}/following:
+    $ref: "users.yaml#/paths/~1api~1users~1{id}~1following"
   /api/posts:
     $ref: "posts.yaml#/paths/~1api~1posts"
   /api/posts/{id}:

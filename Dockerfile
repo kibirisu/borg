@@ -9,9 +9,9 @@ WORKDIR /app
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 RUN pnpm build
 
-FROM golang:1.25.3-alpine AS backend
+FROM golang:1.25-alpine AS backend
 WORKDIR /usr/src/app
-COPY go.mod go.sum .
+COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .

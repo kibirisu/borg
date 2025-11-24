@@ -1,6 +1,6 @@
-module borg
+module github.com/kibirisu/borg
 
-go 1.25.3
+go 1.25.0
 
 require (
 	github.com/getkin/kin-openapi v0.133.0
