@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"borg/internal/api"
+	"borg/internal/config"
 	"borg/internal/domain"
 	"borg/web"
 
@@ -17,20 +18,23 @@ var _ api.ServerInterface = (*Server)(nil)
 type Server struct {
 	ds     domain.DataStore
 	assets fs.FS
+	conf   *config.Config
 }
 
-func NewServer(listenPort string, ds domain.DataStore) *http.Server {
+func NewServer(conf *config.Config, ds domain.DataStore) *http.Server {
 	assets, err := web.GetAssets()
 	if err != nil {
 		panic(err)
 	}
 	server := &Server{
-		ds:     ds,
-		assets: assets,
+		ds,
+		assets,
+		conf,
 	}
 	r := chi.NewMux()
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+	r.Use(server.createAuthMiddleware())
 	r.Route("/", func(r chi.Router) {
 		r.Get("/*", server.handleRoot)
 		r.Get("/static/*", server.handleAssets)
@@ -39,7 +43,7 @@ func NewServer(listenPort string, ds domain.DataStore) *http.Server {
 
 	s := &http.Server{
 		Handler: h,
-		Addr:    "0.0.0.0:" + listenPort,
+		Addr:    "0.0.0.0:" + conf.ListenPort,
 	}
 	return s
 }
@@ -95,4 +99,14 @@ func (s *Server) PutApiPostsId(w http.ResponseWriter, r *http.Request, id int) {
 // GetApiUsersIdPosts implements api.ServerInterface.
 func (s *Server) GetApiUsersIdPosts(w http.ResponseWriter, r *http.Request, id int) {
 	getByUserId(s.ds.PostRepository(), id).ServeHTTP(w, r)
+}
+
+// PostApiAuthRegister implements api.ServerInterface.
+func (s *Server) PostApiAuthRegister(w http.ResponseWriter, r *http.Request) {
+	registerUser(s.ds.UserRepository()).ServeHTTP(w, r)
+}
+
+// PostApiAuthLogin implements api.ServerInterface.
+func (s *Server) PostApiAuthLogin(w http.ResponseWriter, r *http.Request) {
+	loginUser(s.ds.UserRepository()).ServeHTTP(w, r)
 }

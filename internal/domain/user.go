@@ -3,15 +3,20 @@ package domain
 import (
 	"context"
 	"database/sql"
+	"log"
 
 	"borg/internal/api"
 	"borg/internal/db"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 type UserRepository interface {
 	Repository[*api.User, *api.NewUser, *api.UpdateUser]
 	GetFollowed(context.Context, int32) ([]*api.User, error)
 	GetFollowers(context.Context, int32) ([]*api.User, error)
+	RegisterUser(context.Context, *api.Login) error
+	ValidateCredentials(context.Context, *api.Login) error
 }
 
 type userRepository struct {
@@ -66,6 +71,30 @@ func (r *userRepository) GetFollowers(ctx context.Context, id int32) ([]*api.Use
 		res = append(res, userToAPI(&i))
 	}
 	return res, nil
+}
+
+func (r *userRepository) RegisterUser(ctx context.Context, credentials *api.Login) error {
+	hash, err := bcrypt.GenerateFromPassword([]byte(credentials.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+	log.Println(string(hash))
+	user := db.AddUserParams{Username: credentials.Username, PasswordHash: string(hash)}
+	if err := r.AddUser(ctx, user); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *userRepository) ValidateCredentials(ctx context.Context, credentials *api.Login) error {
+	user, err := r.GetUserByUsername(ctx, credentials.Username)
+	if err != nil {
+		return err
+	}
+	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(credentials.Password)); err != nil {
+		return err
+	}
+	return nil
 }
 
 func userToAPI(u *db.User) *api.User {

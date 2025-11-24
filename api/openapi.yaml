@@ -19,3 +19,14 @@ paths:
     $ref: "posts.yaml#/paths/~1api~1posts"
   /api/posts/{id}:
     $ref: "posts.yaml#/paths/~1api~1posts~1{id}"
+  /api/auth/register:
+    $ref: "auth.yaml#/paths/~1api~1auth~1register"
+  /api/auth/login:
+    $ref: "auth.yaml#/paths/~1api~1auth~1login"
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: Bearer
+      bearerFormat: JWT
