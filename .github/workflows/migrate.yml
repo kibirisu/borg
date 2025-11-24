@@ -57,7 +57,7 @@ jobs:
           goose postgres "$CONN" up
 
       - name: Migrate down
-        working-directory: pkg/db/migrations
+        working-directory: internal/db/migrations
         run: |
           CONN="postgres://postgres:postgres@localhost:5432/postgres"
           goose postgres "$CONN" down-to 0
