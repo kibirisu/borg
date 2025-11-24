@@ -20,37 +20,31 @@ jobs:
           else
             echo "merge=false" >> $GITHUB_OUTPUT
           fi
-
       - name: Run build only for merge commits
         if: steps.check_merge.outputs.merge == 'true'
         run: |
           echo "This is a merge commit on main — running tests"
 
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Set up Go
-        uses: actions/setup-go@v4
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
         with:
-          go-version: 1.25
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
+          version: 10
+      - name: Install Node.js
+        uses: actions/setup-node@v6
         with:
           node-version: 22
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@v3
+          cache: "pnpm"
+      - name: Install Go
+        uses: actions/setup-go@v6
         with:
-          version: 9
-          run_install: false
-
-      - name: Install Node dependencies
-        run: pnpm run ci
-        working-directory: web
-
-      - name: Build application frontend
-        run: make build-frontend
-
-      - name: Build application backend
-        run: make build-backend
+          go-version: "1.25.3"
+      - name: Run Biome
+        run: pnpm --prefix web install
+      - run: pnpm --prefix web exec biome ci
+      - run: mkdir -p web/dist && touch web/dist/index.html
+      - name: Run Go Linter
+        uses: golangci/golangci-lint-action@v9
+      - name: Build application
+        run: make build
