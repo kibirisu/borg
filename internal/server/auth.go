@@ -6,6 +6,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"strings"
 
 	"borg/internal/api"
 	"borg/internal/domain"
@@ -73,7 +74,18 @@ func (s *Server) createAuthMiddleware() func(http.Handler) http.Handler {
 }
 
 func authFunc(ctx context.Context, ai *openapi3filter.AuthenticationInput) error {
-	token := ai.RequestValidationInput.Request.Header.Get("Authorization")
-	log.Println(token)
-	return errors.New("error")
+	header := ai.RequestValidationInput.Request.Header.Get("Authorization")
+	if header == "" {
+		return errors.New("token not provided")
+	}
+	token, present := strings.CutPrefix(header, "Bearer: ")
+	if !present {
+		return errors.New("header value should start with \"Bearer: \"")
+	}
+	if _, err := jwt.Parse(token, func(t *jwt.Token) (any, error) {
+		return []byte(signingKey), nil
+	}, jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()})); err != nil {
+		return err
+	}
+	return nil
 }
