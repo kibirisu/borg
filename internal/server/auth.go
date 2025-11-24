@@ -16,7 +16,7 @@ import (
 	middleware "github.com/oapi-codegen/nethttp-middleware"
 )
 
-const signingKey = "ultra-uncrackable-secret-key"
+var signingKey string
 
 func registerUser(repo domain.UserRepository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -54,8 +54,10 @@ func loginUser(repo domain.UserRepository) http.HandlerFunc {
 		token, err := jwt.SignedString([]byte(signingKey))
 		if err != nil {
 			log.Println(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
 		}
-		w.Header().Set("Authorization", "Bearer "+token)
+		w.Header().Set("Authorization", "Bearer: "+token)
 		w.WriteHeader(http.StatusOK)
 	}
 }
@@ -66,6 +68,7 @@ func (s *Server) createAuthMiddleware() func(http.Handler) http.Handler {
 		panic(err)
 	}
 	spec.Servers = nil
+	signingKey = s.conf.JWTSecret
 	return middleware.OapiRequestValidatorWithOptions(spec, &middleware.Options{
 		Options: openapi3filter.Options{
 			AuthenticationFunc: authFunc,

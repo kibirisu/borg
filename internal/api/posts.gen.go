@@ -7,6 +7,10 @@ import (
 	"time"
 )
 
+const (
+	BearerAuthScopes = "BearerAuth.Scopes"
+)
+
 // NewPost defines model for NewPost.
 type NewPost struct {
 	Content string `json:"content"`

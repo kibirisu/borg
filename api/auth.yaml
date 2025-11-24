@@ -23,13 +23,6 @@ paths:
       responses:
         "200":
           description: Successfully signed up
-  /api/foo:
-    get:
-      security:
-        - BearerAuth: []
-      responses:
-        "200":
-          description: OK
 
 components:
   schemas:
