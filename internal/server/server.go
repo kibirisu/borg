@@ -31,15 +31,21 @@ func NewServer(conf *config.Config, ds domain.DataStore) *http.Server {
 		assets,
 		conf,
 	}
-	r := chi.NewMux()
+	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
-	r.Use(server.createAuthMiddleware())
 	r.Route("/", func(r chi.Router) {
-		r.Get("/*", server.handleRoot)
+		r.Get("/*", server.serveFile("index.html"))
 		r.Get("/static/*", server.handleAssets)
+		r.Get("/api/docs", server.serveFile("docs.html"))
 	})
-	h := api.HandlerFromMux(server, r)
+	h := api.HandlerWithOptions(
+		server,
+		api.ChiServerOptions{
+			BaseRouter:  r,
+			Middlewares: []api.MiddlewareFunc{server.createAuthMiddleware()},
+		},
+	)
 
 	s := &http.Server{
 		Handler: h,
@@ -48,8 +54,10 @@ func NewServer(conf *config.Config, ds domain.DataStore) *http.Server {
 	return s
 }
 
-func (s *Server) handleRoot(w http.ResponseWriter, r *http.Request) {
-	http.ServeFileFS(w, r, s.assets, "index.html")
+func (s *Server) serveFile(file string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFileFS(w, r, s.assets, file)
+	}
 }
 
 func (s *Server) handleAssets(w http.ResponseWriter, r *http.Request) {

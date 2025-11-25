@@ -5,7 +5,8 @@
 
 # Dist
 node_modules
-dist/
+dist/*
+!dist/doc.html
 
 # Profile
 .rspack-profile-*/
