@@ -1,4 +1,4 @@
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { UserX } from "lucide-react";
 import { useState } from "react";
 import {
@@ -8,20 +8,15 @@ import {
   useParams,
 } from "react-router";
 import type { Client } from "../../lib/api/client";
-import {
-  type Comment,
-  type Post,
-  sampleComments,
-  samplePosts,
-} from "../feed/feedData";
-import PostItem from "../feed/PostItem";
-import TopAppBar from "../TopAppBar";
+import type { components } from "../../lib/api/v1";
+import { Post, type PostPresentable } from "../common/Feed";
 
 export const loader =
   (client: Client) =>
   async ({ params }: LoaderFunctionArgs) => {
     const postId = parseInt(String(params.postId));
-    const queryParams = { params: { path: { id: userId } } };
+    console.log(postId);
+    const queryParams = { params: { path: { id: postId } } };
     const postOpts = client.$api.queryOptions(
       "get",
       "/api/posts/{id}",
@@ -29,10 +24,23 @@ export const loader =
     );
     const commentOpts = client.$api.queryOptions(
       "get",
-      "/api/posts/{id}/posts",
+      "/api/posts/{id}/comments",
       queryParams,
     );
-    client.queryClient.prefetchQuery(postOpts);
+    client.queryClient.prefetchQuery(commentOpts);
+    await client.queryClient.ensureQueryData(postOpts);
+    return { opts: postOpts };
+  };
+export const commentsLoader =
+  (client: Client) =>
+  async ({ params }: LoaderFunctionArgs) => {
+    const postId = parseInt(String(params.postId));
+    const queryParams = { params: { path: { id: postId } } };
+    const commentOpts = client.$api.queryOptions(
+      "get",
+      "/api/posts/{id}/comments",
+      queryParams,
+    );
     await client.queryClient.ensureQueryData(commentOpts);
     return { opts: commentOpts };
   };
@@ -40,67 +48,38 @@ export const loader =
 /**
  * View a single post (enlarged) and display its comments below.
  */
-export default function CommentView({ onTopBarSearch }: any) {
-  const params = useParams();
-  const postId = params.postId;
-
-  // Pretend to fetch the post and comments
-  const post = samplePosts.find((p: Post) => p.id === postId);
-  const comments = sampleComments.filter((c: Comment) => c.postId === postId);
-
-  if (!post) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen text-center p-6">
-        <div className="flex flex-col items-center gap-4 max-w-md">
-          <div className="bg-red-100 text-red-600 p-4 rounded-full">
-            <UserX className="w-10 h-10" />
-          </div>
-          <h1 className="text-3xl font-bold">
-            Sorry, that post does not exist
-          </h1>
-          <p className="text-gray-500">
-            The post you’re looking for might have been deleted or never
-            existed.
-          </p>
-          <a
-            href="/"
-            className="mt-4 inline-block px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
-          >
-            Go back home
-          </a>
-        </div>
-      </div>
-    );
-  }
-
+export default function CommentView() {
+  const { opts } = useLoaderData() as Awaited<
+    ReturnType<ReturnType<typeof loader>>
+  >;
+  const postData = useSuspenseQuery(opts);
   return (
-    <div>
-      <TopAppBar onSearch={onTopBarSearch} />
-      <div className="max-w-2xl mx-auto border-x border-gray-300 min-h-screen bg-white">
-        <header className="p-4 border-b border-gray-300 text-xl font-bold sticky top-0 bg-white/80 backdrop-blur z-10 text-black">
-          Post
-        </header>
+    <div className="max-w-2xl mx-auto border-x border-gray-300 min-h-screen bg-white">
+      <header className="p-4 border-b border-gray-300 text-xl font-bold sticky top-0 bg-white/80 backdrop-blur z-10 text-black">
+        Post
+      </header>
 
-        {/* The main post (enlarged) */}
-        <div className="border-b border-gray-200 p-4 bg-gray-50">
-          <PostItem post={post} showMeta={true} emphasize={true} />
-        </div>
-
-        {/* Comments list */}
-        <section className="divide-y divide-gray-200">
-          {comments.length === 0 ? (
-            <div className="p-6 text-gray-500 text-center">
-              No comments yet. Be the first to reply!
-            </div>
-          ) : (
-            comments.map((comment) => (
-              <div key={comment.id} className="p-4">
-                <PostItem post={comment} showMeta={false} />
-              </div>
-            ))
-          )}
-        </section>
+      <div className="border-b border-gray-200 p-4 bg-gray-50">
+        <Post {...postData} />
       </div>
+      <Outlet />
+    </div>
+  );
+}
+
+export function CommentsFeed() {
+  const { opts } = useLoaderData() as Awaited<
+    ReturnType<ReturnType<typeof commentsLoader>>
+  >;
+  const { data, isPending } = useQuery(opts);
+  if (isPending) {
+    return <></>;
+  }
+  return (
+    <div className="max-w-2xl mx-auto border-x border-gray-300 min-h-screen bg-white">
+      {data?.map((comment) => (
+        <Post key={comment.id} data={comment} />
+      ))}
     </div>
   );
 }
