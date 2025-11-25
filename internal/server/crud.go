@@ -59,23 +59,21 @@ func getByUserId[R domain.UserScopedRepository[T, Create, Update], T, Create, Up
 	}
 }
 
-// Temporary commented out (linter)
-
-// func getByPostID[R domain.PostScopedRepository[T, Create, Update], T, Create, Update any](
-// 	repo R,
-// 	id int,
-// ) http.HandlerFunc {
-// 	return func(w http.ResponseWriter, r *http.Request) {
-// 		items, err := repo.GetByPostID(r.Context(), int32(id))
-// 		if err != nil {
-// 			log.Println(err)
-// 			w.WriteHeader(http.StatusInternalServerError)
-// 			return
-// 		}
-// 		w.WriteHeader(http.StatusOK)
-// 		_ = json.NewEncoder(w).Encode(&items)
-// 	}
-// }
+func getByPostID[R domain.PostScopedRepository[T, Create, Update], T, Create, Update any](
+	repo R,
+	id int,
+) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		items, err := repo.GetByPostID(r.Context(), int32(id))
+		if err != nil {
+			log.Println(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(&items)
+	}
+}
 
 func deleteByID[R domain.Repository[T, Create, Update], T, Create, Update any](
 	repo R,
