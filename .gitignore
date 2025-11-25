@@ -10,7 +10,7 @@ tmp/
 # Dist
 node_modules
 dist/*
-!dist/doc.html
+!dist/docs.html
 
 # Profile
 .rspack-profile-*/
