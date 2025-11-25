@@ -39,6 +39,12 @@ type ServerInterface interface {
 	// Update a post
 	// (PUT /api/posts/{id})
 	PutApiPostsId(w http.ResponseWriter, r *http.Request, id int)
+	// Get a post's comments by ID
+	// (GET /api/posts/{id}/comments)
+	GetApiPostsIdComments(w http.ResponseWriter, r *http.Request, id int)
+	// Create a post comment
+	// (POST /api/posts/{id}/comments)
+	PostApiPostsIdComments(w http.ResponseWriter, r *http.Request, id int)
 	// Create a user
 	// (POST /api/users)
 	PostApiUsers(w http.ResponseWriter, r *http.Request)
@@ -99,6 +105,18 @@ func (_ Unimplemented) GetApiPostsId(w http.ResponseWriter, r *http.Request, id 
 // Update a post
 // (PUT /api/posts/{id})
 func (_ Unimplemented) PutApiPostsId(w http.ResponseWriter, r *http.Request, id int) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get a post's comments by ID
+// (GET /api/posts/{id}/comments)
+func (_ Unimplemented) GetApiPostsIdComments(w http.ResponseWriter, r *http.Request, id int) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Create a post comment
+// (POST /api/posts/{id}/comments)
+func (_ Unimplemented) PostApiPostsIdComments(w http.ResponseWriter, r *http.Request, id int) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -267,6 +285,62 @@ func (siw *ServerInterfaceWrapper) PutApiPostsId(w http.ResponseWriter, r *http.
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.PutApiPostsId(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetApiPostsIdComments operation middleware
+func (siw *ServerInterfaceWrapper) GetApiPostsIdComments(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id int
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetApiPostsIdComments(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PostApiPostsIdComments operation middleware
+func (siw *ServerInterfaceWrapper) PostApiPostsIdComments(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id int
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PostApiPostsIdComments(w, r, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -572,6 +646,12 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Put(options.BaseURL+"/api/posts/{id}", wrapper.PutApiPostsId)
 	})
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/posts/{id}/comments", wrapper.GetApiPostsIdComments)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/posts/{id}/comments", wrapper.PostApiPostsIdComments)
+	})
+	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/users", wrapper.PostApiUsers)
 	})
 	r.Group(func(r chi.Router) {
@@ -599,23 +679,24 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/+xXXW/bNhT9KwK3Ry1yugEr9OY2aOFtWIN1wR4Co2DEa5mdRHLkZQMj0H8fSOrTkj9R",
-	"ZwvQJ8viFXnOufdckk8kk6WSAgQakj4Rk62hpP6RWlx/+k3mXLh/SksFGjn4MUWNeZSauWfcKCApMai5",
-	"yEkVE2tAC1rCxGAVEw3/WK6BkfS+i4y7GZdx85F8+AwZuhmVNGg+/Q6Pt9LgGE0mBYLAnWAWN70hLhBy",
-	"0JNYFjckbmfbDWQXirIEgW+lHUBp14v34sw0UAQ296MrqUuKJCWMIvyA3Cs0+oSz6WUK/jfsQWHWVO8b",
-	"t4qdiuRokTkj8VjpPuQBvngoal+lPs7dmbrzMadWTTUxnwPtS/DOgP7PDRHQBHbTgB64nMTCzZyVwdL1",
-	"2IOUBVCxj/ZpS5xRyitZFPIRtNlTlyGGi3xPzC5L7GEdE6l5PhjrZe48LxyX7NYMdcadni2aDvNInZEU",
-	"x/vC2R8yqzluPrpOHxL5BqgGPbe49mn1/941ZH/5609nSh9N0jq2I75GVKRyE3Oxko2vaOYUq2LCwGSa",
-	"K+RSuI+lzqMPCsT8dhEZBRlf8Yz6wZggxwKaoPntgsTkC2gTvpxdza6ufbIUCKo4ScmP/pUzCq49jYQq",
-	"nrhdKynaXat2vitbv86CkZS4fjBX3BEO+1vICxh8I9lmqzdQpYoaZPLZSNHtku7pew0rkpLvkm4bTeo9",
-	"NOltoNUw96gt+BdGSWFCEl7NZu5nKNhHm2VgzMoWxSYyPBfAIh6samxZUr0hKfFLRDRypeSHOiE05Nxg",
-	"bd5DWvzRBL8oOazakqOhMVLEbwkHlbj1UZeRYHiOOaiCsEXRGZak90Or3i+rZZ/4W98EIhqpMHufdvLE",
-	"WRUELQBhzP7Gv2/4L5g3lqYlIGjjl3aO8mYjMQkNLnSwIYO4J8XoMLAcJfmncZIDEhaZXrK3UhxCaqbR",
-	"wyZa3LjekMNEWt8DPjur2VeumK5chlJ9+HVLmPeAI1WUnSp2+yyqXMpCvXPdub0kTMG6HtGpGIZGRvJn",
-	"oYP9485HXYb88BA6wXxE/HpMPLSJlvhkyxn3lGEr9UCO7ylek5fSUxy3o3rK87KafeUq6kroqJ4yVGVP",
-	"T7m4KpeyVe82dcmesstISXvKd/MeLrt3bfj/sf44QmlOKcT2QkG1ppujC7MVLZKrCNcQ6vSR49pX6k6Z",
-	"3X3sBJld+DeZgR2tcnvWPqxwc+B+oer2T2hnquuncNJuyepv6/pLo4jVRX3hTpPk+tXPV/5SnL6evZ6R",
-	"aln9GwAA//8coueFyxUAAA==",
+	"H4sIAAAAAAAC/+yYS2/jNhDHv4rAFuhFjZxtgS508ybYhduiG3Qb9BAYC0Yay9xKJMvHBkag716Q1NN6",
+	"WDIitwF6iiOOqJnf/Gc40jOKWMYZBaokCp+RjPaQYfsTa7X//CtLCDX/ccE4CEXArnEs5RMTsfmtDhxQ",
+	"iKQShCYo95GWICjOoGcx95GAvzUREKPwobb06x23fnkTe/wCkTI7ciaV/HzDsgyo6npzz2OsIF7bpR0T",
+	"GVYoROba94rY3Ts+RoyqYq/umoC525EmCUIVJCCs41gAVZvbgVUmB9cMmv61I4YkRtVO1W11gA0fmpH5",
+	"DWjDxH+Dp0HoYwRfJLDhmEYdvmNypreTPZrhyJAXFuYN0y1XGnQupMuU/AUjXsg9FmPren7BzdNzj4xr",
+	"l1v++W2obY3rCRp3dTBXNXnPfsZpK8F7CeJf75nOGxddv0OPhPX6QuQ6zlzXL9YeGUsB07Gw5z3iDCnv",
+	"WJqyJxByRJfOhtBkxGaoJEai9hETJGmtNTJ3Xi1MS3ZVDEXGDc/Km9rnDp0Oiul1YcofIi2IOnwyw4BL",
+	"5DvAAsRaq71Nq/3vfRnsz3/+YYrSWqOwsK0D3yvFUW42JnTHyrrCkSGW+ygGGQnCFWHU3MxE4n3kQNd3",
+	"G09yiMiORNgu+kgRlUJptL7bIB99BSHdnaur1dW1TRYHijlBIfrBXjKFovY2jABzEpjBJkirwaaofCNb",
+	"+5xNjEJk+sGaExOwG4FcXkCqdyw+HPUGzHlaOBl8kYzWg5T59a2AHQrRN0E9aQXFmBU0Zqy8nXslNNgL",
+	"kjMqXRLerFbmTxvYJx1FIOVOp+nBkyShEHvElarUWYbFAYXIPsLDnpGSXapBCEiIVEXxnmLxe2n8qnBo",
+	"foSjDKNDxB4JJ0ncWatlELTnmJMUqE7TumBR+NAu1Ydtvm0GfmObgIc97nZvhh08kzh3QFNQ0I3+1l4v",
+	"49/EbrbEGSgQ0j7aVJQtNuQj1+BcB2tH4DdQdIaBbSfJP3aT7DyJPdlI9lGKnUkRqfd48Da3pjck0JPW",
+	"D6AuHtXqhRVTy6WN6uMvR2A+gOpQ4bpP7PoiVJYqocZcd24vKV6R6h5RU3RLI4UUFGOp3f206m5K6/+i",
+	"+oiCTE6jXr4u1oMiFgIfZirzO+mV+BoiPdmSL4FxwY5fsVuy6Zdga83a+f3kmXdvrZYh0H5x6gm/o9/r",
+	"brG6KKti7SXWRdI+/q0j089By+S1nIMmtknn4GWjWr2wimoJTeo2bSoj5+DiVJYqq8YXgCXPwaFCCqo3",
+	"0xMHYQH4fWX+ak/CphDPPAYraB7beWoPTqdPRO2tUgcxE5rMwWzM/8cM8WTK1fvhacLlS+KrHufc+Hwm",
+	"XbuFQXuE1X5hEl9LIlqkxUeiMAiu3/x0ZT/khG9Xb1co3+b/BAAA//9piz1lohoAAA==",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

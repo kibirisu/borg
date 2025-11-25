@@ -342,6 +342,60 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/posts/{id}/comments": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get a post's comments by ID */
+    get: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: number;
+        };
+        cookie?: never;
+      };
+      requestBody?: never;
+      responses: {
+        /** @description OK */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            "application/json": components["schemas"]["Comment"][];
+          };
+        };
+      };
+    };
+    put?: never;
+    /** Create a post comment */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path: {
+          id: number;
+        };
+        cookie?: never;
+      };
+      requestBody: {
+        content: {
+          "application/json": components["schemas"]["NewComment"];
+        };
+      };
+      responses: never;
+    };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/auth/register": {
     parameters: {
       query?: never;
@@ -461,6 +515,22 @@ export interface components {
     };
     UpdatePost: {
       content?: string;
+    };
+    Comment: {
+      id: number;
+      postID: number;
+      userID: number;
+      content: string;
+      parentID: number;
+      /** Format: date-time */
+      createdAt: string;
+      /** Format: date-time */
+      UpdatedAt: string;
+    };
+    NewComment: {
+      postID: number;
+      userID: number;
+      content: string;
     };
     Login: {
       username: string;

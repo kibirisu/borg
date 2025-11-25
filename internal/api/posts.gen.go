@@ -11,6 +11,24 @@ const (
 	BearerAuthScopes = "BearerAuth.Scopes"
 )
 
+// Comment defines model for Comment.
+type Comment struct {
+	UpdatedAt time.Time `json:"UpdatedAt"`
+	Content   string    `json:"content"`
+	CreatedAt time.Time `json:"createdAt"`
+	Id        int       `json:"id"`
+	ParentID  int       `json:"parentID"`
+	PostID    int       `json:"postID"`
+	UserID    int       `json:"userID"`
+}
+
+// NewComment defines model for NewComment.
+type NewComment struct {
+	Content string `json:"content"`
+	PostID  int    `json:"postID"`
+	UserID  int    `json:"userID"`
+}
+
 // NewPost defines model for NewPost.
 type NewPost struct {
 	Content string `json:"content"`
@@ -39,3 +57,6 @@ type PostApiPostsJSONRequestBody = NewPost
 
 // PutApiPostsIdJSONRequestBody defines body for PutApiPostsId for application/json ContentType.
 type PutApiPostsIdJSONRequestBody = UpdatePost
+
+// PostApiPostsIdCommentsJSONRequestBody defines body for PostApiPostsIdComments for application/json ContentType.
+type PostApiPostsIdCommentsJSONRequestBody = NewComment
