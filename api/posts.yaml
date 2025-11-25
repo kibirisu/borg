@@ -54,7 +54,7 @@ paths:
       responses:
         "200":
           description: Updated user
-  /api/posts/comments/{id}:
+  /api/posts/{id}/comments:
     get:
       summary: Get a post's comments by ID
       parameters:
@@ -72,6 +72,22 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Comment"
+    post:
+      summary: Create a post comment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewComment"
+      security:
+        - BearerAuth: []
 
   /api/users/{id}/posts:
     get:
@@ -166,3 +182,16 @@ components:
         UpdatedAt:
           type: string
           format: date-time
+    NewComment:
+      type: object
+      required:
+        - postID
+        - userID
+        - content
+      properties:
+        postID:
+          type: integer
+        userID:
+          type: integer
+        content:
+          type: string

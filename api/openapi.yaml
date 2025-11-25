@@ -23,8 +23,8 @@ paths:
     $ref: "posts.yaml#/paths/~1api~1posts"
   /api/posts/{id}:
     $ref: "posts.yaml#/paths/~1api~1posts~1{id}"
-  /api/posts/comments/{id}:
-    $ref: "posts.yaml#/paths/~1api~1posts~1comments~1{id}"
+  /api/posts/{id}/comments:
+    $ref: "posts.yaml#/paths/~1api~1posts~1{id}~1comments"
   /api/auth/register:
     $ref: "auth.yaml#/paths/~1api~1auth~1register"
   /api/auth/login:
