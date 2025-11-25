@@ -59,7 +59,7 @@ export default function TopAppBar({ onSearch }: Props) {
       </div>
       <div className="navbar-center">
         <a href="/" className="btn btn-ghost text-xl">
-          Name of our app :c
+          Borg
         </a>
       </div>
       <div className="navbar-end">
