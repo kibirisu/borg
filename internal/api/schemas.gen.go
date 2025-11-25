@@ -7,17 +7,6 @@ import (
 	"time"
 )
 
-// Comment defines model for Comment.
-type Comment struct {
-	UpdatedAt time.Time `json:"UpdatedAt"`
-	Content   string    `json:"content"`
-	CreatedAt time.Time `json:"createdAt"`
-	Id        int       `json:"id"`
-	ParentID  int       `json:"parentID"`
-	PostID    int       `json:"postID"`
-	UserID    int       `json:"userID"`
-}
-
 // Follower defines model for Follower.
 type Follower struct {
 	CreatedAt   time.Time `json:"createdAt"`
