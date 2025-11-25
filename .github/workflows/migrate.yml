@@ -4,14 +4,18 @@ on:
   push:
     branches:
       - main
+    paths:
+      - "internal/db/**"
   pull_request:
+    paths:
+      - "internal/db/**"
 
 jobs:
   goose-migrate:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres
+        image: postgres:18-alpine
         env:
           POSTGRES_PASSWORD: postgres
         options: >-
@@ -22,40 +26,20 @@ jobs:
         ports:
           - 5432:5432
     steps:
-      - name: Check if commit is a merge commit
-        id: check_merge
-        run: |
-          parents=$(git rev-list --parents -n 1 HEAD | wc -w)
-          if [ "$parents" -gt 2 ]; then
-            echo "merge=true" >> $GITHUB_OUTPUT
-          else
-            echo "merge=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Run build only for merge commits
-        if: steps.check_merge.outputs.merge == 'true'
-        run: |
-          echo "This is a merge commit on main — running tests"
-
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Set up Go
+      - uses: actions/checkout@v6
+      - name: Install Go
         uses: actions/setup-go@v6
         with:
           go-version: "1.25"
-
-      - name: Set up Goose
+      - name: Install Goose
         uses: mscno/setup-goose@v1
         with:
           version: v3.26.0
-
       - name: Migrate up
         working-directory: internal/db/migrations
         run: |
           CONN="postgres://postgres:postgres@localhost:5432/postgres"
           goose postgres "$CONN" up
-
       - name: Migrate down
         working-directory: internal/db/migrations
         run: |
