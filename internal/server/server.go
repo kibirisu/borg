@@ -93,6 +93,10 @@ func (s *Server) DeleteApiPostsId(w http.ResponseWriter, r *http.Request, id int
 func (s *Server) GetApiPostsId(w http.ResponseWriter, r *http.Request, id int) {
 	getByID(s.ds.PostRepository(), id).ServeHTTP(w, r)
 }
+// GetApiPostsIdComments implements api.ServerInterface.
+func (s *Server) GetApiPostsIdComments(w http.ResponseWriter, r *http.Request, id int) {
+	getByPostID(s.ds.CommentRepository(), id).ServeHTTP(w, r)
+}
 
 // PostApiPosts implements api.ServerInterface.
 func (s *Server) PostApiPosts(w http.ResponseWriter, r *http.Request) {
