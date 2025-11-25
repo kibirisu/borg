@@ -36,11 +36,16 @@ export default function Feed() {
   );
 }
 
-interface Data {
+interface PostData {
   data: components["schemas"]["Post"];
 }
+interface CommentData {
+  data: components["schemas"]["Comment"];
+}
 
-const Post = (post: Data) => {
+export type PostPresentable = PostData | CommentData;
+
+export const Post = (post: PostPresentable) => {
   return (
     <div className="border-b border-gray-200 p-4 hover:bg-gray-50 transition-colors">
       <div className="flex space-x-3">
@@ -51,30 +56,38 @@ const Post = (post: Data) => {
           </div>
 
           <div className="flex justify-between mt-3 text-gray-500 text-sm max-w-md">
-            <button
-              type="button"
-              className="flex items-center space-x-1 hover:text-blue-500 transition"
-            >
-              <MessageCircle size={16} /> <span>{post.data.commentCount}</span>
-            </button>
+            {"commentCount" in post.data && (
+              <button
+                type="button"
+                className="flex items-center space-x-1 hover:text-blue-500 transition"
+              >
+                <MessageCircle size={16} /> <span>{post.data.commentCount}</span>
+              </button>
+            )}
+            {"shareCount" in post.data && (
             <button
               type="button"
               className="flex items-center space-x-1 hover:text-green-500 transition"
             >
               <Repeat size={16} /> <span>{post.data.shareCount}</span>
             </button>
+            )}
+            {"likeCount" in post.data && (
             <button
               type="button"
               className="flex items-center space-x-1 hover:text-pink-500 transition"
             >
               <Heart size={16} /> <span>{post.data.likeCount}</span>
             </button>
+            )}
+            {"shareCount" in post.data && (
             <button
               type="button"
               className="flex items-center space-x-1 hover:text-gray-700 transition"
             >
               <Share2 size={16} />
             </button>
+            )}
           </div>
         </div>
       </div>
