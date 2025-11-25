@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Heart, MessageCircle, Repeat, Share2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
-import { type LoaderFunctionArgs, useLoaderData } from "react-router";
+import { Link, type LoaderFunctionArgs, useLoaderData } from "react-router";
 import type { Client } from "../../lib/api/client";
 import type { components } from "../../lib/api/v1";
 
@@ -57,36 +57,39 @@ export const Post = (post: PostPresentable) => {
 
           <div className="flex justify-between mt-3 text-gray-500 text-sm max-w-md">
             {"commentCount" in post.data && (
+              <Link to={`/post/${post.data.id}`}>
+                <button
+                  type="button"
+                  className="flex items-center space-x-1 hover:text-blue-500 transition"
+                >
+                  <MessageCircle size={16} />{" "}
+                  <span>{post.data.commentCount}</span>
+                </button>
+              </Link>
+            )}
+            {"shareCount" in post.data && (
               <button
                 type="button"
-                className="flex items-center space-x-1 hover:text-blue-500 transition"
+                className="flex items-center space-x-1 hover:text-green-500 transition"
               >
-                <MessageCircle size={16} /> <span>{post.data.commentCount}</span>
+                <Repeat size={16} /> <span>{post.data.shareCount}</span>
+              </button>
+            )}
+            {"likeCount" in post.data && (
+              <button
+                type="button"
+                className="flex items-center space-x-1 hover:text-pink-500 transition"
+              >
+                <Heart size={16} /> <span>{post.data.likeCount}</span>
               </button>
             )}
             {"shareCount" in post.data && (
-            <button
-              type="button"
-              className="flex items-center space-x-1 hover:text-green-500 transition"
-            >
-              <Repeat size={16} /> <span>{post.data.shareCount}</span>
-            </button>
-            )}
-            {"likeCount" in post.data && (
-            <button
-              type="button"
-              className="flex items-center space-x-1 hover:text-pink-500 transition"
-            >
-              <Heart size={16} /> <span>{post.data.likeCount}</span>
-            </button>
-            )}
-            {"shareCount" in post.data && (
-            <button
-              type="button"
-              className="flex items-center space-x-1 hover:text-gray-700 transition"
-            >
-              <Share2 size={16} />
-            </button>
+              <button
+                type="button"
+                className="flex items-center space-x-1 hover:text-gray-700 transition"
+              >
+                <Share2 size={16} />
+              </button>
             )}
           </div>
         </div>
