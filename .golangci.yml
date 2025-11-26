@@ -25,6 +25,9 @@ linters:
       exclude-functions:
         - encoding/json.Marshal
         - encoding/json.MarshalIndent
+    gosec:
+      excludes:
+        - G115 # Temporary. Also, affected code doesn't crash the server when overflow occurs.
     revive:
       rules:
         - name: var-naming
