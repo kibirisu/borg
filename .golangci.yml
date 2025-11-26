@@ -1,29 +1,43 @@
 version: "2"
 linters:
+  default: none
   enable:
+    - errcheck
+    - errchkjson
+    - forbidigo
+    - goconst
+    - gocritic
     - gocyclo
+    - gosec
+    - govet
+    - ineffassign
+    - lll
+    - misspell
+    - modernize
+    - revive
+    - staticcheck
+    - unconvert
+    - unparam
+    - unused
+    - whitespace
   settings:
-    gocyclo:
-      min-complexity: 10
+    errcheck:
+      exclude-functions:
+        - encoding/json.Marshal
+        - encoding/json.MarshalIndent
+    revive:
+      rules:
+        - name: var-naming
+          exclude: ["**/internal/server/server.go"]
   exclusions:
     generated: lax
-    paths:
-      - third_party$
-      - builtin$
-      - examples$
 formatters:
   enable:
     - gofmt
     - goimports
   settings:
-    gofmt:
-      simplify: true
     goimports:
       local-prefixes:
         - github.com/kibirisu
   exclusions:
     generated: lax
-    paths:
-      - third_party$
-      - builtin$
-      - examples$

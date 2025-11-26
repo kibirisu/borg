@@ -3,6 +3,7 @@ package server
 import (
 	"io/fs"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -48,8 +49,9 @@ func NewServer(conf *config.Config, ds domain.DataStore) *http.Server {
 	)
 
 	s := &http.Server{
-		Handler: h,
-		Addr:    "0.0.0.0:" + conf.ListenPort,
+		Handler:           h,
+		ReadHeaderTimeout: 5 * time.Second,
+		Addr:              "0.0.0.0:" + conf.ListenPort,
 	}
 	return s
 }
@@ -116,7 +118,7 @@ func (s *Server) PutApiPostsId(w http.ResponseWriter, r *http.Request, id int) {
 
 // GetApiUsersIdPosts implements api.ServerInterface.
 func (s *Server) GetApiUsersIdPosts(w http.ResponseWriter, r *http.Request, id int) {
-	getByUserId(s.ds.PostRepository(), id).ServeHTTP(w, r)
+	getByUserID(s.ds.PostRepository(), id).ServeHTTP(w, r)
 }
 
 // PostApiAuthRegister implements api.ServerInterface.

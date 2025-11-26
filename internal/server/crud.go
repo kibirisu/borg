@@ -43,7 +43,7 @@ func getByID[R domain.Repository[T, Create, Update], T, Create, Update any](
 	}
 }
 
-func getByUserId[R domain.UserScopedRepository[T, Create, Update], T, Create, Update any](
+func getByUserID[R domain.UserScopedRepository[T, Create, Update], T, Create, Update any](
 	repo R,
 	id int,
 ) http.HandlerFunc {
