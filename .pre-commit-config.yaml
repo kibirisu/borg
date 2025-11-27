@@ -1,49 +1,21 @@
 repos:
-- repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v4.3.0
-  hooks:
-  - id: trailing-whitespace
-  - id: check-yaml
-  - id: check-added-large-files
-- repo: https://github.com/tekwizely/pre-commit-golang
-# See 'pre-commit help autoupdate'
-  rev: v1.0.0-rc.2
-  hooks:
-  - id: go-fmt
-  - id: golangci-lint
-    language: system
-    entry: bash -lc "cd pkg && GOEXPERIMENT=jsonv2 golangci-lint run --fix ./..."
-    pass_filenames: false
-- repo: local
-  hooks:
-  - id: biome-format
-    name: Biome Format
-    entry: |
-      bash -lc '
-      cd web
-      if command -v biome >/dev/null 2>&1; then
-        echo "Using global biome command"
-        biome format --write .
-      else
-        echo "Global biome not found, using pnpm run format"
-        pnpm run format
-      fi'
-    language: system
-    pass_filenames: false
-    files: "\\.(js|jsx|ts|tsx|json|mjs|cjs)$"
-
-  - id: biome-check
-    name: Biome Check
-    entry: |
-      bash -lc '
-      cd web
-      if command -v biome >/dev/null 2>&1; then
-        echo "Using global biome command"
-        biome check .
-      else
-        echo "Global biome not found, using pnpm run check"
-        pnpm run check
-      fi'
-    language: system
-    pass_filenames: false
-    files: "\\.(js|jsx|ts|tsx|json|mjs|cjs)$"
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-added-large-files
+      - id: check-yaml
+      - id: trailing-whitespace
+  - repo: https://github.com/golangci/golangci-lint
+    rev: v2.6.2
+    hooks:
+      - id: golangci-lint
+      - id: golangci-lint-fmt
+      - id: golangci-lint-config-verify
+  - repo: local
+    hooks:
+      - id: local-biome-check
+        name: biome check
+        entry: pnpm --prefix web exec biome check --write --files-ignore-unknown=true --no-errors-on-unmatched
+        language: system
+        types: [text]
+        files: "\\.(jsx?|tsx?|c(js|ts)|m(js|ts)|d\\.(ts|cts|mts)|jsonc?|css|svelte|vue|astro|graphql|gql)$"
