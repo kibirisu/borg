@@ -57,7 +57,7 @@ func (r *postRepository) GetByUserID(ctx context.Context, id int32) ([]*api.Post
 
 func postToAPI(p *db.Post) *api.Post {
 	return &api.Post{
-		CommentCount: 0,
+		CommentCount: int(p.CommentCount.Int32),
 		Content:      p.Content,
 		CreatedAt:    p.CreatedAt.Time,
 		Id:           int(p.ID),
