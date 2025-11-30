@@ -4,7 +4,7 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { type LoaderFunctionArgs, Outlet, useLoaderData } from "react-router";
-import type { Client } from "../../lib/api/client";
+import type { Client } from "../../lib/client";
 
 export const loader =
   (client: Client) =>

@@ -88,7 +88,7 @@ gen-api-go:
 .PHONY: gen-api-ts
 gen-api-ts: $(NODE_MODULES)
 	@echo Generating api ts code...
-	@pnpm --prefix $(FRONTEND_DIR) exec openapi-typescript ../api/openapi.yaml -o src/lib/api/v1.d.ts
+	@pnpm --prefix $(FRONTEND_DIR) exec openapi-typescript
 
 .PHONY: gen-doc
 gen-doc: $(NODE_MODULES)

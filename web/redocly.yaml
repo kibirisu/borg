@@ -1,0 +1,16 @@
+extends:
+  - recommended
+
+apis:
+  core:
+    root: ../api/openapi.yaml
+    x-openapi-ts:
+      output: ./src/lib/api/v1.d.ts
+
+rules:
+  no-empty-servers: warn
+  struct: warn
+  security-defined: warn
+  operation-operationId-unique: error
+  operation-parameters-unique: error
+  path-not-include-query: error

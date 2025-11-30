@@ -2,8 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { Heart, MessageCircle, Repeat, Share2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { Link, type LoaderFunctionArgs, useLoaderData } from "react-router";
-import type { Client } from "../../lib/api/client";
 import type { components } from "../../lib/api/v1";
+import type { Client } from "../../lib/client";
 
 export const loader =
   (client: Client) =>

@@ -1,15 +1,7 @@
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
-import { UserX } from "lucide-react";
-import { useState } from "react";
-import {
-  type LoaderFunctionArgs,
-  Outlet,
-  useLoaderData,
-  useParams,
-} from "react-router";
-import type { Client } from "../../lib/api/client";
-import type { components } from "../../lib/api/v1";
-import { Post, type PostPresentable } from "../common/Feed";
+import { type LoaderFunctionArgs, Outlet, useLoaderData } from "react-router";
+import type { Client } from "../../lib/client";
+import { Post } from "../common/Feed";
 
 export const loader =
   (client: Client) =>
