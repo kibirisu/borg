@@ -1,0 +1,32 @@
+name: Doc
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "api/**"
+  pull_request:
+    paths:
+      - "api/**"
+
+jobs:
+  check-spec:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - name: Install Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: "pnpm"
+          cache-dependency-path: web/pnpm-lock.yaml
+      - name: Install Redocly
+        run: pnpm add @redocly/cli -g
+      - name: Lint OpenAPI spec
+        run: redocly lint api/openapi.yaml
