@@ -8,9 +8,9 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/NewUser"
-        responses:
-          "201":
-            description: Created user
+      responses:
+        "201":
+          description: Created user
 
   /api/users/{id}:
     get:
