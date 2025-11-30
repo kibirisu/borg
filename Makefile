@@ -13,6 +13,7 @@ PACKAGE_JSON := $(FRONTEND_DIR)/package.json
 
 export PATH := $(BIN_DIR):$(PATH)
 export GOEXPERIMENT := jsonv2
+export REDOCLY_TELEMETRY := off
 
 $(BIN_DIR):
 	mkdir -p $(BIN_DIR)
@@ -88,6 +89,11 @@ gen-api-go:
 gen-api-ts: $(NODE_MODULES)
 	@echo Generating api ts code...
 	@pnpm --prefix $(FRONTEND_DIR) exec openapi-typescript ../api/openapi.yaml -o src/lib/api/v1.d.ts
+
+.PHONY: gen-doc
+gen-doc: $(NODE_MODULES)
+	@echo Generating api documentation...
+	@pnpm --prefix $(FRONTEND_DIR) exec redocly build-docs ../api/openapi.yaml -o dist/docs.html
 
 .PHONY: clean
 clean:
