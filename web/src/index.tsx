@@ -4,7 +4,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { RouterProvider } from "react-router";
 import newClient from "./lib/client";
-import { newRouter } from "./routes/router";
+import newRouter from "./routes/router";
 
 const client = newClient();
 const router = newRouter(client);
