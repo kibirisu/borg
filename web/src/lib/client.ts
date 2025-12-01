@@ -1,7 +1,7 @@
 import { QueryClient } from "@tanstack/react-query";
 import createFetchClient, { type Middleware } from "openapi-fetch";
 import createClient, { type OpenapiQueryClient } from "openapi-react-query";
-import type { paths } from "./v1";
+import type { paths } from "./api/v1.d.ts";
 
 export interface Client {
   queryClient: QueryClient;
@@ -27,5 +27,16 @@ const authMiddleware: Middleware = {
       request.headers.set("Authorization", `Bearer ${accessToken}`);
     }
     return request;
+  },
+
+  async onResponse({ response, schemaPath }) {
+    if (schemaPath === "/api/auth/login") {
+      const token = response.headers.get("Authorization");
+      if (token) {
+        accessToken = token;
+        localStorage.setItem("jwt", token);
+      }
+    }
+    return response;
   },
 };
