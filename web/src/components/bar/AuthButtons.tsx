@@ -2,18 +2,28 @@ import { useRef } from "react";
 
 const AuthButtons = () => {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const usernameInputRef = useRef<HTMLInputElement>(null);
+  const passwordInputRef = useRef<HTMLInputElement>(null);
+
+  const openDialog = () => {
+    if (dialogRef.current) {
+      dialogRef.current.showModal();
+    }
+  };
+
+  const submitForm = () => {
+    if (usernameInputRef.current && passwordInputRef.current) {
+      console.log(
+        usernameInputRef.current.value,
+        passwordInputRef.current.value,
+      );
+    }
+  };
 
   return (
     <>
       <a className="btn">Sign Up</a>
-      <button
-        className="btn"
-        onClick={() => {
-          if (dialogRef.current) {
-            dialogRef.current.showModal();
-          }
-        }}
-      >
+      <button className="btn" onClick={openDialog}>
         Sign In
       </button>
       <dialog ref={dialogRef} className="modal">
@@ -22,12 +32,24 @@ const AuthButtons = () => {
             <legend className="fieldset-legend">Login</legend>
 
             <label className="label">Email</label>
-            <input type="email" className="input" placeholder="Email" />
+            <input
+              ref={usernameInputRef}
+              type="text"
+              className="input"
+              placeholder="Username"
+            />
 
             <label className="label">Password</label>
-            <input type="password" className="input" placeholder="Password" />
+            <input
+              ref={passwordInputRef}
+              type="password"
+              className="input"
+              placeholder="Password"
+            />
 
-            <button className="btn btn-neutral mt-4">Login</button>
+            <button className="btn btn-neutral mt-4" onClick={submitForm}>
+              Login
+            </button>
           </fieldset>
         </div>
 
