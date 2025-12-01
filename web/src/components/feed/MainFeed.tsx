@@ -21,9 +21,6 @@ export default function MainFeed() {
 
   return (
     <div className="max-w-2xl mx-auto border-x border-gray-300 min-h-screen bg-white">
-      <header className="p-4 border-b border-gray-300 text-xl font-bold sticky top-0 bg-white/80 backdrop-blur z-10 text-black">
-        Home
-      </header>
       <NewPostBox onPost={addPost} />
       {posts.map((post) => (
         <PostItem key={post.id} post={post} />
