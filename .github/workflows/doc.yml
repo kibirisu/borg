@@ -29,4 +29,4 @@ jobs:
       - name: Install Redocly
         run: pnpm add @redocly/cli -g
       - name: Lint OpenAPI spec
-        run: redocly lint --config web/redocly.yaml
+        run: redocly lint --config web/redocly.yaml --format=github-actions
