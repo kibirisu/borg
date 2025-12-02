@@ -1,9 +1,17 @@
-import { useRef } from "react";
+import { useContext, useRef } from "react";
+import { AppContext } from "../../lib/state";
 
 const AuthButtons = () => {
+  const context = useContext(AppContext);
+  if (!context) {
+    return <></>;
+  }
+
   const dialogRef = useRef<HTMLDialogElement>(null);
   const usernameInputRef = useRef<HTMLInputElement>(null);
   const passwordInputRef = useRef<HTMLInputElement>(null);
+
+  const { mutate } = context.$api.useMutation("post", "/api/auth/login");
 
   const openDialog = () => {
     if (dialogRef.current) {
@@ -12,11 +20,10 @@ const AuthButtons = () => {
   };
 
   const submitForm = () => {
-    if (usernameInputRef.current && passwordInputRef.current) {
-      console.log(
-        usernameInputRef.current.value,
-        passwordInputRef.current.value,
-      );
+    if (context && usernameInputRef.current && passwordInputRef.current) {
+      const username = usernameInputRef.current.value;
+      const password = passwordInputRef.current.value;
+      mutate({ body: { username: username, password: password } });
     }
   };
 
