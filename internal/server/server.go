@@ -35,7 +35,11 @@ func NewServer(conf *config.Config, ds domain.DataStore) *http.Server {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
-
+	r.Route("/", func(r chi.Router) {
+		r.Get("/*", server.serveFile("index.html"))
+		r.Get("/static/*", server.handleAssets)
+		r.Get("/api/docs", server.serveFile("docs.html"))
+	})
 	// API routes muszą być przed catch-all route
 	h := api.HandlerWithOptions(
 		server,
@@ -44,11 +48,6 @@ func NewServer(conf *config.Config, ds domain.DataStore) *http.Server {
 			Middlewares: []api.MiddlewareFunc{server.createAuthMiddleware()},
 		},
 	)
-
-	// Catch-all route dla SPA - musi być na końcu
-	r.Get("/static/*", server.handleAssets)
-	r.Get("/api/docs", server.serveFile("docs.html"))
-	r.Get("/*", server.serveFile("index.html"))
 
 	s := &http.Server{
 		Handler:           h,
