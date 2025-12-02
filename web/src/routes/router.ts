@@ -10,6 +10,7 @@ import CommentView, {
 import MainFeed, {
   loader as mainFeedLoader,
 } from "../components/feed/MainFeed";
+import { action as addPostAction } from "../components/feed/NewPostForm";
 import User, { loader as userLoader } from "../components/profile/UserProfile";
 import type { Client } from "../lib/client";
 
@@ -18,13 +19,16 @@ export default function newRouter(client: Client) {
     {
       path: "/",
       Component: App,
+      action: addPostAction(client),
       children: [
         {
           path: "",
           Component: MainFeed,
+          errorElement: "error",
           children: [
             {
               index: true,
+              action: addPostAction(client),
               Component: Feed,
               loader: mainFeedLoader(client),
             },
