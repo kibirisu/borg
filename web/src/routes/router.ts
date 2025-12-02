@@ -19,7 +19,11 @@ export default function newRouter(client: Client) {
       path: "/",
       Component: App,
       children: [
-        { index: true, Component: MainFeed, loader: mainFeedLoader(client) },
+        {
+          index: true,
+          Component: Feed,
+          loader: mainFeedLoader(client),
+        },
         {
           path: "profile/:handle",
           Component: User,
