@@ -31,7 +31,11 @@ export default function MainFeed() {
 
   // Hook musi być zawsze wywoływany - używamy enabled do kontroli
   const opts = loaderData?.opts;
-  const { data: apiPosts, isPending, error } = useQuery(
+  const {
+    data: apiPosts,
+    isPending,
+    error,
+  } = useQuery(
     opts
       ? {
           ...opts,
