@@ -3,14 +3,14 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { RouterProvider } from "react-router";
-import newClient from "./lib/client";
+import newClient, { checkToken } from "./lib/client";
 import type AppState from "./lib/state";
 import newRouter from "./routes/router";
 import { AppContextProvider } from "./lib/state";
 
 const client = newClient();
 const router = newRouter(client);
-const state: AppState = { $api: client.$api };
+const state: AppState = { $api: client.$api, username: checkToken() };
 
 const rootEl = document.getElementById("root");
 if (rootEl) {
