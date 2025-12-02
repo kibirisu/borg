@@ -1,6 +1,6 @@
 import { useState } from "react";
-import ProfileButton from "./ProfileButton";
 import AuthButtons from "./AuthButtons";
+import ProfileButton from "./ProfileButton";
 
 export default function TopAppBar() {
   const [signedIn] = useState(false);

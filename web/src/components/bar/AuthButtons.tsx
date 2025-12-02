@@ -22,7 +22,7 @@ const AuthButtons = () => {
 
   return (
     <>
-      <a className="btn">Sign Up</a>
+      <button className="btn">Sign Up</button>
       <button className="btn" onClick={openDialog}>
         Sign In
       </button>
