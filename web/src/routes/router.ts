@@ -1,6 +1,7 @@
 import { createBrowserRouter } from "react-router";
 import App from "../App";
 import Feed, { loader as feedLoader } from "../components/common/Feed";
+import { action as addCommentAction } from "../components/feed/CommentForm";
 import CommentView, {
   CommentsFeed,
   commentsLoader,
@@ -36,6 +37,7 @@ export const newRouter = (client: Client) =>
           path: "post/:postId",
           Component: CommentView,
           loader: masterPostLoader(client),
+          action: addCommentAction(client),
           errorElement: "error",
           children: [
             {
