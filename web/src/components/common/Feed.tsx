@@ -50,6 +50,16 @@ export const Post = (post: PostPresentable) => {
     <div className="border-b border-gray-200 p-4 hover:bg-gray-50 transition-colors">
       <div className="flex space-x-3">
         <div className="flex-1">
+          {"username" in post.data && (
+            <div className="flex items-center space-x-1 mb-2">
+              <Link
+                to={`/profile/${post.data.userID}`}
+                className="hover:underline font-semibold text-gray-900"
+              >
+                {post.data.username}
+              </Link>
+            </div>
+          )}
           <div className="flex items-center space-x-1"></div>
           <div className="prose max-w-none text-gray-800">
             <ReactMarkdown>{post.data.content}</ReactMarkdown>
