@@ -6,7 +6,9 @@ import CommentView, {
   commentsLoader,
   loader as masterPostLoader,
 } from "../components/feed/CommentView";
-import MainFeed, { loader as mainFeedLoader } from "../components/feed/MainFeed";
+import MainFeed, {
+  loader as mainFeedLoader,
+} from "../components/feed/MainFeed";
 import User, { loader as userLoader } from "../components/profile/UserProfile";
 import type { Client } from "../lib/client";
 
