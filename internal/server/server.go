@@ -40,6 +40,7 @@ func NewServer(conf *config.Config, ds domain.DataStore) *http.Server {
 		r.Get("/static/*", server.handleAssets)
 		r.Get("/api/docs", server.serveFile("docs.html"))
 	})
+	// API routes muszą być przed catch-all route
 	h := api.HandlerWithOptions(
 		server,
 		api.ChiServerOptions{
@@ -139,4 +140,9 @@ func (s *Server) GetApiUsersIdFollowers(w http.ResponseWriter, r *http.Request, 
 // GetApiUsersIdFollowing implements api.ServerInterface.
 func (s *Server) GetApiUsersIdFollowing(w http.ResponseWriter, r *http.Request, id int) {
 	getFollowing(s.ds.UserRepository(), id).ServeHTTP(w, r)
+}
+
+// GetApiPosts implements api.ServerInterface.
+func (s *Server) GetApiPosts(w http.ResponseWriter, r *http.Request) {
+	getAll(s.ds.PostRepository()).ServeHTTP(w, r)
 }

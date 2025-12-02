@@ -97,3 +97,6 @@ SELECT p.* FROM posts p JOIN users u ON p.user_id = u.id WHERE u.origin = $1;
 
 -- name: GetAllUsers :many
 SELECT * FROM users;
+
+-- name: GetAllPosts :many
+SELECT p.*, u.username FROM posts p JOIN users u ON p.user_id = u.id ORDER BY p.created_at DESC;

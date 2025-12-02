@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -132,5 +133,23 @@ func getFollowing(repo domain.UserRepository, id int) http.HandlerFunc {
 		}
 		w.WriteHeader(http.StatusOK)
 		_ = json.NewEncoder(w).Encode(&users)
+	}
+}
+
+func getAll[R interface {
+	GetAll(context.Context) ([]T, error)
+}, T any](
+	repo R,
+) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		items, err := repo.GetAll(r.Context())
+		if err != nil {
+			log.Println(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(&items)
 	}
 }

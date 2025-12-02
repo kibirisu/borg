@@ -45,6 +45,7 @@ type Post struct {
 	ShareCount   int       `json:"shareCount"`
 	UpdatedAt    time.Time `json:"updatedAt"`
 	UserID       int       `json:"userID"`
+	Username     *string   `json:"username,omitempty"`
 }
 
 // UpdatePost defines model for UpdatePost.

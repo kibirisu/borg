@@ -153,6 +153,55 @@ func (q *Queries) DeleteUser(ctx context.Context, id int32) error {
 	return err
 }
 
+const getAllPosts = `-- name: GetAllPosts :many
+SELECT p.id, p.user_id, p.content, p.like_count, p.share_count, p.comment_count, p.created_at, p.updated_at, u.username FROM posts p JOIN users u ON p.user_id = u.id ORDER BY p.created_at DESC
+`
+
+type GetAllPostsRow struct {
+	ID           int32
+	UserID       int32
+	Content      string
+	LikeCount    sql.NullInt32
+	ShareCount   sql.NullInt32
+	CommentCount sql.NullInt32
+	CreatedAt    sql.NullTime
+	UpdatedAt    sql.NullTime
+	Username     string
+}
+
+func (q *Queries) GetAllPosts(ctx context.Context) ([]GetAllPostsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getAllPosts)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetAllPostsRow
+	for rows.Next() {
+		var i GetAllPostsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Content,
+			&i.LikeCount,
+			&i.ShareCount,
+			&i.CommentCount,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Username,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getAllUsers = `-- name: GetAllUsers :many
 SELECT id, username, password_hash, bio, followers_count, following_count, is_admin, created_at, updated_at, origin FROM users
 `

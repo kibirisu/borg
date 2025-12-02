@@ -11,6 +11,7 @@ import (
 type PostRepository interface {
 	Repository[*api.Post, *api.NewPost, *api.UpdatePost]
 	HasUserScope[*api.Post]
+	GetAll(context.Context) ([]*api.Post, error)
 }
 
 type postRepository struct {
@@ -82,5 +83,44 @@ func updatePostToDB(p *api.UpdatePost) *db.UpdatePostParams {
 		LikeCount:    sql.NullInt32{},
 		ShareCount:   sql.NullInt32{},
 		CommentCount: sql.NullInt32{},
+	}
+}
+
+func (r *postRepository) GetAll(ctx context.Context) ([]*api.Post, error) {
+	posts, err := r.GetAllPosts(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var res []*api.Post
+	for _, p := range posts {
+		res = append(res, postRowToAPI(&p))
+	}
+	return res, nil
+}
+
+func postRowToAPI(p *db.GetAllPostsRow) *api.Post {
+	likeCount := 0
+	if p.LikeCount.Valid {
+		likeCount = int(p.LikeCount.Int32)
+	}
+	shareCount := 0
+	if p.ShareCount.Valid {
+		shareCount = int(p.ShareCount.Int32)
+	}
+	commentCount := 0
+	if p.CommentCount.Valid {
+		commentCount = int(p.CommentCount.Int32)
+	}
+	username := p.Username
+	return &api.Post{
+		CommentCount: commentCount,
+		Content:      p.Content,
+		CreatedAt:    p.CreatedAt.Time,
+		Id:           int(p.ID),
+		LikeCount:    likeCount,
+		ShareCount:   shareCount,
+		UpdatedAt:    p.UpdatedAt.Time,
+		UserID:       int(p.UserID),
+		Username:     &username,
 	}
 }

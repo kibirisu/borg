@@ -1,5 +1,16 @@
 paths:
   /api/posts:
+    get:
+      summary: Get all posts
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Post"
     post:
       summary: Create a post
       requestBody:
@@ -140,6 +151,8 @@ components:
         updatedAt:
           type: string
           format: date-time
+        username:
+          type: string
     NewPost:
       type: object
       required:
