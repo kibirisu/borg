@@ -2,7 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 import { useLoaderData } from "react-router";
 import type { components } from "../../lib/api/v1";
 import type { Client } from "../../lib/client";
-import type { Post } from "./feedData";
 import NewPostBox from "./NewPostBox";
 import PostItem from "./PostItem";
 
@@ -32,10 +31,10 @@ export default function MainFeed() {
   // Hook musi być zawsze wywoływany - używamy enabled do kontroli
   const opts = loaderData?.opts;
   const {
-    data: apiPosts,
+    data: posts,
     isPending,
     error,
-  } = useQuery(
+  } = useQuery<components["schemas"]["Post"][]>(
     opts
       ? {
           ...opts,
@@ -62,28 +61,6 @@ export default function MainFeed() {
       </div>
     );
   }
-
-  // Mapowanie danych z API do typu Post używanego przez PostItem
-  const posts: Post[] =
-    apiPosts && Array.isArray(apiPosts)
-      ? (apiPosts as components["schemas"]["Post"][]).map((p) => {
-          // Obsługa createdAt - zawsze string w API
-          const createdAtStr =
-            typeof p.createdAt === "string"
-              ? p.createdAt
-              : new Date(p.createdAt).toISOString();
-
-          return {
-            id: String(p.id),
-            author: p.username ? `@${p.username}` : `@user${p.userID}`,
-            content: p.content,
-            createdAt: createdAtStr,
-            likes: p.likeCount,
-            replies: p.commentCount,
-            reposts: p.shareCount,
-          };
-        })
-      : [];
 
   function addPost(content: string) {
     // TODO: Zaimplementować tworzenie posta przez API

@@ -1,15 +1,18 @@
 import { Heart, MessageCircle, Repeat, Share2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { Link } from "react-router";
-import type { Post } from "./feedData";
+import type { components } from "../../lib/api/v1";
 
 type Props = {
-  post: Post;
+  post: components["schemas"]["Post"];
   showMeta: boolean;
   emphasize: boolean;
 };
 
-export function renderMetaButtons(showMeta: boolean, post: Post) {
+export function renderMetaButtons(
+  showMeta: boolean,
+  post: components["schemas"]["Post"],
+) {
   if (showMeta) {
     return (
       <div className="flex justify-between mt-3 text-gray-500 text-sm max-w-md">
@@ -17,19 +20,19 @@ export function renderMetaButtons(showMeta: boolean, post: Post) {
           type="button"
           className="flex items-center space-x-1 hover:text-blue-500 transition"
         >
-          <MessageCircle size={16} /> <span>{post.replies}</span>
+          <MessageCircle size={16} /> <span>{post.commentCount}</span>
         </button>
         <button
           type="button"
           className="flex items-center space-x-1 hover:text-green-500 transition"
         >
-          <Repeat size={16} /> <span>{post.reposts}</span>
+          <Repeat size={16} /> <span>{post.shareCount}</span>
         </button>
         <button
           type="button"
           className="flex items-center space-x-1 hover:text-pink-500 transition"
         >
-          <Heart size={16} /> <span>{post.likes}</span>
+          <Heart size={16} /> <span>{post.likeCount}</span>
         </button>
         <button
           type="button"
@@ -55,10 +58,10 @@ export default function PostItem({
         <div className="flex-1">
           <div className="flex items-center space-x-1 mb-2">
             <Link
-              to={`/profile/${post.author.replace(/^@/, "")}`}
+              to={`/profile/${post.userID}`}
               className={`hover:underline ${emphasize ? "font-bold text-xl text-gray-900" : "font-semibold text-gray-900"}`}
             >
-              {post.author}
+              {post.username}
             </Link>
           </div>
           <div
