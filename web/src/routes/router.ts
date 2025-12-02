@@ -20,9 +20,15 @@ export default function newRouter(client: Client) {
       Component: App,
       children: [
         {
-          index: true,
-          Component: Feed,
-          loader: mainFeedLoader(client),
+          path: "",
+          Component: MainFeed,
+          children: [
+            {
+              index: true,
+              Component: Feed,
+              loader: mainFeedLoader(client),
+            },
+          ],
         },
         {
           path: "profile/:handle",
