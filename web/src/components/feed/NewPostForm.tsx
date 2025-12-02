@@ -5,7 +5,7 @@ type Props = {
   onPost: (content: string) => void;
 };
 
-export default function NewPostBox({ onPost }: Props) {
+export default function NewPostForm() {
   const [text, setText] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
