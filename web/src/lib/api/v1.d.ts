@@ -245,7 +245,27 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** Get all posts */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Post"][];
+                    };
+                };
+            };
+        };
         put?: never;
         /** Create a post */
         post: {
@@ -516,6 +536,7 @@ export interface components {
             createdAt: string;
             /** Format: date-time */
             updatedAt: string;
+            username?: string;
         };
         NewPost: {
             userID: number;

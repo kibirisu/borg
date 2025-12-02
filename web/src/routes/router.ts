@@ -6,7 +6,7 @@ import CommentView, {
   commentsLoader,
   loader as masterPostLoader,
 } from "../components/feed/CommentView";
-import MainFeed from "../components/feed/MainFeed";
+import MainFeed, { loader as mainFeedLoader } from "../components/feed/MainFeed";
 import User, { loader as userLoader } from "../components/profile/UserProfile";
 import type { Client } from "../lib/client";
 
@@ -16,7 +16,7 @@ export const newRouter = (client: Client) =>
       path: "/",
       Component: App,
       children: [
-        { index: true, Component: MainFeed },
+        { index: true, Component: MainFeed, loader: mainFeedLoader(client) },
         {
           path: "profile/:handle",
           Component: User,

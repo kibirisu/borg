@@ -35,11 +35,8 @@ func NewServer(conf *config.Config, ds domain.DataStore) *http.Server {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
-	r.Route("/", func(r chi.Router) {
-		r.Get("/*", server.serveFile("index.html"))
-		r.Get("/static/*", server.handleAssets)
-		r.Get("/api/docs", server.serveFile("docs.html"))
-	})
+
+	// API routes muszą być przed catch-all route
 	h := api.HandlerWithOptions(
 		server,
 		api.ChiServerOptions{
@@ -47,6 +44,11 @@ func NewServer(conf *config.Config, ds domain.DataStore) *http.Server {
 			Middlewares: []api.MiddlewareFunc{server.createAuthMiddleware()},
 		},
 	)
+
+	// Catch-all route dla SPA - musi być na końcu
+	r.Get("/static/*", server.handleAssets)
+	r.Get("/api/docs", server.serveFile("docs.html"))
+	r.Get("/*", server.serveFile("index.html"))
 
 	s := &http.Server{
 		Handler:           h,
@@ -139,4 +141,9 @@ func (s *Server) GetApiUsersIdFollowers(w http.ResponseWriter, r *http.Request, 
 // GetApiUsersIdFollowing implements api.ServerInterface.
 func (s *Server) GetApiUsersIdFollowing(w http.ResponseWriter, r *http.Request, id int) {
 	getFollowing(s.ds.UserRepository(), id).ServeHTTP(w, r)
+}
+
+// GetApiPosts implements api.ServerInterface.
+func (s *Server) GetApiPosts(w http.ResponseWriter, r *http.Request) {
+	getAll(s.ds.PostRepository()).ServeHTTP(w, r)
 }
