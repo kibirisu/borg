@@ -5,8 +5,8 @@ import ReactDOM from "react-dom/client";
 import { RouterProvider } from "react-router";
 import newClient, { checkToken } from "./lib/client";
 import type AppState from "./lib/state";
+import { AppStateProvider } from "./lib/state";
 import newRouter from "./routes/router";
-import { AppContextProvider } from "./lib/state";
 
 const client = newClient();
 const router = newRouter(client);
@@ -17,12 +17,12 @@ if (rootEl) {
   const root = ReactDOM.createRoot(rootEl);
   root.render(
     <React.StrictMode>
-      <AppContextProvider value={state}>
+      <AppStateProvider state={state}>
         <QueryClientProvider client={client.queryClient}>
           <RouterProvider router={router} />
           <ReactQueryDevtools />
         </QueryClientProvider>
-      </AppContextProvider>
+      </AppStateProvider>
     </React.StrictMode>,
   );
 }
