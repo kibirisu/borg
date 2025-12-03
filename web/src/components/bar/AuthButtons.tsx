@@ -1,5 +1,5 @@
 import { useContext, useRef } from "react";
-import { AppContext } from "../../lib/state";
+import AppContext from "../../lib/state";
 
 const AuthButtons = () => {
   const context = useContext(AppContext);

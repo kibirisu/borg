@@ -24,19 +24,17 @@ export function checkToken(): string | null {
   if (token) {
     const username = decodeToken(token);
     if (username) {
-      accessToken = token;
       return username;
     }
   }
   return null;
 }
 
-let accessToken: string | null = null;
-
 const authMiddleware: Middleware = {
   async onRequest({ request }) {
-    if (accessToken) {
-      request.headers.set("Authorization", accessToken);
+    const token = localStorage.getItem("jwt");
+    if (token) {
+      request.headers.set("Authorization", token);
     }
     return request;
   },
@@ -45,7 +43,6 @@ const authMiddleware: Middleware = {
     if (schemaPath === "/api/auth/login") {
       const token = response.headers.get("Authorization");
       if (token) {
-        accessToken = token;
         localStorage.setItem("jwt", token);
       }
     }

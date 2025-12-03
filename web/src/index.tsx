@@ -4,8 +4,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { RouterProvider } from "react-router";
 import newClient, { checkToken } from "./lib/client";
-import type AppState from "./lib/state";
-import { AppStateProvider } from "./lib/state";
+import { type AppState, AppStateProvider } from "./lib/state";
 import newRouter from "./routes/router";
 
 const client = newClient();
