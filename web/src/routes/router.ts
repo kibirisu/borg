@@ -12,8 +12,8 @@ import MainFeed, {
 import User, { loader as userLoader } from "../components/profile/UserProfile";
 import type { Client } from "../lib/client";
 
-export const newRouter = (client: Client) =>
-  createBrowserRouter([
+export default function newRouter(client: Client) {
+  return createBrowserRouter([
     {
       path: "/",
       Component: App,
@@ -48,3 +48,4 @@ export const newRouter = (client: Client) =>
       ],
     },
   ]);
+}

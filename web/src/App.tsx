@@ -1,6 +1,6 @@
 import { Outlet } from "react-router";
 import "./App.css";
-import TopAppBar from "./components/TopAppBar";
+import TopAppBar from "./components/bar/TopAppBar";
 
 const App = () => {
   return (

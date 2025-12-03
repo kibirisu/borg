@@ -2,6 +2,7 @@ import { QueryClient } from "@tanstack/react-query";
 import createFetchClient, { type Middleware } from "openapi-fetch";
 import createClient, { type OpenapiQueryClient } from "openapi-react-query";
 import type { paths } from "./api/v1.d.ts";
+import decodeToken from "./decode.ts";
 
 export interface Client {
   queryClient: QueryClient;
@@ -15,16 +16,25 @@ export default function newClient(): Client {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { staleTime: 1000 * 10 } },
   });
-  accessToken = localStorage.getItem("jwt");
   return { queryClient, $api };
 }
 
-let accessToken: string | null = null;
+export function checkToken(): string | null {
+  const token = localStorage.getItem("jwt");
+  if (token) {
+    const username = decodeToken(token);
+    if (username) {
+      return username;
+    }
+  }
+  return null;
+}
 
 const authMiddleware: Middleware = {
   async onRequest({ request }) {
-    if (accessToken) {
-      request.headers.set("Authorization", `Bearer ${accessToken}`);
+    const token = localStorage.getItem("jwt");
+    if (token) {
+      request.headers.set("Authorization", token);
     }
     return request;
   },
@@ -33,7 +43,6 @@ const authMiddleware: Middleware = {
     if (schemaPath === "/api/auth/login") {
       const token = response.headers.get("Authorization");
       if (token) {
-        accessToken = token;
         localStorage.setItem("jwt", token);
       }
     }
