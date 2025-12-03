@@ -2,6 +2,7 @@ import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { type LoaderFunctionArgs, Outlet, useLoaderData } from "react-router";
 import type { Client } from "../../lib/client";
 import { Post } from "../common/Feed";
+import CommentForm from "./CommentForm";
 
 export const loader =
   (client: Client) =>
@@ -19,7 +20,7 @@ export const loader =
       "/api/posts/{id}/comments",
       queryParams,
     );
-    client.queryClient.prefetchQuery(commentOpts);
+    client.queryClient.prefetchQuery({ ...commentOpts, staleTime: 0 });
     await client.queryClient.ensureQueryData(postOpts);
     return { opts: postOpts };
   };
@@ -54,6 +55,7 @@ export default function CommentView() {
       <div className="border-b border-gray-200 p-4 bg-gray-50">
         <Post {...postData} />
       </div>
+      <CommentForm />
       <Outlet />
     </div>
   );

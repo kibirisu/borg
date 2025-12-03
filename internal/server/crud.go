@@ -14,7 +14,7 @@ func create[R domain.Repository[T, Create, Update], T, Create, Update any](
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var item Create
-		if err := json.NewDecoder(r.Body).Decode(item); err != nil {
+		if err := json.NewDecoder(r.Body).Decode(&item); err != nil {
 			log.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
