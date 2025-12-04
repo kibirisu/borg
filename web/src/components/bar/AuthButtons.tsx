@@ -3,14 +3,12 @@ import AppContext from "../../lib/state";
 
 const AuthButtons = () => {
   const context = useContext(AppContext);
+  // context should never be undefined
   if (!context) {
     return <></>;
   }
 
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const usernameInputRef = useRef<HTMLInputElement>(null);
-  const passwordInputRef = useRef<HTMLInputElement>(null);
-
   const { mutate } = context.$api.useMutation("post", "/api/auth/login");
 
   const openDialog = () => {
@@ -19,11 +17,15 @@ const AuthButtons = () => {
     }
   };
 
-  const submitForm = () => {
-    if (context && usernameInputRef.current && passwordInputRef.current) {
-      const username = usernameInputRef.current.value;
-      const password = passwordInputRef.current.value;
-      mutate({ body: { username: username, password: password } });
+  const loginAction = (data: FormData) => {
+    console.log(data.get("username"), data.get("password"));
+    if (dialogRef.current && context) {
+      const username = data.get("username")?.toString();
+      const password = data.get("password")?.toString();
+      if (username && password) {
+        mutate({ body: { username: username, password: password } });
+      }
+      dialogRef.current.close();
     }
   };
 
@@ -35,29 +37,31 @@ const AuthButtons = () => {
       </button>
       <dialog ref={dialogRef} className="modal">
         <div className="modal-box max-w-min">
-          <fieldset className="fieldset bg-base-200 border-base-300 rounded-box w-xs border p-4">
-            <legend className="fieldset-legend">Login</legend>
+          <form action={loginAction}>
+            <fieldset className="fieldset bg-base-200 border-base-300 rounded-box w-xs border p-4">
+              <legend className="fieldset-legend">Login</legend>
 
-            <label className="label">Email</label>
-            <input
-              ref={usernameInputRef}
-              type="text"
-              className="input"
-              placeholder="Username"
-            />
+              <label className="label">Email</label>
+              <input
+                type="text"
+                className="input"
+                placeholder="Username"
+                name="username"
+              />
 
-            <label className="label">Password</label>
-            <input
-              ref={passwordInputRef}
-              type="password"
-              className="input"
-              placeholder="Password"
-            />
+              <label className="label">Password</label>
+              <input
+                type="password"
+                className="input"
+                placeholder="Password"
+                name="password"
+              />
 
-            <button className="btn btn-neutral mt-4" onClick={submitForm}>
-              Login
-            </button>
-          </fieldset>
+              <button type="submit" className="btn btn-neutral mt-4">
+                Login
+              </button>
+            </fieldset>
+          </form>
         </div>
 
         <form method="dialog" className="modal-backdrop">
