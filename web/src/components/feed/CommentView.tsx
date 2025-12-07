@@ -1,11 +1,11 @@
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { type LoaderFunctionArgs, Outlet, useLoaderData } from "react-router";
-import type { Client } from "../../lib/client";
+import type { AppClient } from "../../lib/client";
 import { Post } from "../common/Feed";
 import CommentForm from "./CommentForm";
 
 export const loader =
-  (client: Client) =>
+  (client: AppClient) =>
   async ({ params }: LoaderFunctionArgs) => {
     const postId = parseInt(String(params.postId));
     console.log(postId);
@@ -25,7 +25,7 @@ export const loader =
     return { opts: postOpts };
   };
 export const commentsLoader =
-  (client: Client) =>
+  (client: AppClient) =>
   async ({ params }: LoaderFunctionArgs) => {
     const postId = parseInt(String(params.postId));
     const queryParams = { params: { path: { id: postId } } };

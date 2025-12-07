@@ -6,7 +6,7 @@ export default function TopAppBar() {
   const [signedIn] = useState(false);
 
   return (
-    <div className="navbar bg-base-100 shadow-sm">
+    <div className="navbar bg-base-100 shadow-sm sticky top-0">
       <div className="navbar-start">
         <a className="btn btn-ghost text-xl">borg</a>
       </div>

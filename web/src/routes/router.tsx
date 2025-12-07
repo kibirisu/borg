@@ -1,5 +1,5 @@
-import { createBrowserRouter } from "react-router";
-import App from "../App";
+import { useContext } from "react";
+import { createBrowserRouter, RouterProvider } from "react-router";
 import Feed, { loader as feedLoader } from "../components/common/Feed";
 import { action as addCommentAction } from "../components/feed/CommentForm";
 import CommentView, {
@@ -12,13 +12,23 @@ import MainFeed, {
 } from "../components/feed/MainFeed";
 import { action as addPostAction } from "../components/feed/NewPostForm";
 import User, { loader as userLoader } from "../components/profile/UserProfile";
-import type { Client } from "../lib/client";
+import Root from "../components/Root";
+import { type AppClient, ClientContext } from "../lib/client";
 
-export default function newRouter(client: Client) {
+export const RoutesProvider = () => {
+  const client = useContext(ClientContext);
+  if (!client) {
+    throw Error();
+  }
+  const router = newRouter(client);
+  return <RouterProvider router={router} />;
+};
+
+export default function newRouter(client: AppClient) {
   return createBrowserRouter([
     {
       path: "/",
-      Component: App,
+      Component: Root,
       action: addPostAction(client),
       children: [
         {

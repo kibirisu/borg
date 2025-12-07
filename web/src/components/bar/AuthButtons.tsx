@@ -1,15 +1,14 @@
 import { useContext, useRef } from "react";
-import AppContext from "../../lib/state";
+import { ClientContext } from "../../lib/client";
 
 const AuthButtons = () => {
-  const context = useContext(AppContext);
-  // context should never be undefined
-  if (!context) {
-    return <></>;
+  const client = useContext(ClientContext);
+  if (!client) {
+    throw Error();
   }
 
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const { mutate } = context.$api.useMutation("post", "/api/auth/login");
+  const { mutate } = client.$api.useMutation("post", "/api/auth/login");
 
   const openDialog = () => {
     if (dialogRef.current) {
@@ -18,8 +17,7 @@ const AuthButtons = () => {
   };
 
   const loginAction = (data: FormData) => {
-    console.log(data.get("username"), data.get("password"));
-    if (dialogRef.current && context) {
+    if (dialogRef.current) {
       const username = data.get("username")?.toString();
       const password = data.get("password")?.toString();
       if (username && password) {

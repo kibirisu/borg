@@ -3,10 +3,10 @@ import { Heart, MessageCircle, Repeat, Share2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { Link, type LoaderFunctionArgs, useLoaderData } from "react-router";
 import type { components } from "../../lib/api/v1";
-import type { Client } from "../../lib/client";
+import type { AppClient } from "../../lib/client";
 
 export const loader =
-  (client: Client) =>
+  (client: AppClient) =>
   async ({ params }: LoaderFunctionArgs) => {
     const userId = parseInt(String(params.handle));
     const queryParams = { params: { path: { id: userId } } };

@@ -1,14 +1,14 @@
 import { Outlet } from "react-router";
-import type { Client } from "../../lib/client";
+import type { AppClient } from "../../lib/client";
 import NewPostForm from "./NewPostForm";
 
-export const loader = (client: Client) => async () => {
+export const loader = (client: AppClient) => async () => {
   try {
     const opts = client.$api.queryOptions("get", "/api/posts", {});
     if (!opts) {
       throw new Error("queryOptions returned undefined");
     }
-    client.queryClient.prefetchQuery({ ...opts, staleTime: 0 });
+    client.queryClient.prefetchQuery(opts);
     return { opts };
   } catch (error) {
     console.error("Loader error:", error);

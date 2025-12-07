@@ -1,22 +1,35 @@
-import type { OpenapiQueryClient } from "openapi-react-query";
-import { createContext, type JSX } from "react";
-import type { paths } from "./api/v1";
+import {
+  createContext,
+  type Dispatch,
+  type JSX,
+  type SetStateAction,
+} from "react";
 
 export interface AppState {
-  $api: OpenapiQueryClient<paths>;
+  token: [string | null, Dispatch<SetStateAction<string | null>>];
   username: string | null;
+}
+
+export interface UserState {
+  username: string | null;
+  token: string | null;
 }
 
 const AppContext = createContext<AppState | undefined>(undefined);
 
 export default AppContext;
 
-interface Children {
+interface Props {
   children: JSX.Element;
-  state: AppState;
+  token: [string | null, Dispatch<SetStateAction<string | null>>];
+  username: string | null;
 }
 
-export const AppStateProvider = (props: Children) => {
-  const { children, state } = props;
-  return <AppContext.Provider value={state}>{children}</AppContext.Provider>;
+export const AppStateProvider = (props: Props) => {
+  const { children, token, username } = props;
+  return (
+    <AppContext.Provider value={{ token: token, username: username }}>
+      {children}
+    </AppContext.Provider>
+  );
 };
