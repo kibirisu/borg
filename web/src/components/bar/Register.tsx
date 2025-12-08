@@ -4,6 +4,7 @@ import type { AppClient } from "../../lib/client";
 const RegisterButton = ({ client }: Props) => {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [usernameError, setUsernameError] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
   const { mutateAsync: register } = client.$api.useMutation(
     "post",
     "/api/auth/register",
@@ -18,32 +19,49 @@ const RegisterButton = ({ client }: Props) => {
     if (dialogRef.current) {
       const username = data.get("username")?.toString();
       const password = data.get("password")?.toString();
-      if (username && password) {
-        setUsernameError(null); // Wyczyść poprzednie błędy
-        try {
-          await register({ body: { username: username, password: password } });
-          // Sukces - zamknij dialog
-          if (dialogRef.current) {
-            dialogRef.current.close();
-          }
-        } catch (error: any) {
-          // Obsłuż błąd - openapi-fetch zwraca błędy w strukturze { status, data }
-          const status = error?.status || error?.response?.status;
-          if (status === 409) {
-            // Spróbuj wyciągnąć komunikat z odpowiedzi
-            const errorData = error?.data || error?.response?.data;
-            if (
-              errorData &&
-              typeof errorData === "object" &&
-              "error" in errorData
-            ) {
-              setUsernameError(errorData.error as string);
-            } else {
-              setUsernameError("Username already taken");
-            }
+
+      // Wyczyść poprzednie błędy
+      setUsernameError(null);
+      setPasswordError(null);
+
+      // Walidacja pól
+      let hasErrors = false;
+      if (!username || username.trim() === "") {
+        setUsernameError("Username is required");
+        hasErrors = true;
+      }
+      if (!password || password.trim() === "") {
+        setPasswordError("Password is required");
+        hasErrors = true;
+      }
+
+      if (hasErrors) {
+        return; // Nie kontynuuj jeśli są błędy walidacji
+      }
+
+      try {
+        await register({ body: { username: username, password: password } });
+        // Sukces - zamknij dialog
+        if (dialogRef.current) {
+          dialogRef.current.close();
+        }
+      } catch (error: any) {
+        // Obsłuż błąd - openapi-fetch zwraca błędy w strukturze { status, data }
+        const status = error?.status || error?.response?.status;
+        if (status === 409) {
+          // Spróbuj wyciągnąć komunikat z odpowiedzi
+          const errorData = error?.data || error?.response?.data;
+          if (
+            errorData &&
+            typeof errorData === "object" &&
+            "error" in errorData
+          ) {
+            setUsernameError(errorData.error as string);
           } else {
-            setUsernameError("Registration failed. Please try again.");
+            setUsernameError("Username already taken");
           }
+        } else {
+          setUsernameError("Registration failed. Please try again.");
         }
       }
     }
@@ -78,10 +96,17 @@ const RegisterButton = ({ client }: Props) => {
               <label className="label">Password</label>
               <input
                 type="password"
-                className="input"
+                className={`input ${passwordError ? "input-error" : ""}`}
                 placeholder="Password"
                 name="password"
               />
+              {passwordError && (
+                <div className="label">
+                  <span className="label-text-alt text-error">
+                    {passwordError}
+                  </span>
+                </div>
+              )}
 
               <button type="submit" className="btn btn-neutral mt-4">
                 Register
