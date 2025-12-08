@@ -19,7 +19,7 @@
     "lucide-react": "^0.556.0",
     "openapi-fetch": "^0.15.0",
     "openapi-react-query": "^0.5.1",
-    "react": "^19.2.0",
+    "react": "^19.2.1",
     "react-dom": "^19.2.0",
     "react-markdown": "^10.1.0",
     "react-router": "^7.9.6",
