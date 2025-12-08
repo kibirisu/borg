@@ -30,9 +30,11 @@ func registerUser(repo domain.UserRepository) http.HandlerFunc {
 			if errors.Is(err, domain.ErrUsernameExists) {
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusConflict)
-				json.NewEncoder(w).Encode(map[string]string{
+				if err := json.NewEncoder(w).Encode(map[string]string{
 					"error": "Username already taken",
-				})
+				}); err != nil {
+					log.Println("Failed to encode error response:", err)
+				}
 				return
 			}
 			log.Println(err)

@@ -1,3 +1,4 @@
+//nolint:revive // Package name 'api' is standard for generated API code
 package api
 
 //go:generate go tool oapi-codegen -config cfg-api.yaml ../../api/openapi.yaml
