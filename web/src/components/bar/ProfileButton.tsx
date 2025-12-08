@@ -1,4 +1,21 @@
+import { useContext } from "react";
+import { ClientContext } from "../../lib/client";
+import AppContext from "../../lib/state";
+
 const ProfileButton = () => {
+  const client = useContext(ClientContext);
+  const context = useContext(AppContext);
+  if (!client || !context) {
+    throw Error();
+  }
+
+  const [_, setToken] = context.token;
+
+  const logoutAction = () => {
+    localStorage.removeItem("jwt");
+    setToken(null);
+  };
+
   return (
     <div className="dropdown dropdown-end">
       <div
@@ -14,7 +31,7 @@ const ProfileButton = () => {
         </div>
       </div>
       <ul
-        tabIndex="-1"
+        tabIndex={-1}
         className="menu menu-sm dropdown-content bg-base-100 rounded-box z-1 mt-3 w-52 p-2 shadow"
       >
         <li>
@@ -27,7 +44,7 @@ const ProfileButton = () => {
           <a>Settings</a>
         </li>
         <li>
-          <a>Logout</a>
+          <button onClick={logoutAction}>Logout</button>
         </li>
       </ul>
     </div>

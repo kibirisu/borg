@@ -7,7 +7,7 @@ import type { paths } from "./lib/api/v1";
 import { type AppClient, ClientProvider } from "./lib/client.tsx";
 import decodeToken from "./lib/decode.ts";
 import { AppStateProvider } from "./lib/state.tsx";
-import { RoutesProvider } from "./routes/router.tsx";
+import { RouterProvider } from "./routes/router.tsx";
 import "./App.css";
 
 const fetchClient = createFetchClient<paths>();
@@ -17,7 +17,7 @@ const queryClient = new QueryClient({
 });
 const client: AppClient = { $api, fetchClient, queryClient };
 
-export const App = () => {
+const App = () => {
   const [token, setToken] = useState(localStorage.getItem("jwt"));
   const username = useMemo(() => {
     return decodeToken(token);
@@ -27,7 +27,7 @@ export const App = () => {
     <AppStateProvider token={[token, setToken]} username={username}>
       <ClientProvider client={client}>
         <>
-          <RoutesProvider />
+          <RouterProvider />
           <ReactQueryDevtools />
         </>
       </ClientProvider>

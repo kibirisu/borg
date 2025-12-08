@@ -1,4 +1,3 @@
-import type React from "react";
 import { useEffect, useRef } from "react";
 import { type ActionFunctionArgs, Form, useNavigation } from "react-router";
 import type { components } from "../../lib/api/v1";
@@ -6,7 +5,7 @@ import type { AppClient } from "../../lib/client";
 
 export const action =
   (client: AppClient) =>
-  async ({ request, params }: ActionFunctionArgs) => {
+  async ({ request }: ActionFunctionArgs) => {
     const formData = await request.formData();
     const content = formData.get("content") as string;
 

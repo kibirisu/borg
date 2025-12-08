@@ -1,14 +1,18 @@
-import { useState } from "react";
+import { useContext } from "react";
+import AppContext from "../../lib/state";
 import AuthButtons from "./AuthButtons";
 import ProfileButton from "./ProfileButton";
 
 export default function TopAppBar() {
-  const [signedIn] = useState(false);
+  const state = useContext(AppContext);
+  if (!state) {
+    throw Error();
+  }
 
   return (
     <div className="navbar bg-base-100 shadow-sm sticky top-0">
       <div className="navbar-start">
-        <a className="btn btn-ghost text-xl">borg</a>
+        <div className="btn btn-ghost text-xl">borg</div>
       </div>
       <div className="navbar-center">
         <input
@@ -18,7 +22,7 @@ export default function TopAppBar() {
         />
       </div>
       <div className="navbar-end gap-2">
-        {signedIn ? <ProfileButton /> : <AuthButtons />}
+        {state.username ? <ProfileButton /> : <AuthButtons />}
       </div>
     </div>
   );

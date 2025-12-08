@@ -32,7 +32,6 @@ const createMiddleware = (
     },
 
     async onResponse({ response, schemaPath }) {
-      console.log(token);
       if (schemaPath === "/api/auth/login") {
         const token = response.headers.get("Authorization");
         if (token) {
