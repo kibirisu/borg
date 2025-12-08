@@ -6,6 +6,7 @@ import {
   createContext,
   type Dispatch,
   type JSX,
+  type RefObject,
   type SetStateAction,
   useContext,
   useEffect,
@@ -20,13 +21,13 @@ export interface AppClient {
 }
 
 const createMiddleware = (
-  tokenState: [string | null, Dispatch<SetStateAction<string | null>>],
+  token: RefObject<string | null>,
+  setToken: Dispatch<SetStateAction<string | null>>,
 ): Middleware => {
-  const [token, setToken] = tokenState;
   return {
     async onRequest({ request }) {
-      if (token) {
-        request.headers.set("Authorization", token);
+      if (token.current) {
+        request.headers.set("Authorization", token.current);
       }
       return request;
     },
@@ -57,14 +58,12 @@ export const ClientProvider = (props: Props) => {
   if (!context) {
     throw Error();
   }
+  const { token, tokenRef } = context;
 
   useEffect(() => {
-    const middleware = createMiddleware(context.token);
+    const middleware = createMiddleware(tokenRef, token[1]);
     client.fetchClient.use(middleware);
-    // FIXME: bellow leads to bug
-    // return () => {
-    //   client.fetchClient.eject(middleware);
-    // };
+    return () => client.fetchClient.eject(middleware);
   }, []);
 
   return (
