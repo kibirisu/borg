@@ -424,6 +424,60 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/posts/{id}/likes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get post's likes */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Like"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Create a post like */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["NewLike"];
+                };
+            };
+            responses: never;
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/register": {
         parameters: {
             query?: never;
@@ -560,6 +614,17 @@ export interface components {
             postID: number;
             userID: number;
             content: string;
+        };
+        Like: {
+            id: number;
+            postID: number;
+            userID: number;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        NewLike: {
+            postID: number;
+            userID: number;
         };
         Login: {
             username: string;

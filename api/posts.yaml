@@ -99,6 +99,40 @@ paths:
               $ref: "#/components/schemas/NewComment"
       security:
         - BearerAuth: []
+  /api/posts/{id}/likes:
+    get:
+      summary: Get post's likes
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Like"
+    post:
+      summary: Create a post like
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewLike"
+      security:
+        - BearerAuth: []
 
   /api/users/{id}/posts:
     get:
@@ -121,6 +155,73 @@ paths:
 
 components:
   schemas:
+    Comment:
+      type: object
+      required:
+        - id
+        - postID
+        - userID
+        - content
+        - parentID
+        - createdAt
+        - UpdatedAt
+      properties:
+        id:
+          type: integer
+        postID:
+          type: integer
+        userID:
+          type: integer
+        content:
+          type: string
+        parentID:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        UpdatedAt:
+          type: string
+          format: date-time
+    NewComment:
+      type: object
+      required:
+        - postID
+        - userID
+        - content
+      properties:
+        postID:
+          type: integer
+        userID:
+          type: integer
+        content:
+          type: string
+    Like:
+      type: object
+      required:
+        - id
+        - postID
+        - userID
+        - createdAt
+      properties:
+        id:
+          type: integer
+        postID:
+          type: integer
+        userID:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+    NewLike:
+      type: object
+      required:
+        - postID
+        - userID
+      properties:
+        postID:
+          type: integer
+        userID:
+          type: integer
     Post:
       type: object
       required:
@@ -166,45 +267,5 @@ components:
     UpdatePost:
       type: object
       properties:
-        content:
-          type: string
-    Comment:
-      type: object
-      required:
-        - id
-        - postID
-        - userID
-        - content
-        - parentID
-        - createdAt
-        - UpdatedAt
-      properties:
-        id:
-          type: integer
-        postID:
-          type: integer
-        userID:
-          type: integer
-        content:
-          type: string
-        parentID:
-          type: integer
-        createdAt:
-          type: string
-          format: date-time
-        UpdatedAt:
-          type: string
-          format: date-time
-    NewComment:
-      type: object
-      required:
-        - postID
-        - userID
-        - content
-      properties:
-        postID:
-          type: integer
-        userID:
-          type: integer
         content:
           type: string

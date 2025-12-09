@@ -15,24 +15,10 @@ type Follower struct {
 	Id          int       `json:"id"`
 }
 
-// Like defines model for Like.
-type Like struct {
-	CreatedAt time.Time `json:"createdAt"`
-	Id        int       `json:"id"`
-	PostID    int       `json:"postID"`
-	UserID    int       `json:"userID"`
-}
-
 // NewFollower defines model for NewFollower.
 type NewFollower struct {
 	FollowerID  int `json:"followerID"`
 	FollowingID int `json:"followingID"`
-}
-
-// NewLike defines model for NewLike.
-type NewLike struct {
-	PostID int `json:"postID"`
-	UserID int `json:"userID"`
 }
 
 // NewShare defines model for NewShare.

@@ -22,11 +22,25 @@ type Comment struct {
 	UserID    int       `json:"userID"`
 }
 
+// Like defines model for Like.
+type Like struct {
+	CreatedAt time.Time `json:"createdAt"`
+	Id        int       `json:"id"`
+	PostID    int       `json:"postID"`
+	UserID    int       `json:"userID"`
+}
+
 // NewComment defines model for NewComment.
 type NewComment struct {
 	Content string `json:"content"`
 	PostID  int    `json:"postID"`
 	UserID  int    `json:"userID"`
+}
+
+// NewLike defines model for NewLike.
+type NewLike struct {
+	PostID int `json:"postID"`
+	UserID int `json:"userID"`
 }
 
 // NewPost defines model for NewPost.
@@ -61,3 +75,6 @@ type PutApiPostsIdJSONRequestBody = UpdatePost
 
 // PostApiPostsIdCommentsJSONRequestBody defines body for PostApiPostsIdComments for application/json ContentType.
 type PostApiPostsIdCommentsJSONRequestBody = NewComment
+
+// PostApiPostsIdLikesJSONRequestBody defines body for PostApiPostsIdLikes for application/json ContentType.
+type PostApiPostsIdLikesJSONRequestBody = NewLike

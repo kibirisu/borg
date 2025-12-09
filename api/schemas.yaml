@@ -1,32 +1,5 @@
 components:
   schemas:
-    Like:
-      type: object
-      required:
-        - id
-        - postID
-        - userID
-        - createdAt
-      properties:
-        id:
-          type: integer
-        postID:
-          type: integer
-        userID:
-          type: integer
-        createdAt:
-          type: string
-          format: date-time
-    NewLike:
-      type: object
-      required:
-        - postID
-        - userID
-      properties:
-        postID:
-          type: integer
-        userID:
-          type: integer
     Share:
       type: object
       required:
