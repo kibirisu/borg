@@ -5,7 +5,6 @@ import {
   RouterProvider as Provider,
   RouterContextProvider,
 } from "react-router";
-import { toggleLikeAction as likeAction } from "../components/feed/ButtonActions";
 import Feed, { loader as feedLoader } from "../components/common/Feed";
 import { action as addCommentAction } from "../components/feed/CommentForm";
 import CommentView, {
@@ -80,10 +79,6 @@ function router(client: AppClient) {
                 index: true,
                 Component: CommentsFeed,
                 loader: commentsLoader(client),
-              },
-              {
-                path: "like",
-                action: likeAction(client),
               },
             ],
           },

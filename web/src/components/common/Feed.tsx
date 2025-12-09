@@ -1,3 +1,5 @@
+import { useContext } from "react";
+import { ClientContext } from "../../lib/client";
 import { useQuery } from "@tanstack/react-query";
 import { Heart, MessageCircle, Repeat, Share2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
@@ -20,6 +22,7 @@ export const loader =
   };
 
 export default function Feed() {
+  const client = useContext(ClientContext);
   const { opts } = useLoaderData() as Awaited<
     ReturnType<ReturnType<typeof loader>>
   >;
@@ -30,7 +33,7 @@ export default function Feed() {
   return (
     <div className="max-w-2xl mx-auto border-x border-gray-300 min-h-screen bg-white">
       {data?.map((post) => (
-        <Post key={post.id} data={post} />
+        <Post key={post.id} post={{ data: post }} client={client!} />
       ))}
     </div>
   );
@@ -45,8 +48,34 @@ interface CommentData {
 
 export type PostPresentable = PostData | CommentData;
 
-export const Post = (post: PostPresentable) => {
-  const fetcher = useFetcher();
+interface PostProps {
+  post: PostPresentable;
+  client: AppClient;
+}
+
+export const Post = ({ post, client }: PostProps) => {
+  const { mutate: like } = client.$api.useMutation(
+      "post",
+      "/api/posts/{id}/likes",
+      {
+        onSuccess: () => {
+          client.queryClient.invalidateQueries({ queryKey: ["get", "/api/posts", {}] });
+          client.queryClient.invalidateQueries({ queryKey: ["get", "/api/posts/{id}/comments", { id: post.data.id }], });
+        },
+      }
+  );
+
+  const likeAction = async () => {
+    const newCommentOps: components["schemas"]["NewLike"] = {
+      postID: post.data.id,
+      userID: 1, //TODO
+    };
+
+    like({ params: { 
+            path: { id: post.data.id }
+        }, body: newCommentOps });
+  };
+
   return (
     <div className="border-b border-gray-200 p-4 hover:bg-gray-50 transition-colors">
       <div className="flex space-x-3">
@@ -87,21 +116,17 @@ export const Post = (post: PostPresentable) => {
               </button>
             )}
             {"likeCount" in post.data && (
-              <fetcher.Form
-                method="post"
-                action={`/post/${post.data.id}/like`}
+              <form
+                action={likeAction}
               >
-                <input type="hidden" name="intent" value="like" />
-
                 <button
                   type="submit"
-                  disabled={fetcher.state === 'submitting'}
                   className="flex items-center space-x-1 hover:text-pink-500 transition"
                 >
                   <Heart size={16} /> 
                   <span>{post.data.likeCount}</span>
                 </button>
-              </fetcher.Form>
+              </form>
             )}
             {"shareCount" in post.data && (
               <button
