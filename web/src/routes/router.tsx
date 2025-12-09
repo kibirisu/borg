@@ -18,7 +18,7 @@ import MainFeed, {
 import { action as addPostAction } from "../components/feed/NewPostForm";
 import User, { loader as userLoader } from "../components/profile/UserProfile";
 import Root from "../components/Root";
-import { type AppClient, ClientContext } from "../lib/client";
+import ClientContext, { type AppClient } from "../lib/client";
 
 const RouterProvider = () => {
   const client = useContext(ClientContext);
