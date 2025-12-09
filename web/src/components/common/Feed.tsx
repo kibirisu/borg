@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Heart, MessageCircle, Repeat, Share2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
-import { Link, type LoaderFunctionArgs, useLoaderData } from "react-router";
+import { Form, Link, type LoaderFunctionArgs, useFetcher, useLoaderData } from "react-router";
 import type { components } from "../../lib/api/v1";
 import type { AppClient } from "../../lib/client";
 
@@ -46,6 +46,7 @@ interface CommentData {
 export type PostPresentable = PostData | CommentData;
 
 export const Post = (post: PostPresentable) => {
+  const fetcher = useFetcher();
   return (
     <div className="border-b border-gray-200 p-4 hover:bg-gray-50 transition-colors">
       <div className="flex space-x-3">
@@ -86,12 +87,21 @@ export const Post = (post: PostPresentable) => {
               </button>
             )}
             {"likeCount" in post.data && (
-              <button
-                type="button"
-                className="flex items-center space-x-1 hover:text-pink-500 transition"
+              <fetcher.Form
+                method="post"
+                action={`/post/${post.data.id}/like`}
               >
-                <Heart size={16} /> <span>{post.data.likeCount}</span>
-              </button>
+                <input type="hidden" name="intent" value="like" />
+
+                <button
+                  type="submit"
+                  disabled={fetcher.state === 'submitting'}
+                  className="flex items-center space-x-1 hover:text-pink-500 transition"
+                >
+                  <Heart size={16} /> 
+                  <span>{post.data.likeCount}</span>
+                </button>
+              </fetcher.Form>
             )}
             {"shareCount" in post.data && (
               <button
