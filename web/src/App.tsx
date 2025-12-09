@@ -8,7 +8,6 @@ import { type AppClient, ClientProvider } from "./lib/client.tsx";
 import decodeToken from "./lib/decode.ts";
 import { AppStateProvider } from "./lib/state.tsx";
 import RouterProvider from "./routes/router.tsx";
-import "./App.css";
 
 const fetchClient = createFetchClient<paths>();
 const $api = createClient(fetchClient);

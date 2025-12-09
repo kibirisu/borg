@@ -2,6 +2,7 @@ import { useContext } from "react";
 import AppContext from "../../lib/state";
 import AuthButtons from "./AuthButtons";
 import ProfileButton from "./ProfileButton";
+import { NavLink } from "react-router";
 
 export default function TopAppBar() {
   const state = useContext(AppContext);
@@ -12,7 +13,9 @@ export default function TopAppBar() {
   return (
     <div className="navbar bg-base-100 shadow-sm sticky top-0">
       <div className="navbar-start">
-        <div className="btn btn-ghost text-xl">borg</div>
+        <NavLink className="btn btn-ghost text-xl" to="/">
+          borg
+        </NavLink>
       </div>
       <div className="navbar-center">
         <input

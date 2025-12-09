@@ -45,7 +45,9 @@ const createMiddleware = (
   };
 };
 
-export const ClientContext = createContext<AppClient | undefined>(undefined);
+const ClientContext = createContext<AppClient | undefined>(undefined);
+
+export default ClientContext;
 
 interface Props {
   client: AppClient;

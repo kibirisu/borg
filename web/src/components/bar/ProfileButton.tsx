@@ -1,5 +1,5 @@
 import { useContext } from "react";
-import { ClientContext } from "../../lib/client";
+import ClientContext from "../../lib/client";
 import AppContext from "../../lib/state";
 
 const ProfileButton = () => {

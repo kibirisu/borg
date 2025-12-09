@@ -1,5 +1,5 @@
 import { useContext } from "react";
-import { ClientContext } from "../../lib/client";
+import ClientContext from "../../lib/client";
 import LoginButton from "./Login";
 import RegisterButton from "./Register";
 
