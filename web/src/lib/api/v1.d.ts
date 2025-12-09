@@ -478,6 +478,60 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/posts/{id}/shares": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get post's shares */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Share"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Create a post share */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["NewShare"];
+                };
+            };
+            responses: never;
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/register": {
         parameters: {
             query?: never;
@@ -623,6 +677,17 @@ export interface components {
             createdAt: string;
         };
         NewLike: {
+            postID: number;
+            userID: number;
+        };
+        Share: {
+            id: number;
+            postID: number;
+            userID: number;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        NewShare: {
             postID: number;
             userID: number;
         };

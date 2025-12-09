@@ -54,6 +54,12 @@ type ServerInterface interface {
 	// Create a post like
 	// (POST /api/posts/{id}/likes)
 	PostApiPostsIdLikes(w http.ResponseWriter, r *http.Request, id int)
+	// Get post's shares
+	// (GET /api/posts/{id}/shares)
+	GetApiPostsIdShares(w http.ResponseWriter, r *http.Request, id int)
+	// Create a post share
+	// (POST /api/posts/{id}/shares)
+	PostApiPostsIdShares(w http.ResponseWriter, r *http.Request, id int)
 	// Create a user
 	// (POST /api/users)
 	PostApiUsers(w http.ResponseWriter, r *http.Request)
@@ -144,6 +150,18 @@ func (_ Unimplemented) GetApiPostsIdLikes(w http.ResponseWriter, r *http.Request
 // Create a post like
 // (POST /api/posts/{id}/likes)
 func (_ Unimplemented) PostApiPostsIdLikes(w http.ResponseWriter, r *http.Request, id int) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get post's shares
+// (GET /api/posts/{id}/shares)
+func (_ Unimplemented) GetApiPostsIdShares(w http.ResponseWriter, r *http.Request, id int) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Create a post share
+// (POST /api/posts/{id}/shares)
+func (_ Unimplemented) PostApiPostsIdShares(w http.ResponseWriter, r *http.Request, id int) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -438,6 +456,62 @@ func (siw *ServerInterfaceWrapper) PostApiPostsIdLikes(w http.ResponseWriter, r 
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.PostApiPostsIdLikes(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetApiPostsIdShares operation middleware
+func (siw *ServerInterfaceWrapper) GetApiPostsIdShares(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id int
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetApiPostsIdShares(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PostApiPostsIdShares operation middleware
+func (siw *ServerInterfaceWrapper) PostApiPostsIdShares(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id int
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PostApiPostsIdShares(w, r, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -758,6 +832,12 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Post(options.BaseURL+"/api/posts/{id}/likes", wrapper.PostApiPostsIdLikes)
 	})
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/posts/{id}/shares", wrapper.GetApiPostsIdShares)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/posts/{id}/shares", wrapper.PostApiPostsIdShares)
+	})
+	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/users", wrapper.PostApiUsers)
 	})
 	r.Group(func(r chi.Router) {
@@ -785,25 +865,26 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

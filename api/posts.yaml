@@ -133,6 +133,40 @@ paths:
               $ref: "#/components/schemas/NewLike"
       security:
         - BearerAuth: []
+  /api/posts/{id}/shares:
+    get:
+      summary: Get post's shares
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Share"
+    post:
+      summary: Create a post share
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewShare"
+      security:
+        - BearerAuth: []
 
   /api/users/{id}/posts:
     get:
@@ -155,6 +189,33 @@ paths:
 
 components:
   schemas:
+    Share:
+      type: object
+      required:
+        - id
+        - postID
+        - userID
+        - createdAt
+      properties:
+        id:
+          type: integer
+        postID:
+          type: integer
+        userID:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+    NewShare:
+      type: object
+      required:
+        - postID
+        - userID
+      properties:
+        postID:
+          type: integer
+        userID:
+          type: integer
     Comment:
       type: object
       required:

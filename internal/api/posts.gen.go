@@ -49,6 +49,12 @@ type NewPost struct {
 	UserID  int    `json:"userID"`
 }
 
+// NewShare defines model for NewShare.
+type NewShare struct {
+	PostID int `json:"postID"`
+	UserID int `json:"userID"`
+}
+
 // Post defines model for Post.
 type Post struct {
 	CommentCount int       `json:"commentCount"`
@@ -60,6 +66,14 @@ type Post struct {
 	UpdatedAt    time.Time `json:"updatedAt"`
 	UserID       int       `json:"userID"`
 	Username     *string   `json:"username,omitempty"`
+}
+
+// Share defines model for Share.
+type Share struct {
+	CreatedAt time.Time `json:"createdAt"`
+	Id        int       `json:"id"`
+	PostID    int       `json:"postID"`
+	UserID    int       `json:"userID"`
 }
 
 // UpdatePost defines model for UpdatePost.
@@ -78,3 +92,6 @@ type PostApiPostsIdCommentsJSONRequestBody = NewComment
 
 // PostApiPostsIdLikesJSONRequestBody defines body for PostApiPostsIdLikes for application/json ContentType.
 type PostApiPostsIdLikesJSONRequestBody = NewLike
+
+// PostApiPostsIdSharesJSONRequestBody defines body for PostApiPostsIdShares for application/json ContentType.
+type PostApiPostsIdSharesJSONRequestBody = NewShare

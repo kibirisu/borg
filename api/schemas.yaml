@@ -1,32 +1,5 @@
 components:
   schemas:
-    Share:
-      type: object
-      required:
-        - id
-        - postID
-        - userID
-        - createdAt
-      properties:
-        id:
-          type: integer
-        postID:
-          type: integer
-        userID:
-          type: integer
-        createdAt:
-          type: string
-          format: date-time
-    NewShare:
-      type: object
-      required:
-        - postID
-        - userID
-      properties:
-        postID:
-          type: integer
-        userID:
-          type: integer
     Follower:
       type: object
       required:
