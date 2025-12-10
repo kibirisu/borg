@@ -58,7 +58,7 @@ jobs:
         with:
           working-dir: "web"
       - name: Run Biome
-        run: biome ci web
+        run: biome ci
 
   check-build:
     runs-on: ubuntu-latest
