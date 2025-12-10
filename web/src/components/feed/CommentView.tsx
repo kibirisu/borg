@@ -1,7 +1,7 @@
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { useContext } from "react";
 import { type LoaderFunctionArgs, Outlet, useLoaderData } from "react-router";
-import { type AppClient, ClientContext } from "../../lib/client";
+import ClientContext, { type AppClient } from "../../lib/client";
 import { PostItem } from "../common/PostItem";
 import CommentForm from "./CommentForm";
 

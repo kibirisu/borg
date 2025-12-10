@@ -8,7 +8,7 @@ import {
   useLoaderData,
 } from "react-router";
 import type { AppClient } from "../../lib/client";
-import { ClientContext } from "../../lib/client";
+import ClientContext from "../../lib/client";
 import { PostItem } from "./PostItem";
 
 export const loader =
