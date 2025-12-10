@@ -54,8 +54,11 @@ jobs:
         run: |
           make gen-api-ts
           git diff --exit-code web/src/lib/api
+      - uses: biomejs/setup-biome@v2
+        with:
+          working-dir: "web"
       - name: Run Biome
-        run: pnpm --prefix web exec biome ci
+        run: biome ci web
 
   check-build:
     runs-on: ubuntu-latest
