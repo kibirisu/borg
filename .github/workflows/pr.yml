@@ -59,7 +59,7 @@ jobs:
           working-dir: "web"
       - name: Run Biome
         working-directory: web
-        run: biome ci
+        run: biome ci --reporter=github
 
   check-build:
     runs-on: ubuntu-latest
