@@ -58,6 +58,7 @@ jobs:
         with:
           working-dir: "web"
       - name: Run Biome
+        working-directory: web
         run: biome ci
 
   check-build:
