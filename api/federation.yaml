@@ -1,0 +1,45 @@
+paths:
+  /.well-known/webfinger:
+    get:
+      summary: Get WebFinger
+      parameters:
+        - name: resource
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/jrd+json:
+              schema:
+                $ref: "#/components/schemas/WebFingerResponse"
+
+components:
+  schemas:
+    WebFingerResponse:
+      type: object
+      required:
+        - subject
+        - links
+      properties:
+        subject:
+          type: string
+        links:
+          type: array
+          items:
+            $ref: "#/components/schemas/WebFingerLink"
+    WebFingerLink:
+      type: object
+      required:
+        - rel
+        - type
+        - href
+      properties:
+        rel:
+          type: string
+        type:
+          type: string
+        href:
+          type: string

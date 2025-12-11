@@ -146,3 +146,12 @@ func (s *Server) GetApiUsersIdFollowing(w http.ResponseWriter, r *http.Request, 
 func (s *Server) GetApiPosts(w http.ResponseWriter, r *http.Request) {
 	getAll(s.ds.PostRepository()).ServeHTTP(w, r)
 }
+
+// GetWellKnownWebfinger implements api.ServerInterface.
+func (s *Server) GetWellKnownWebfinger(
+	w http.ResponseWriter,
+	r *http.Request,
+	params api.GetWellKnownWebfingerParams,
+) {
+	panic("unimplemented")
+}

@@ -26,6 +26,8 @@ paths:
     $ref: "auth.yaml#/paths/~1api~1auth~1register"
   /api/auth/login:
     $ref: "auth.yaml#/paths/~1api~1auth~1login"
+  /.well-known/webfinger:
+    $ref: "federation.yaml#/paths/~1.well-known~1webfinger"
 
 components:
   securitySchemes:
