@@ -16,53 +16,51 @@ const RegisterButton = ({ client }: Props) => {
   };
 
   const registerAction = async (data: FormData) => {
-    if (dialogRef.current) {
-      const username = data.get("username")?.toString();
-      const password = data.get("password")?.toString();
+    const username = data.get("username")?.toString();
+    const password = data.get("password")?.toString();
 
-      // Wyczyść poprzednie błędy
-      setUsernameError(null);
-      setPasswordError(null);
+    // Wyczyść poprzednie błędy
+    setUsernameError(null);
+    setPasswordError(null);
 
-      // Walidacja pól
-      let hasErrors = false;
-      if (!username || username.trim() === "") {
-        setUsernameError("Username is required");
-        hasErrors = true;
+    // Walidacja pól
+    let hasErrors = false;
+    if (!username || username.trim() === "") {
+      setUsernameError("Username is required");
+      hasErrors = true;
+    }
+    if (!password || password.trim() === "") {
+      setPasswordError("Password is required");
+      hasErrors = true;
+    }
+
+    if (hasErrors) {
+      return; // Nie kontynuuj jeśli są błędy walidacji
+    }
+
+    try {
+      await register({ body: { username: username!, password: password! } });
+      // Sukces - zamknij dialog
+      if (dialogRef.current) {
+        dialogRef.current.close();
       }
-      if (!password || password.trim() === "") {
-        setPasswordError("Password is required");
-        hasErrors = true;
-      }
-
-      if (hasErrors) {
-        return; // Nie kontynuuj jeśli są błędy walidacji
-      }
-
-      try {
-        await register({ body: { username: username, password: password } });
-        // Sukces - zamknij dialog
-        if (dialogRef.current) {
-          dialogRef.current.close();
-        }
-      } catch (error: any) {
-        // Obsłuż błąd - openapi-fetch zwraca błędy w strukturze { status, data }
-        const status = error?.status || error?.response?.status;
-        if (status === 409) {
-          // Spróbuj wyciągnąć komunikat z odpowiedzi
-          const errorData = error?.data || error?.response?.data;
-          if (
-            errorData &&
-            typeof errorData === "object" &&
-            "error" in errorData
-          ) {
-            setUsernameError(errorData.error as string);
-          } else {
-            setUsernameError("Username already taken");
-          }
+    } catch (error: any) {
+      // Obsłuż błąd - openapi-fetch zwraca błędy w strukturze { status, data }
+      const status = error?.status || error?.response?.status;
+      if (status === 409) {
+        // Spróbuj wyciągnąć komunikat z odpowiedzi
+        const errorData = error?.data || error?.response?.data;
+        if (
+          errorData &&
+          typeof errorData === "object" &&
+          "error" in errorData
+        ) {
+          setUsernameError(errorData.error as string);
         } else {
-          setUsernameError("Registration failed. Please try again.");
+          setUsernameError("Username already taken");
         }
+      } else {
+        setUsernameError("Registration failed. Please try again.");
       }
     }
   };
