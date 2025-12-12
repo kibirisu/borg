@@ -22,10 +22,7 @@ import ClientContext, { type AppClient } from "../lib/client";
 
 const RouterProvider = () => {
   const client = useContext(ClientContext);
-  if (!client) {
-    throw Error();
-  }
-  return <Provider router={router(client)} />;
+  return <Provider router={router(client!)} />;
 };
 
 export default RouterProvider;

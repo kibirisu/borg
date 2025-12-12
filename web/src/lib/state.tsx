@@ -23,12 +23,14 @@ interface Props {
   username: string | null;
 }
 
-export const AppStateProvider = (props: Props) => {
-  const { children, token, tokenRef, username } = props;
+export const AppStateProvider = ({
+  children,
+  token,
+  tokenRef,
+  username,
+}: Props) => {
   return (
-    <AppContext.Provider
-      value={{ token: token, tokenRef: tokenRef, username: username }}
-    >
+    <AppContext.Provider value={{ token, tokenRef, username }}>
       {children}
     </AppContext.Provider>
   );

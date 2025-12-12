@@ -34,6 +34,7 @@ const App = () => {
       username={username}
     >
       <ClientProvider client={client}>
+        {/* biome-ignore lint/complexity/noUselessFragments: ClientProvider takes a single JSX child element */}
         <>
           <RouterProvider />
           <ReactQueryDevtools />

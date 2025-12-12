@@ -1,15 +1,11 @@
 import { useContext } from "react";
-import ClientContext from "../../lib/client";
 import AppContext from "../../lib/state";
 
 const ProfileButton = () => {
-  const client = useContext(ClientContext);
   const context = useContext(AppContext);
-  if (!client || !context) {
-    throw Error();
-  }
 
-  const [_, setToken] = context.token;
+  // biome-ignore lint/style/noNonNullAssertion: AppContext will never be `underfined`
+  const [_, setToken] = context!.token;
 
   const logoutAction = () => {
     localStorage.removeItem("jwt");
@@ -35,16 +31,18 @@ const ProfileButton = () => {
         className="menu menu-sm dropdown-content bg-base-100 rounded-box z-1 mt-3 w-52 p-2 shadow"
       >
         <li>
-          <a className="justify-between">
+          <div className="justify-between">
             Profile
             <span className="badge">New</span>
-          </a>
+          </div>
         </li>
         <li>
-          <a>Settings</a>
+          <div>Settings</div>
         </li>
         <li>
-          <button onClick={logoutAction}>Logout</button>
+          <button onClick={logoutAction} type="button">
+            Logout
+          </button>
         </li>
       </ul>
     </div>

@@ -1,32 +1,26 @@
 import { useRef } from "react";
 import type { AppClient } from "../../lib/client";
 
-const RegisterButton = (props: Props) => {
+const RegisterButton = ({ client }: Props) => {
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const { mutate: register } = props.client.$api.useMutation(
+  const { mutateAsync: register } = client.$api.useMutation(
     "post",
     "/api/auth/register",
   );
 
-  const openDialog = () => {
-    if (dialogRef.current) {
-      dialogRef.current.showModal();
-    }
-  };
+  const openDialog = () => dialogRef?.current?.showModal();
 
   const registerAction = async (data: FormData) => {
-    if (dialogRef.current) {
-      const username = data.get("username")?.toString();
-      const password = data.get("password")?.toString();
-      if (username && password) {
-        register({ body: { username: username, password: password } });
-      }
+    const username = data.get("username")?.toString();
+    const password = data.get("password")?.toString();
+    if (username && password) {
+      await register({ body: { username: username, password: password } });
     }
   };
 
   return (
     <>
-      <button className="btn" onClick={openDialog}>
+      <button className="btn" onClick={openDialog} type="button">
         Sign Up
       </button>
       <dialog ref={dialogRef} className="modal">
@@ -57,6 +51,10 @@ const RegisterButton = (props: Props) => {
             </fieldset>
           </form>
         </div>
+
+        <form method="dialog" className="modal-backdrop">
+          <button type="submit">close</button>
+        </form>
       </dialog>
     </>
   );

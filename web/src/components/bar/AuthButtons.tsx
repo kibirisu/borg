@@ -5,14 +5,11 @@ import RegisterButton from "./Register";
 
 const AuthButtons = () => {
   const client = useContext(ClientContext);
-  if (!client) {
-    throw Error();
-  }
 
   return (
     <>
-      <LoginButton client={client} />
-      <RegisterButton client={client} />
+      <LoginButton client={client!} />
+      <RegisterButton client={client!} />
     </>
   );
 };

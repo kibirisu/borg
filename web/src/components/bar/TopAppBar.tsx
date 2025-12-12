@@ -1,14 +1,11 @@
 import { useContext } from "react";
+import { NavLink } from "react-router";
 import AppContext from "../../lib/state";
 import AuthButtons from "./AuthButtons";
 import ProfileButton from "./ProfileButton";
-import { NavLink } from "react-router";
 
 export default function TopAppBar() {
   const state = useContext(AppContext);
-  if (!state) {
-    throw Error();
-  }
 
   return (
     <div className="navbar bg-base-100 shadow-sm sticky top-0">
@@ -25,7 +22,7 @@ export default function TopAppBar() {
         />
       </div>
       <div className="navbar-end gap-2">
-        {state.username ? <ProfileButton /> : <AuthButtons />}
+        {state?.username ? <ProfileButton /> : <AuthButtons />}
       </div>
     </div>
   );

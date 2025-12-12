@@ -1,32 +1,26 @@
 import { useRef } from "react";
 import type { AppClient } from "../../lib/client";
 
-const LoginButton = (props: Props) => {
+const LoginButton = ({ client }: Props) => {
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const { mutate: login } = props.client.$api.useMutation(
+  const { mutateAsync: login } = client.$api.useMutation(
     "post",
     "/api/auth/login",
   );
 
-  const openDialog = () => {
-    if (dialogRef.current) {
-      dialogRef.current.showModal();
-    }
-  };
+  const openDialog = () => dialogRef?.current?.showModal();
 
   const loginAction = async (data: FormData) => {
-    if (dialogRef.current) {
-      const username = data.get("username")?.toString();
-      const password = data.get("password")?.toString();
-      if (username && password) {
-        login({ body: { username: username, password: password } });
-      }
+    const username = data.get("username")?.toString();
+    const password = data.get("password")?.toString();
+    if (username && password) {
+      await login({ body: { username: username, password: password } });
     }
   };
 
   return (
     <>
-      <button className="btn" onClick={openDialog}>
+      <button className="btn" onClick={openDialog} type="button">
         Sign In
       </button>
       <dialog ref={dialogRef} className="modal">
@@ -59,7 +53,7 @@ const LoginButton = (props: Props) => {
         </div>
 
         <form method="dialog" className="modal-backdrop">
-          <button>close</button>
+          <button type="submit">close</button>
         </form>
       </dialog>
     </>

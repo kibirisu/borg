@@ -54,14 +54,11 @@ interface Props {
   children: JSX.Element;
 }
 
-export const ClientProvider = (props: Props) => {
-  const client = props.client;
+export const ClientProvider = ({ client, children }: Props) => {
   const context = useContext(AppContext);
-  if (!context) {
-    throw Error();
-  }
-  const { token, tokenRef } = context;
+  const { token, tokenRef } = context!;
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Probably linter is right but I dunno what i am doing
   useEffect(() => {
     const middleware = createMiddleware(tokenRef, token[1]);
     client.fetchClient.use(middleware);
@@ -71,7 +68,7 @@ export const ClientProvider = (props: Props) => {
   return (
     <ClientContext.Provider value={client}>
       <QueryClientProvider client={client.queryClient}>
-        {props.children}
+        {children}
       </QueryClientProvider>
     </ClientContext.Provider>
   );
