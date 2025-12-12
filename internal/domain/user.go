@@ -3,13 +3,18 @@ package domain
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"log"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/kibirisu/borg/internal/api"
 	"github.com/kibirisu/borg/internal/db"
 )
+
+// ErrUsernameExists is returned when attempting to register a username that already exists
+var ErrUsernameExists = errors.New("username already exists")
 
 type UserRepository interface {
 	Repository[*api.User, *api.NewUser, *api.UpdateUser]
@@ -81,6 +86,11 @@ func (r *userRepository) RegisterUser(ctx context.Context, credentials *api.Logi
 	log.Println(string(hash))
 	user := db.AddUserParams{Username: credentials.Username, PasswordHash: string(hash)}
 	if err := r.AddUser(ctx, user); err != nil {
+		// Check if error is a PostgreSQL unique violation (code 23505)
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return ErrUsernameExists
+		}
 		return err
 	}
 	return nil

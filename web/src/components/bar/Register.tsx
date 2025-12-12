@@ -1,20 +1,51 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import type { AppClient } from "../../lib/client";
 
 const RegisterButton = ({ client }: Props) => {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const [usernameError, setUsernameError] = useState<string | null>(null);
   const { mutateAsync: register } = client.$api.useMutation(
     "post",
     "/api/auth/register",
   );
 
-  const openDialog = () => dialogRef?.current?.showModal();
+  const openDialog = () => {
+    setUsernameError(null); // Wyczyść błędy przy otwieraniu
+    dialogRef?.current?.showModal();
+  };
 
   const registerAction = async (data: FormData) => {
-    const username = data.get("username")?.toString();
-    const password = data.get("password")?.toString();
-    if (username && password) {
-      await register({ body: { username: username, password: password } });
+    if (dialogRef.current) {
+      const username = data.get("username")?.toString();
+      const password = data.get("password")?.toString();
+      if (username && password) {
+        setUsernameError(null); // Wyczyść poprzednie błędy
+        try {
+          await register({ body: { username: username, password: password } });
+          // Sukces - zamknij dialog
+          if (dialogRef.current) {
+            dialogRef.current.close();
+          }
+        } catch (error: any) {
+          // Obsłuż błąd - openapi-fetch zwraca błędy w strukturze { status, data }
+          const status = error?.status || error?.response?.status;
+          if (status === 409) {
+            // Spróbuj wyciągnąć komunikat z odpowiedzi
+            const errorData = error?.data || error?.response?.data;
+            if (
+              errorData &&
+              typeof errorData === "object" &&
+              "error" in errorData
+            ) {
+              setUsernameError(errorData.error as string);
+            } else {
+              setUsernameError("Username already taken");
+            }
+          } else {
+            setUsernameError("Registration failed. Please try again.");
+          }
+        }
+      }
     }
   };
 
@@ -32,10 +63,17 @@ const RegisterButton = ({ client }: Props) => {
               <label className="label">Username</label>
               <input
                 type="text"
-                className="input"
+                className={`input ${usernameError ? "input-error" : ""}`}
                 placeholder="Username"
                 name="username"
               />
+              {usernameError && (
+                <div className="label">
+                  <span className="label-text-alt text-error">
+                    {usernameError}
+                  </span>
+                </div>
+              )}
 
               <label className="label">Password</label>
               <input

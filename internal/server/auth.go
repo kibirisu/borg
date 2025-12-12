@@ -27,6 +27,14 @@ func registerUser(repo domain.UserRepository) http.HandlerFunc {
 			return
 		}
 		if err := repo.RegisterUser(r.Context(), &creds); err != nil {
+			if errors.Is(err, domain.ErrUsernameExists) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusConflict)
+				json.NewEncoder(w).Encode(map[string]string{
+					"error": "Username already taken",
+				})
+				return
+			}
 			log.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
