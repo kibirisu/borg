@@ -15,77 +15,75 @@ export type PostPresentable = PostData | CommentData;
 
 interface PostProps {
   post: PostPresentable;
-  client: AppClient | undefined;
+  client: AppClient;
 }
 
 export const PostItem = ({ post, client }: PostProps) => {
-  let likeAction, shareAction;
-  if (client !== undefined) {
-    const { mutate: like } = client.$api.useMutation(
-      "post",
-      "/api/posts/{id}/likes",
-      {
-        onSuccess: () => {
-          client.queryClient.invalidateQueries({
-            queryKey: ["get", "/api/posts", {}],
-          });
-          client.queryClient.invalidateQueries({
-            queryKey: [
-              "get",
-              "/api/posts/{id}",
-              { params: { path: { id: post.data.id } } },
-            ],
-          });
-        },
+  const { mutateAsync: like } = client.$api.useMutation(
+    "post",
+    "/api/posts/{id}/likes",
+    {
+      onSuccess: () => {
+        client.queryClient.invalidateQueries({
+          queryKey: ["get", "/api/posts", {}],
+        });
+        client.queryClient.invalidateQueries({
+          queryKey: [
+            "get",
+            "/api/posts/{id}",
+            { params: { path: { id: post.data.id } } },
+          ],
+        });
       },
-    );
+    },
+  );
 
-    likeAction = async () => {
-      const newCommentOps: components["schemas"]["NewLike"] = {
-        postID: post.data.id,
-        userID: 1, //TODO
-      };
-
-      like({
-        params: {
-          path: { id: post.data.id },
-        },
-        body: newCommentOps,
-      });
+  const likeAction = async () => {
+    const newCommentOps: components["schemas"]["NewLike"] = {
+      postID: post.data.id,
+      userID: 1, //TODO: API needs refactor, the user data will be passed with JWT
     };
-    const { mutate: share } = client.$api.useMutation(
-      "post",
-      "/api/posts/{id}/shares",
-      {
-        onSuccess: () => {
-          client.queryClient.invalidateQueries({
-            queryKey: ["get", "/api/posts", {}],
-          });
-          client.queryClient.invalidateQueries({
-            queryKey: [
-              "get",
-              "/api/posts/{id}",
-              { params: { path: { id: post.data.id } } },
-            ],
-          });
-        },
+
+    await like({
+      params: {
+        path: { id: post.data.id },
       },
-    );
+      body: newCommentOps,
+    });
+  };
 
-    shareAction = async () => {
-      const newCommentOps: components["schemas"]["NewShare"] = {
-        postID: post.data.id,
-        userID: 1, //TODO
-      };
+  const { mutateAsync: share } = client.$api.useMutation(
+    "post",
+    "/api/posts/{id}/shares",
+    {
+      onSuccess: () => {
+        client.queryClient.invalidateQueries({
+          queryKey: ["get", "/api/posts", {}],
+        });
+        client.queryClient.invalidateQueries({
+          queryKey: [
+            "get",
+            "/api/posts/{id}",
+            { params: { path: { id: post.data.id } } },
+          ],
+        });
+      },
+    },
+  );
 
-      share({
-        params: {
-          path: { id: post.data.id },
-        },
-        body: newCommentOps,
-      });
+  const shareAction = async () => {
+    const newCommentOps: components["schemas"]["NewShare"] = {
+      postID: post.data.id,
+      userID: 1, //TODO
     };
-  }
+
+    await share({
+      params: {
+        path: { id: post.data.id },
+      },
+      body: newCommentOps,
+    });
+  };
 
   return (
     <div className="border-b border-gray-200 p-4 hover:bg-gray-50 transition-colors">

@@ -1,12 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useContext } from "react";
-import {
-  Form,
-  Link,
-  type LoaderFunctionArgs,
-  useFetcher,
-  useLoaderData,
-} from "react-router";
+import { type LoaderFunctionArgs, useLoaderData } from "react-router";
 import type { AppClient } from "../../lib/client";
 import ClientContext from "../../lib/client";
 import { PostItem } from "./PostItem";
