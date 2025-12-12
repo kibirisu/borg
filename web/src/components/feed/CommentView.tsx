@@ -21,7 +21,7 @@ export const loader =
       "/api/posts/{id}/comments",
       queryParams,
     );
-    client.queryClient.prefetchQuery({ ...commentOpts, staleTime: 0 });
+    client.queryClient.prefetchQuery(commentOpts);
     await client.queryClient.ensureQueryData(postOpts);
     return { opts: postOpts };
   };
@@ -55,7 +55,7 @@ export default function CommentView() {
       </header>
 
       <div className="border-b border-gray-200 p-4 bg-gray-50">
-        <PostItem post={{ ...postData }} client={client} />
+        <PostItem post={{ ...postData }} client={client!} />
       </div>
       <CommentForm />
       <Outlet />
@@ -64,6 +64,7 @@ export default function CommentView() {
 }
 
 export function CommentsFeed() {
+  const client = useContext(ClientContext);
   const { opts } = useLoaderData() as Awaited<
     ReturnType<ReturnType<typeof commentsLoader>>
   >;
@@ -74,11 +75,7 @@ export function CommentsFeed() {
   return (
     <div className="max-w-2xl mx-auto border-x border-gray-300 min-h-screen bg-white">
       {data?.map((comment) => (
-        <PostItem
-          key={comment.id}
-          post={{ data: comment }}
-          client={undefined}
-        />
+        <PostItem key={comment.id} post={{ data: comment }} client={client!} />
       ))}
     </div>
   );
