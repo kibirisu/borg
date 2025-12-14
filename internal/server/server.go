@@ -56,12 +56,37 @@ func (s *Server) GetApiAccountsLookup(
 			Username:    actor.Username,
 		}
 		json.NewEncoder(w).Encode(&account)
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 	} else if domain != "" {
 		actor, err := s.ds.Raw().GetAccount(r.Context(), db.GetAccountParams{username, sql.NullString{domain, true}})
 		if err != nil {
-			// we should do webfinger lookup at this point instead
-			log.Println(err)
+			// we should do webfinger lookup at this point
+			client := http.Client{Timeout: 2 * time.Second}
+			req, err := http.NewRequest("GET", "http://"+domain+"/.well-known/webfinger", nil)
+			q := req.URL.Query()
+			q.Set("resource", acct)
+			req.URL.RawQuery = q.Encode()
+			if err != nil {
+				log.Println(err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			resp, err := client.Do(req)
+			if err != nil {
+				log.Println(err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			defer resp.Body.Close()
+			var webfinger api.WebFingerResponse
+			if err = json.NewDecoder(req.Body).Decode(&webfinger); err != nil {
+				log.Println(err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			// at this point we successfully looked up a account
+			// and we should ask the other server for actor associated with the account
 			w.WriteHeader(http.StatusNotImplemented)
 			return
 		}
@@ -73,6 +98,7 @@ func (s *Server) GetApiAccountsLookup(
 			Username:    actor.Username,
 		}
 		json.NewEncoder(w).Encode(&account)
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 	} else {
 		w.WriteHeader(http.StatusBadRequest)
