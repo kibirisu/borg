@@ -7,6 +7,15 @@ const (
 	BearerAuthScopes = "BearerAuth.Scopes"
 )
 
+// Account defines model for Account.
+type Account struct {
+	Acct        string `json:"acct"`
+	DisplayName string `json:"displayName"`
+	Id          int    `json:"id"`
+	Url         string `json:"url"`
+	Username    string `json:"username"`
+}
+
 // WebFingerLink defines model for WebFingerLink.
 type WebFingerLink struct {
 	Href string `json:"href"`

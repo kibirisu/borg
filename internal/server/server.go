@@ -1,10 +1,12 @@
 package server
 
 import (
+	"database/sql"
 	"encoding/json"
 	"io/fs"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -12,6 +14,7 @@ import (
 
 	"github.com/kibirisu/borg/internal/api"
 	"github.com/kibirisu/borg/internal/config"
+	"github.com/kibirisu/borg/internal/db"
 	"github.com/kibirisu/borg/internal/domain"
 	"github.com/kibirisu/borg/web"
 )
@@ -30,7 +33,50 @@ func (s *Server) GetApiAccountsLookup(
 	r *http.Request,
 	params api.GetApiAccountsLookupParams,
 ) {
-	panic("unimplemented")
+	// we must check if account is local or from other instance
+	// if from other instance we do webfinger lookup
+	acct := params.Acct
+	log.Println(acct)
+	arr := strings.Split(acct, "@")
+	username := arr[0]
+	domain := arr[1]
+
+	if domain == s.conf.ListenHost {
+		actor, err := s.ds.Raw().GetActor(r.Context(), username)
+		if err != nil {
+			log.Println(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		account := api.Account{
+			Acct:        acct,
+			DisplayName: actor.DisplayName.String,
+			Id:          int(actor.ID),
+			Url:         actor.Url,
+			Username:    actor.Username,
+		}
+		json.NewEncoder(w).Encode(&account)
+		w.WriteHeader(http.StatusOK)
+	} else if domain != "" {
+		actor, err := s.ds.Raw().GetAccount(r.Context(), db.GetAccountParams{username, sql.NullString{domain, true}})
+		if err != nil {
+			// we should do webfinger lookup at this point instead
+			log.Println(err)
+			w.WriteHeader(http.StatusNotImplemented)
+			return
+		}
+		account := api.Account{
+			Acct:        acct,
+			DisplayName: actor.DisplayName.String,
+			Id:          int(actor.ID),
+			Url:         actor.Url,
+			Username:    actor.Username,
+		}
+		json.NewEncoder(w).Encode(&account)
+		w.WriteHeader(http.StatusOK)
+	} else {
+		w.WriteHeader(http.StatusBadRequest)
+	}
 }
 
 // PostApiAccountsIdFollow implements api.ServerInterface.

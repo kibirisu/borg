@@ -1,5 +1,8 @@
 -- name: GetActor :one
-SELECT * FROM accounts WHERE username = $1;
+SELECT * FROM accounts WHERE username = $1 AND domain IS NULL;
+
+-- name: GetAccount :one
+SELECT * FROM accounts WHERE username = $1 AND domain = $2;
 
 -- name: AddUser :exec
 INSERT INTO users (

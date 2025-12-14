@@ -5,7 +5,7 @@ CREATE TABLE accounts (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     username TEXT NOT NULL,
-    uri TEXT UNIQUE NOT NULL, -- AP identifier
+    uri TEXT UNIQUE NOT NULL,
     display_name TEXT,
     domain TEXT,
     inbox_uri TEXT NOT NULL,
