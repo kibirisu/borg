@@ -2,6 +2,7 @@ package server
 
 import (
 	"io/fs"
+	"log"
 	"net/http"
 	"time"
 
@@ -39,6 +40,16 @@ func NewServer(conf *config.Config, ds domain.DataStore) *http.Server {
 		r.Get("/*", server.serveFile("index.html"))
 		r.Get("/static/*", server.handleAssets)
 		r.Get("/api/docs", server.serveFile("docs.html"))
+		r.Get("/user/{username}", func(w http.ResponseWriter, r *http.Request) {
+			// needed for actor identification before we can even follow one
+
+			username := chi.URLParam(r, "username")
+			log.Println(username)
+		})
+		r.Post("/user/{username}/inbox", func(w http.ResponseWriter, r *http.Request) {
+			username := chi.URLParam(r, "username")
+			log.Println(username)
+		})
 	})
 	// API routes muszą być przed catch-all route
 	h := api.HandlerWithOptions(

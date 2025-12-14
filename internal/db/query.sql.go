@@ -153,6 +153,30 @@ func (q *Queries) DeleteUser(ctx context.Context, id int32) error {
 	return err
 }
 
+const getActor = `-- name: GetActor :one
+SELECT id, created_at, updated_at, username, uri, display_name, domain, inbox_uri, outbox_uri, followers_uri, following_uri, url FROM accounts WHERE username = $1
+`
+
+func (q *Queries) GetActor(ctx context.Context, username string) (Account, error) {
+	row := q.db.QueryRowContext(ctx, getActor, username)
+	var i Account
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Username,
+		&i.Uri,
+		&i.DisplayName,
+		&i.Domain,
+		&i.InboxUri,
+		&i.OutboxUri,
+		&i.FollowersUri,
+		&i.FollowingUri,
+		&i.Url,
+	)
+	return i, err
+}
+
 const getAllPosts = `-- name: GetAllPosts :many
 SELECT p.id, p.user_id, p.content, p.like_count, p.share_count, p.comment_count, p.created_at, p.updated_at, u.username FROM posts p JOIN users u ON p.user_id = u.id ORDER BY p.created_at DESC
 `

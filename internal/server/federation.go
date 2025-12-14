@@ -23,6 +23,12 @@ func (s *Server) GetWellKnownWebfinger(
 	// Here we should query database for a user contained in resource
 	// And return minimal response as defined in WebFinger spec
 
+	actor, err := s.ds.Raw().GetActor(r.Context(), resource)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
 	// WebFinger pointing to queried actor
 	resp.Subject = resource
 	resp.Links = append(
@@ -30,11 +36,10 @@ func (s *Server) GetWellKnownWebfinger(
 		api.WebFingerLink{
 			Rel:  "self",
 			Type: "application/activity+json",
-			Href: "http://127.0.0.1:8080/users/user", // ActivityPub user URI
+			Href: actor.Uri, // ActivityPub user URI
 		},
 	)
 
 	json.NewEncoder(w).Encode(&resp)
 	w.WriteHeader(http.StatusOK)
 }
-

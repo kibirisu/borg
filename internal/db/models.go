@@ -6,7 +6,23 @@ package db
 
 import (
 	"database/sql"
+	"time"
 )
+
+type Account struct {
+	ID           int32
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+	Username     string
+	Uri          string
+	DisplayName  sql.NullString
+	Domain       sql.NullString
+	InboxUri     string
+	OutboxUri    string
+	FollowersUri string
+	FollowingUri string
+	Url          string
+}
 
 type Comment struct {
 	ID        int32
@@ -16,6 +32,15 @@ type Comment struct {
 	ParentID  sql.NullInt32
 	CreatedAt sql.NullTime
 	UpdatedAt sql.NullTime
+}
+
+type Follow struct {
+	ID              int32
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+	Uri             string
+	AccountID       int32
+	TargetAccountID int32
 }
 
 type Follower struct {
@@ -50,6 +75,18 @@ type Share struct {
 	CreatedAt sql.NullTime
 }
 
+type Status struct {
+	ID         int32
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+	Uri        string
+	Url        string
+	Local      sql.NullBool
+	Content    string
+	AccountID  int32
+	AccountUri string
+}
+
 type User struct {
 	ID             int32
 	Username       string
@@ -61,4 +98,10 @@ type User struct {
 	CreatedAt      sql.NullTime
 	UpdatedAt      sql.NullTime
 	Origin         sql.NullString
+}
+
+type UsersNew struct {
+	ID           int32
+	AccountID    int32
+	PasswordHash string
 }

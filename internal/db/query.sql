@@ -1,3 +1,6 @@
+-- name: GetActor :one
+SELECT * FROM accounts WHERE username = $1;
+
 -- name: AddUser :exec
 INSERT INTO users (
   username,

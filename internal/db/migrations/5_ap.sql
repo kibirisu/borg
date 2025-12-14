@@ -5,22 +5,22 @@ CREATE TABLE accounts (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     username TEXT NOT NULL,
-    uri TEXT NOT NULL, -- AP identifier
+    uri TEXT UNIQUE NOT NULL, -- AP identifier
     display_name TEXT,
     domain TEXT,
     inbox_uri TEXT NOT NULL,
     outbox_uri TEXT NOT NULL,
     followers_uri TEXT NOT NULL,
     following_uri TEXT NOT NULL,
-    liked_uri TEXT NOT NULL, -- ??? according to the specification, not present in mastodon, gotosocial
-    url TEXT NOT NULL
+    url TEXT NOT NULL,
+    UNIQUE (username, domain)
 );
 
 CREATE TABLE statuses (
     id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    uri TEXT NOT NULL,
+    uri TEXT UNIQUE NOT NULL,
     url TEXT NOT NULL,
     local BOOLEAN DEFAULT FALSE,
     content TEXT NOT NULL,
@@ -31,15 +31,16 @@ CREATE TABLE statuses (
 CREATE TABLE follows (
     id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-    uri TEXT NOT NULL,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    uri TEXT UNIQUE NOT NULL,
     account_id INTEGER NOT NULL REFERENCES accounts (id),
-    target_account_id INTEGER NOT NULL REFERENCES accounts (id)
+    target_account_id INTEGER NOT NULL REFERENCES accounts (id),
+    UNIQUE (account_id, target_account_id)
 );
 
-CREATE TABLE users (
+CREATE TABLE users_new (
     id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    account_id INTEGER NOT NULL REFERENCES accounts (id),
+    account_id INTEGER NOT NULL UNIQUE REFERENCES accounts (id),
     password_hash TEXT NOT NULL
 );
 
@@ -47,4 +48,4 @@ CREATE TABLE users (
 DROP TABLE accounts;
 DROP TABLE statuses;
 DROP TABLE follows;
-DROP TABLE users;
+DROP TABLE users_new;

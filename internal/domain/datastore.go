@@ -7,6 +7,7 @@ import (
 )
 
 type DataStore interface {
+	Raw() *db.Queries
 	UserRepository() UserRepository
 	PostRepository() PostRepository
 	CommentRepository() CommentRepository
@@ -40,6 +41,7 @@ type HasPostScope[T any] interface {
 }
 
 type dataStore struct {
+	raw      *db.Queries
 	users    UserRepository
 	posts    PostRepository
 	comments CommentRepository
@@ -60,7 +62,12 @@ func NewDataStore(ctx context.Context, url string) (DataStore, error) {
 	ds.comments = newCommentRepository(q)
 	ds.likes = newLikeRepository(q)
 	ds.shares = newShareRepository(q)
+	ds.raw = q
 	return ds, nil
+}
+
+func (ds *dataStore) Raw() *db.Queries {
+	return ds.raw
 }
 
 func (ds *dataStore) UserRepository() UserRepository {
