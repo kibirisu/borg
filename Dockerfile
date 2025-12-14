@@ -1,4 +1,5 @@
 FROM node:lts-alpine AS frontend
+RUN apk update && apk add --no-cache ca-certificates
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 ENV CI="true"
