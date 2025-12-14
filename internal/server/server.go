@@ -114,6 +114,21 @@ func (s *Server) GetApiAccountsLookup(
 			// we fetched remote actor
 			// we must store it in database and return account in response
 			_ = resp.Body.Close()
+			err = s.ds.Raw().CreateActor(r.Context(), db.CreateActorParams{
+				Username:    username, // probably...
+				Uri:         actor.ID,
+				DisplayName: sql.NullString{actor.PreferredUsername, true}, // again... probably
+				Domain:      sql.NullString{domain, true},
+				InboxUri:    actor.Inbox,
+				OutboxUri:   actor.Outbox,
+				Url:         "", // TODO: we should send web profile addr in webfinger
+			})
+			if err != nil {
+				log.Println(err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			// Now we should return response with account that just was stored in database
 			w.WriteHeader(http.StatusNotImplemented)
 			return
 		}
@@ -124,7 +139,7 @@ func (s *Server) GetApiAccountsLookup(
 			Url:         actor.Url,
 			Username:    actor.Username,
 		}
-		json.NewEncoder(w).Encode(&account)
+		_ = json.NewEncoder(w).Encode(&account)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 	} else {

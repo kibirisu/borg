@@ -108,6 +108,33 @@ func (q *Queries) AddUser(ctx context.Context, arg AddUserParams) error {
 	return err
 }
 
+const createActor = `-- name: CreateActor :exec
+INSERT INTO accounts (username, uri, display_name, domain, inbox_uri, outbox_uri, url) VALUES ($1, $2, $3, $4, $5, $6, $7)
+`
+
+type CreateActorParams struct {
+	Username    string
+	Uri         string
+	DisplayName sql.NullString
+	Domain      sql.NullString
+	InboxUri    string
+	OutboxUri   string
+	Url         string
+}
+
+func (q *Queries) CreateActor(ctx context.Context, arg CreateActorParams) error {
+	_, err := q.db.ExecContext(ctx, createActor,
+		arg.Username,
+		arg.Uri,
+		arg.DisplayName,
+		arg.Domain,
+		arg.InboxUri,
+		arg.OutboxUri,
+		arg.Url,
+	)
+	return err
+}
+
 const deleteComment = `-- name: DeleteComment :exec
 DELETE FROM comments WHERE id = $1
 `
