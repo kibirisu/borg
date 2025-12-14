@@ -7,10 +7,6 @@ import (
 	"time"
 )
 
-const (
-	BearerAuthScopes = "BearerAuth.Scopes"
-)
-
 // Comment defines model for Comment.
 type Comment struct {
 	UpdatedAt time.Time `json:"UpdatedAt"`

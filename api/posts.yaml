@@ -19,8 +19,7 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/NewPost"
-      security:
-        - BearerAuth: []
+
   /api/posts/{id}:
     get:
       summary: Get a post by ID
@@ -97,8 +96,6 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/NewComment"
-      security:
-        - BearerAuth: []
 
   /api/users/{id}/posts:
     get:

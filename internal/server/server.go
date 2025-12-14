@@ -24,6 +24,20 @@ type Server struct {
 	conf   *config.Config
 }
 
+// GetApiAccountsLookup implements api.ServerInterface.
+func (s *Server) GetApiAccountsLookup(
+	w http.ResponseWriter,
+	r *http.Request,
+	params api.GetApiAccountsLookupParams,
+) {
+	panic("unimplemented")
+}
+
+// PostApiAccountsIdFollow implements api.ServerInterface.
+func (s *Server) PostApiAccountsIdFollow(w http.ResponseWriter, r *http.Request, id int) {
+	panic("unimplemented")
+}
+
 type Actor struct {
 	Context           any    `json:"@context"`
 	ID                string `json:"id"`
