@@ -21,7 +21,4 @@
 	"plpgsqlCheck": {
 		"enabled": true
 	}
-	// "files": {
-	// 	"includes": ["**/*.sql"]
-	// }
 }

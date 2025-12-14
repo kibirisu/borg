@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/json"
 	"io/fs"
 	"log"
 	"net/http"
@@ -21,6 +22,17 @@ type Server struct {
 	ds     domain.DataStore
 	assets fs.FS
 	conf   *config.Config
+}
+
+type Actor struct {
+	Context           any    `json:"@context"`
+	ID                string `json:"id"`
+	Type              string `json:"type"`
+	PreferredUsername string `json:"preferredUsername"`
+	Inbox             string `json:"inbox"`
+	Outbox            string `json:"outbox"`
+	Following         string `json:"following"`
+	Followers         string `json:"followers"`
 }
 
 func NewServer(conf *config.Config, ds domain.DataStore) *http.Server {
@@ -45,6 +57,26 @@ func NewServer(conf *config.Config, ds domain.DataStore) *http.Server {
 
 			username := chi.URLParam(r, "username")
 			log.Println(username)
+			actor, err := server.ds.Raw().GetActor(r.Context(), username)
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			log.Println(actor)
+			// we need to build AP response here
+			object := Actor{
+				Context:           "https://www.w3.org/ns/activitystreams",
+				ID:                actor.Uri,
+				Type:              "Person",
+				PreferredUsername: actor.Username,
+				Inbox:             actor.InboxUri,
+				Outbox:            actor.OutboxUri,
+				Following:         actor.FollowingUri,
+				Followers:         actor.FollowersUri,
+			}
+			w.Header().Set("Content-Type", "application/activity+json")
+			json.NewEncoder(w).Encode(&object)
+			w.WriteHeader(http.StatusOK)
 		})
 		r.Post("/user/{username}/inbox", func(w http.ResponseWriter, r *http.Request) {
 			username := chi.URLParam(r, "username")
