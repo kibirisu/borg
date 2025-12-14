@@ -1,0 +1,54 @@
+services:
+  db-alice:
+    image: postgres:18-alpine
+    container_name: db_alice
+    volumes:
+      - db-data-alice:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=borg_alice
+      - POSTGRES_USER=borg
+      - POSTGRES_PASSWORD=borg
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U borg"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+  app-alice:
+    build: .
+    container_name: app_alice
+    environment:
+      - DATABASE_URL=postgres://borg:borg@db-alice:5432/borg_alice
+      - APP_ENV=alice
+    depends_on:
+      db-alice:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+  db-bob:
+    image: postgres:18-alpine
+    container_name: db_bob
+    volumes:
+      - db-data-bob:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=borg_bob
+      - POSTGRES_USER=borg
+      - POSTGRES_PASSWORD=borg
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U borg"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+  app-bob:
+    build: .
+    container_name: app_bob
+    environment:
+      - DATABASE_URL=postgres://borg:borg@db-bob:5432/borg_bob
+      - APP_ENV=bob
+    depends_on:
+      db-bob:
+        condition: service_healthy
+    ports:
+      - "8081:8080"
+volumes:
+  db-data-alice:
+  db-data-bob:
