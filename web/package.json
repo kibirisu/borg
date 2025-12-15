@@ -23,7 +23,7 @@
     "react-dom": "^19.2.3",
     "react-markdown": "^10.1.0",
     "react-router": "^7.9.6",
-    "tailwindcss": "^4.1.17"
+    "tailwindcss": "^4.1.18"
   },
   "devDependencies": {
     "@biomejs/biome": "2.3.8",
