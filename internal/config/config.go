@@ -8,6 +8,7 @@ import (
 
 type Config struct {
 	AppEnv      string `mapstructure:"appenv"`
+	ListenHost  string `mapstructure:"listenhost"`
 	ListenPort  string `mapstructure:"listenport"`
 	DatabaseURL string `mapstructure:"databaseurl"`
 	JWTSecret   string `mapstructure:"jwtsecret"`
@@ -15,10 +16,12 @@ type Config struct {
 
 func GetConfig() *Config {
 	viper.SetDefault("AppEnv", "prod")
+	viper.SetDefault("ListenHost", "0.0.0.0")
 	viper.SetDefault("ListenPort", "8080")
 	viper.SetDefault("DatabaseUrl", "postgres://borg:borg@localhost:5432/borg")
 	viper.SetDefault("JWTSecret", "changeme")
 	viper.RegisterAlias("AppEnv", "app_env")
+	viper.RegisterAlias("ListenHost", "listen_host")
 	viper.RegisterAlias("ListenPort", "listen_port")
 	viper.RegisterAlias("DatabaseURL", "database_url")
 	viper.RegisterAlias("JWTSecret", "jwt_secret")

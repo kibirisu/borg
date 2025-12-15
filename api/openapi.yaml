@@ -30,6 +30,12 @@ paths:
     $ref: "auth.yaml#/paths/~1api~1auth~1register"
   /api/auth/login:
     $ref: "auth.yaml#/paths/~1api~1auth~1login"
+  /.well-known/webfinger:
+    $ref: "federation.yaml#/paths/~1.well-known~1webfinger"
+  /api/accounts/lookup:
+    $ref: "federation.yaml#/paths/~1api~1accounts~1lookup"
+  /api/accounts/{id}/follow:
+    $ref: "federation.yaml#/paths/~1api~1accounts~1{id}~1follow"
 
 components:
   securitySchemes:

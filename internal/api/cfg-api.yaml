@@ -9,3 +9,4 @@ import-mapping:
   ./posts.yaml: "-"
   ./users.yaml: "-"
   ./schemas.yaml: "-"
+  ./federation.yaml: "-"

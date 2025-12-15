@@ -1,3 +1,16 @@
+-- name: GetActor :one
+SELECT * FROM accounts WHERE username = $1 AND domain IS NULL;
+
+-- name: CreateActor :one
+INSERT INTO accounts (
+    username, uri, display_name, domain, inbox_uri, outbox_uri, url
+) VALUES (
+    $1, $2, $3, $4, $5, $6, $7
+) RETURNING *;
+
+-- name: GetAccount :one
+SELECT * FROM accounts WHERE username = $1 AND domain = $2;
+
 -- name: AddUser :exec
 INSERT INTO users (
   username,

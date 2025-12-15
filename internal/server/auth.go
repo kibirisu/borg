@@ -76,6 +76,8 @@ func (s *Server) createAuthMiddleware() func(http.Handler) http.Handler {
 	})
 }
 
+// WE SHOULD SOMEHOW PUT USER DATA OBTAINED FROM TOKEN IN CONTEXT!!!
+
 func authFunc(ctx context.Context, ai *openapi3filter.AuthenticationInput) error {
 	header := ai.RequestValidationInput.Request.Header.Get("Authorization")
 	if header == "" {
