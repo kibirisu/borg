@@ -108,8 +108,12 @@ func (q *Queries) AddUser(ctx context.Context, arg AddUserParams) error {
 	return err
 }
 
-const createActor = `-- name: CreateActor :exec
-INSERT INTO accounts (username, uri, display_name, domain, inbox_uri, outbox_uri, url) VALUES ($1, $2, $3, $4, $5, $6, $7)
+const createActor = `-- name: CreateActor :one
+INSERT INTO accounts (
+    username, uri, display_name, domain, inbox_uri, outbox_uri, url
+) VALUES (
+    $1, $2, $3, $4, $5, $6, $7
+) RETURNING id, created_at, updated_at, username, uri, display_name, domain, inbox_uri, outbox_uri, followers_uri, following_uri, url
 `
 
 type CreateActorParams struct {
@@ -122,8 +126,8 @@ type CreateActorParams struct {
 	Url         string
 }
 
-func (q *Queries) CreateActor(ctx context.Context, arg CreateActorParams) error {
-	_, err := q.db.ExecContext(ctx, createActor,
+func (q *Queries) CreateActor(ctx context.Context, arg CreateActorParams) (Account, error) {
+	row := q.db.QueryRowContext(ctx, createActor,
 		arg.Username,
 		arg.Uri,
 		arg.DisplayName,
@@ -132,7 +136,22 @@ func (q *Queries) CreateActor(ctx context.Context, arg CreateActorParams) error 
 		arg.OutboxUri,
 		arg.Url,
 	)
-	return err
+	var i Account
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Username,
+		&i.Uri,
+		&i.DisplayName,
+		&i.Domain,
+		&i.InboxUri,
+		&i.OutboxUri,
+		&i.FollowersUri,
+		&i.FollowingUri,
+		&i.Url,
+	)
+	return i, err
 }
 
 const deleteComment = `-- name: DeleteComment :exec

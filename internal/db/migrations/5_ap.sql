@@ -1,3 +1,7 @@
+-- TO THE READERS OF THIS:
+-- THIS MIGRATION I INTEND TO BE FUTURE MIGRATION No.1
+-- i add it this way to preserve backward compability
+
 -- in implementations i looked up more fields are nullable
 -- +goose Up
 CREATE TABLE accounts (
@@ -35,10 +39,11 @@ CREATE TABLE follows (
     uri TEXT UNIQUE NOT NULL,
     account_id INTEGER NOT NULL REFERENCES accounts (id),
     target_account_id INTEGER NOT NULL REFERENCES accounts (id),
-    UNIQUE (account_id, target_account_id)
+    UNIQUE (account_id, target_account_id),
+    CHECK (account_id != target_account_id)
 );
 
-CREATE TABLE users_new (
+CREATE TABLE users_new ( -- <---- "users", NOT "users_new"
     id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     account_id INTEGER NOT NULL UNIQUE REFERENCES accounts (id),
     password_hash TEXT NOT NULL
