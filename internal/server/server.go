@@ -150,6 +150,26 @@ func (s *Server) PostApiPostsIdComments(w http.ResponseWriter, r *http.Request, 
 	create(s.ds.CommentRepository()).ServeHTTP(w, r)
 }
 
+// GetApiPostsIdLikes implements api.ServerInterface.
+func (s *Server) GetApiPostsIdLikes(w http.ResponseWriter, r *http.Request, id int) {
+	getByPostID(s.ds.LikeRepository(), id).ServeHTTP(w, r)
+}
+
+// PostApiPostsIdLikes implements api.ServerInterface.
+func (s *Server) PostApiPostsIdLikes(w http.ResponseWriter, r *http.Request, id int) {
+	create(s.ds.LikeRepository()).ServeHTTP(w, r)
+}
+
+// GetApiPostsIdShares implements api.ServerInterface.
+func (s *Server) GetApiPostsIdShares(w http.ResponseWriter, r *http.Request, id int) {
+	getByPostID(s.ds.ShareRepository(), id).ServeHTTP(w, r)
+}
+
+// PostApiPostsIdShares implements api.ServerInterface.
+func (s *Server) PostApiPostsIdShares(w http.ResponseWriter, r *http.Request, id int) {
+	create(s.ds.ShareRepository()).ServeHTTP(w, r)
+}
+
 // PostApiPosts implements api.ServerInterface.
 func (s *Server) PostApiPosts(w http.ResponseWriter, r *http.Request) {
 	create(s.ds.PostRepository()).ServeHTTP(w, r)

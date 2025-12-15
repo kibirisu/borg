@@ -1,7 +1,8 @@
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
+import { useContext } from "react";
 import { type LoaderFunctionArgs, Outlet, useLoaderData } from "react-router";
-import type { AppClient } from "../../lib/client";
-import { Post } from "../common/Feed";
+import ClientContext, { type AppClient } from "../../lib/client";
+import { PostItem } from "../common/PostItem";
 import CommentForm from "./CommentForm";
 
 export const loader =
@@ -20,7 +21,7 @@ export const loader =
       "/api/posts/{id}/comments",
       queryParams,
     );
-    client.queryClient.prefetchQuery({ ...commentOpts, staleTime: 0 });
+    client.queryClient.prefetchQuery(commentOpts);
     await client.queryClient.ensureQueryData(postOpts);
     return { opts: postOpts };
   };
@@ -42,6 +43,7 @@ export const commentsLoader =
  * View a single post (enlarged) and display its comments below.
  */
 export default function CommentView() {
+  const client = useContext(ClientContext);
   const { opts } = useLoaderData() as Awaited<
     ReturnType<ReturnType<typeof loader>>
   >;
@@ -53,7 +55,7 @@ export default function CommentView() {
       </header>
 
       <div className="border-b border-gray-200 p-4 bg-gray-50">
-        <Post {...postData} />
+        <PostItem post={{ ...postData }} client={client!} />
       </div>
       <CommentForm />
       <Outlet />
@@ -62,6 +64,7 @@ export default function CommentView() {
 }
 
 export function CommentsFeed() {
+  const client = useContext(ClientContext);
   const { opts } = useLoaderData() as Awaited<
     ReturnType<ReturnType<typeof commentsLoader>>
   >;
@@ -72,7 +75,7 @@ export function CommentsFeed() {
   return (
     <div className="max-w-2xl mx-auto border-x border-gray-300 min-h-screen bg-white">
       {data?.map((comment) => (
-        <Post key={comment.id} data={comment} />
+        <PostItem key={comment.id} post={{ data: comment }} client={client!} />
       ))}
     </div>
   );

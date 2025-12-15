@@ -54,7 +54,7 @@ dev:
 	@$(MAKE) -j2 dev-backend dev-frontend
 
 .PHONY: dev-backend
-dev-backend: dev-db setup build-frontend
+dev-backend: dev-db setup
 	@echo Starting dev server...
 	@APP_ENV=dev DATABASE_URL=$(DEV_DB_URL) air $(AIR_ARGS)
 

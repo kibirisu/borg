@@ -3,21 +3,26 @@ services:
     image: postgres:18-alpine
     container_name: db
     volumes:
-      - db:/var/lib/postgresql
+      - db-data:/var/lib/postgresql/data 
     environment:
       - POSTGRES_DB=borg
       - POSTGRES_USER=borg
-      - POSTGRES_PASSWORD=changeme
+      - POSTGRES_PASSWORD=borg
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U borg"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
   app:
     build: .
     container_name: app
     environment:
-      - DATABASE_URL
-      - APP_ENV
+      - DATABASE_URL=postgres://borg:borg@db:5432/borg
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     ports:
       - "8080:8080"
 
 volumes:
-  db:
+  db-data:

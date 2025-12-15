@@ -22,6 +22,10 @@ paths:
     $ref: "posts.yaml#/paths/~1api~1posts~1{id}"
   /api/posts/{id}/comments:
     $ref: "posts.yaml#/paths/~1api~1posts~1{id}~1comments"
+  /api/posts/{id}/likes:
+    $ref: "posts.yaml#/paths/~1api~1posts~1{id}~1likes"
+  /api/posts/{id}/shares:
+    $ref: "posts.yaml#/paths/~1api~1posts~1{id}~1shares"
   /api/auth/register:
     $ref: "auth.yaml#/paths/~1api~1auth~1register"
   /api/auth/login:
