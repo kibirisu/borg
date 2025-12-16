@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/oapi-codegen/oapi-codegen/HEAD/configuration-schema.json
-package: staging
-output: ./pkg/staging.go
+package: main
+output: cmd/dev/api.go
 generate:
   chi-server: true
   embedded-spec: true
