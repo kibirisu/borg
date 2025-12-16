@@ -8,6 +8,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/golang-jwt/jwt/v5"
+	"golang.org/x/crypto/bcrypt"
+
 	"github.com/kibirisu/borg/internal/api"
 	"github.com/kibirisu/borg/internal/db"
 )
@@ -18,7 +21,35 @@ import (
 
 // PostAuthLogin implements api.ServerInterface.
 func (s *Server) PostAuthLogin(w http.ResponseWriter, r *http.Request) {
-	panic("unimplemented")
+	var form api.AuthForm
+	if err := json.NewDecoder(r.Body).Decode(&form); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	auth, err := s.ds.Raw().AuthData(r.Context(), form.Username)
+	if err != nil {
+		log.Println(err)
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	if err = bcrypt.CompareHashAndPassword([]byte(auth.PasswordHash), []byte(form.Password)); err != nil {
+		log.Println(err)
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+	jwt := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"sub":  auth.ID,
+		"iss":  "http://" + s.conf.ListenHost,
+		"name": form.Username,
+	})
+	token, err := jwt.SignedString([]byte("changeme"))
+	if err != nil {
+		log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Authorization", "Bearer: "+token)
+	w.WriteHeader(http.StatusOK)
 }
 
 // PostAuthRegister implements api.ServerInterface.

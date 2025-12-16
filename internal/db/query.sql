@@ -1,6 +1,9 @@
 -- name: GetActor :one
 SELECT * FROM accounts WHERE username = $1 AND domain IS NULL; -- local actor (GET /users/<id>)
 
+-- name: AuthData :one
+SELECT a.id, u.password_hash FROM accounts a JOIN users_new u ON a.id = u.account_id WHERE a.username = $1;
+
 -- name: CreateActor :one
 INSERT INTO accounts (
     username, uri, display_name, domain, inbox_uri, outbox_uri, url

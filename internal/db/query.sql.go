@@ -108,8 +108,25 @@ func (q *Queries) AddUser(ctx context.Context, arg AddUserParams) error {
 	return err
 }
 
-const createActor = `-- name: CreateActor :one
+const authData = `-- name: AuthData :one
 
+SELECT a.id, u.password_hash FROM accounts a JOIN users_new u ON a.id = u.account_id WHERE a.username = $1
+`
+
+type AuthDataRow struct {
+	ID           int32
+	PasswordHash string
+}
+
+// local actor (GET /users/<id>)
+func (q *Queries) AuthData(ctx context.Context, username string) (AuthDataRow, error) {
+	row := q.db.QueryRowContext(ctx, authData, username)
+	var i AuthDataRow
+	err := row.Scan(&i.ID, &i.PasswordHash)
+	return i, err
+}
+
+const createActor = `-- name: CreateActor :one
 INSERT INTO accounts (
     username, uri, display_name, domain, inbox_uri, outbox_uri, url
 ) VALUES (
@@ -127,7 +144,6 @@ type CreateActorParams struct {
 	Url         string
 }
 
-// local actor (GET /users/<id>)
 func (q *Queries) CreateActor(ctx context.Context, arg CreateActorParams) (Account, error) {
 	row := q.db.QueryRowContext(ctx, createActor,
 		arg.Username,
