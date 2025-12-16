@@ -1,9 +1,21 @@
-import { Form } from "react-router";
+import { Form, useNavigate } from "react-router";
 
 export const SignIn = () => {
+  const navigate = useNavigate();
+
   return (
     <div className="min-h-full bg-white">
       <div className="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8">
+        <div>
+          <button
+            type="button"
+            onClick={() => navigate("/")}
+            aria-label="Go back to feed"
+            className="inline-flex items-center justify-center border border-black text-black rounded-[7px] text-sm p-2.5"
+          >
+            <i className="bi bi-arrow-left" />
+          </button>
+        </div>
         <div className="sm:mx-auto sm:w-full sm:max-w-sm">
           <img
             src="https://tailwindcss.com/plus-assets/img/logos/mark.svg?color=indigo&shade=600"
