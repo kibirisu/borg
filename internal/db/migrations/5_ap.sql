@@ -29,7 +29,9 @@ CREATE TABLE statuses (
     local BOOLEAN DEFAULT FALSE,
     content TEXT NOT NULL,
     account_id INTEGER NOT NULL REFERENCES accounts (id),
-    account_uri TEXT NOT NULL REFERENCES accounts (uri)
+    account_uri TEXT NOT NULL REFERENCES accounts (uri) -- we need to make suer user id matches user uri
+    -- or abandon one of the columns
+    -- we also need `in_reply_to` columns
 );
 
 CREATE TABLE follows (

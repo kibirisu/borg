@@ -1,5 +1,8 @@
 -- name: GetActor :one
-SELECT * FROM accounts WHERE username = $1 AND domain IS NULL;
+SELECT * FROM accounts WHERE username = $1 AND domain IS NULL; -- local actor (GET /users/<id>)
+
+-- name: AuthData :one
+SELECT a.id, u.password_hash FROM accounts a JOIN users_new u ON a.id = u.account_id WHERE a.username = $1;
 
 -- name: CreateActor :one
 INSERT INTO accounts (
@@ -7,6 +10,13 @@ INSERT INTO accounts (
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7
 ) RETURNING *;
+
+-- name: CreateUser :exec
+INSERT INTO users_new (
+    account_id, password_hash
+) VALUES (
+    $1, $2
+); -- we may prepare query combining account and user creation
 
 -- name: GetAccount :one
 SELECT * FROM accounts WHERE username = $1 AND domain = $2;

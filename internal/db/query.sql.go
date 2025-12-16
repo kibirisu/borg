@@ -108,6 +108,24 @@ func (q *Queries) AddUser(ctx context.Context, arg AddUserParams) error {
 	return err
 }
 
+const authData = `-- name: AuthData :one
+
+SELECT a.id, u.password_hash FROM accounts a JOIN users_new u ON a.id = u.account_id WHERE a.username = $1
+`
+
+type AuthDataRow struct {
+	ID           int32
+	PasswordHash string
+}
+
+// local actor (GET /users/<id>)
+func (q *Queries) AuthData(ctx context.Context, username string) (AuthDataRow, error) {
+	row := q.db.QueryRowContext(ctx, authData, username)
+	var i AuthDataRow
+	err := row.Scan(&i.ID, &i.PasswordHash)
+	return i, err
+}
+
 const createActor = `-- name: CreateActor :one
 INSERT INTO accounts (
     username, uri, display_name, domain, inbox_uri, outbox_uri, url
@@ -152,6 +170,24 @@ func (q *Queries) CreateActor(ctx context.Context, arg CreateActorParams) (Accou
 		&i.Url,
 	)
 	return i, err
+}
+
+const createUser = `-- name: CreateUser :exec
+INSERT INTO users_new (
+    account_id, password_hash
+) VALUES (
+    $1, $2
+)
+`
+
+type CreateUserParams struct {
+	AccountID    int32
+	PasswordHash string
+}
+
+func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) error {
+	_, err := q.db.ExecContext(ctx, createUser, arg.AccountID, arg.PasswordHash)
+	return err
 }
 
 const deleteComment = `-- name: DeleteComment :exec
@@ -200,6 +236,7 @@ func (q *Queries) DeleteUser(ctx context.Context, id int32) error {
 }
 
 const getAccount = `-- name: GetAccount :one
+
 SELECT id, created_at, updated_at, username, uri, display_name, domain, inbox_uri, outbox_uri, followers_uri, following_uri, url FROM accounts WHERE username = $1 AND domain = $2
 `
 
@@ -208,6 +245,7 @@ type GetAccountParams struct {
 	Domain   sql.NullString
 }
 
+// we may prepare query combining account and user creation
 func (q *Queries) GetAccount(ctx context.Context, arg GetAccountParams) (Account, error) {
 	row := q.db.QueryRowContext(ctx, getAccount, arg.Username, arg.Domain)
 	var i Account
