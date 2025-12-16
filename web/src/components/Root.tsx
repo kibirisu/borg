@@ -1,11 +1,13 @@
 import { Outlet } from "react-router";
-import TopAppBar from "./bar/TopAppBar";
+import Navbar from "./common/Navbar";
 
 const Root = () => {
   return (
     <>
-      <TopAppBar />
-      <Outlet />
+      <Navbar />
+      <main>
+        <Outlet />
+      </main>
     </>
   );
 };

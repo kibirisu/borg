@@ -19,6 +19,11 @@ import { action as addPostAction } from "../components/feed/NewPostForm";
 import User, { loader as userLoader } from "../components/profile/UserProfile";
 import Root from "../components/Root";
 import ClientContext, { type AppClient } from "../lib/client";
+import { Home } from "lucide-react";
+import { SignIn } from "../components/auth/SignIn";
+import { SignUp } from "../components/auth/SignUp";
+import { signInAction } from "../components/auth/signInAction";
+import { signUpAction } from "../components/auth/signUpAction";
 
 const RouterProvider = () => {
   const client = useContext(ClientContext);
@@ -42,6 +47,20 @@ function router(client: AppClient) {
           return null;
         },
         children: [
+          {
+            path: "home",
+            Component: Home,
+          },
+          {
+            path: "signin",
+            Component: SignIn,
+            action: signInAction(client),
+          },
+          {
+            path: "signup",
+            Component: SignUp,
+            action: signUpAction(client),
+          },
           {
             path: "",
             Component: MainFeed,
