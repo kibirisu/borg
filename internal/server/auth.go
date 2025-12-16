@@ -6,6 +6,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/getkin/kin-openapi/openapi3filter"
@@ -15,6 +16,10 @@ import (
 	"github.com/kibirisu/borg/internal/api"
 	"github.com/kibirisu/borg/internal/domain"
 )
+
+type tokenContainer struct {
+	id *int
+}
 
 var signingKey string
 
@@ -84,7 +89,12 @@ func (s *Server) createAuthMiddleware() func(http.Handler) http.Handler {
 	})
 }
 
-// WE SHOULD SOMEHOW PUT USER DATA OBTAINED FROM TOKEN IN CONTEXT!!!
+func preAuthMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := context.WithValue(r.Context(), "token", &tokenContainer{})
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
 
 func authFunc(ctx context.Context, ai *openapi3filter.AuthenticationInput) error {
 	header := ai.RequestValidationInput.Request.Header.Get("Authorization")
@@ -96,6 +106,16 @@ func authFunc(ctx context.Context, ai *openapi3filter.AuthenticationInput) error
 		return errors.New("header value should start with \"Bearer: \"")
 	}
 	if _, err := jwt.Parse(token, func(t *jwt.Token) (any, error) {
+		container := ctx.Value("token").(*tokenContainer)
+		claim, err := t.Claims.GetSubject()
+		if err != nil {
+			return nil, err
+		}
+		id, err := strconv.Atoi(claim)
+		if err != nil {
+			return nil, err
+		}
+		container.id = &id
 		return []byte(signingKey), nil
 	}, jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()})); err != nil {
 		return err
