@@ -16,6 +16,12 @@ type Account struct {
 	Username    string `json:"username"`
 }
 
+// AuthForm defines model for AuthForm.
+type AuthForm struct {
+	Password string `json:"password"`
+	Username string `json:"username"`
+}
+
 // WebFingerLink defines model for WebFingerLink.
 type WebFingerLink struct {
 	Href string `json:"href"`
@@ -38,3 +44,9 @@ type GetWellKnownWebfingerParams struct {
 type GetApiAccountsLookupParams struct {
 	Acct string `form:"acct" json:"acct"`
 }
+
+// PostAuthLoginJSONRequestBody defines body for PostAuthLogin for application/json ContentType.
+type PostAuthLoginJSONRequestBody = AuthForm
+
+// PostAuthRegisterJSONRequestBody defines body for PostAuthRegister for application/json ContentType.
+type PostAuthRegisterJSONRequestBody = AuthForm

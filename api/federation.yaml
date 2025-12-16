@@ -16,6 +16,32 @@ paths:
               schema:
                 $ref: "#/components/schemas/WebFingerResponse"
 
+  /auth/login:
+    post:
+      summary: Login the user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthForm"
+      responses:
+        "200":
+          description: Successfully signed in
+
+  /auth/register:
+    post:
+      summary: Register the user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthForm"
+      responses:
+        "200":
+          description: Successfully signed up
+
   /api/accounts/lookup:
     get:
       summary: Look up a user
@@ -50,6 +76,16 @@ paths:
 
 components:
   schemas:
+    AuthForm:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+        password:
+          type: string
     Account:
       type: object
       required:

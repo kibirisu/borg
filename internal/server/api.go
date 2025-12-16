@@ -16,6 +16,45 @@ import (
 // we build worker that will perform those request and return to the calling handler, ideally.
 // The worker shall work separately from the server thread performing tasks enqueued by the handlers
 
+// PostAuthLogin implements api.ServerInterface.
+func (s *Server) PostAuthLogin(w http.ResponseWriter, r *http.Request) {
+	panic("unimplemented")
+}
+
+// PostAuthRegister implements api.ServerInterface.
+func (s *Server) PostAuthRegister(w http.ResponseWriter, r *http.Request) {
+	var form api.AuthForm
+	if err := json.NewDecoder(r.Body).Decode(&form); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	// in future we need validate that provided username is sanitized and without "@" character
+	uri := "http://" + s.conf.ListenHost + "/users/" + form.Username
+	actor, err := s.ds.Raw().CreateActor(r.Context(), db.CreateActorParams{
+		Username:    form.Username,
+		Uri:         uri,
+		DisplayName: sql.NullString{}, // hassle to maintain that, gonna abandon display name
+		Domain:      sql.NullString{},
+		InboxUri:    uri + "/inbox",
+		OutboxUri:   uri + "/outbox",
+		Url:         "http://" + s.conf.ListenHost + "/profiles/" + form.Username, // maybe we make profile page on /@<username> ???
+	})
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	if err = s.ds.Raw().CreateUser(r.Context(), db.CreateUserParams{
+		AccountID:    actor.ID,
+		PasswordHash: "",
+	}); err != nil {
+		// bad, very BAD thing happened, probably good idea is to delete actor from db
+		// or use one query but i don't remember postgres this much if that would even work
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusCreated)
+}
+
 // GetApiAccountsLookup implements api.ServerInterface.
 // DEMO
 func (s *Server) GetApiAccountsLookup(

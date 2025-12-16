@@ -49,7 +49,9 @@ func loginUser(repo domain.UserRepository) http.HandlerFunc {
 			return
 		}
 		jwt := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-			"username": creds.Username,
+			"sub":  "TODO",         // should be set to account ID from databse
+			"iss":  "TODO",         // should be instance URL
+			"name": creds.Username, // should be display name or username
 		})
 		token, err := jwt.SignedString([]byte(signingKey))
 		if err != nil {
@@ -60,6 +62,12 @@ func loginUser(repo domain.UserRepository) http.HandlerFunc {
 		w.Header().Set("Authorization", "Bearer: "+token)
 		w.WriteHeader(http.StatusOK)
 	}
+}
+
+func preAuthMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		next.ServeHTTP(w, r)
+	})
 }
 
 func (s *Server) createAuthMiddleware() func(http.Handler) http.Handler {
