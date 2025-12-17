@@ -8,6 +8,7 @@ import (
 	repo "github.com/kibirisu/borg/internal/repository"
 )
 
+// We may name things differently
 type FederationService interface {
 	Foo(context.Context, *api.AuthForm)
 }
@@ -24,9 +25,9 @@ func NewFederationService(q *db.Queries) FederationService {
 	}
 }
 
+var _ FederationService = (*federationService)(nil)
+
 // Foo implements FederationService.
 func (s *federationService) Foo(ctx context.Context, form *api.AuthForm) {
 	_, _ = s.accounts.Create(ctx, db.CreateActorParams{})
 }
-
-var _ FederationService = (*federationService)(nil)
