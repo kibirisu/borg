@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"log"
 
 	"github.com/kibirisu/borg/internal/config"
 	"github.com/kibirisu/borg/internal/domain"
@@ -12,15 +11,7 @@ import (
 func main() {
 	ctx := context.Background()
 	conf := config.GetConfig()
-
-	ds, err := domain.NewDataStore(ctx, conf.DatabaseURL)
-	if err != nil {
-		log.Fatal(err)
-	}
-
+	ds := domain.NewDataStore(ctx, conf.DatabaseURL)
 	s := server.New(conf, ds)
-	err = s.ListenAndServe()
-	if err != nil {
-		log.Fatal(err)
-	}
+	panic(s.ListenAndServe())
 }

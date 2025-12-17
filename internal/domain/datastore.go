@@ -51,11 +51,8 @@ type dataStore struct {
 
 var _ DataStore = (*dataStore)(nil)
 
-func NewDataStore(ctx context.Context, url string) (DataStore, error) {
-	q, err := db.GetDB(ctx, url)
-	if err != nil {
-		return nil, err
-	}
+func NewDataStore(ctx context.Context, url string) DataStore {
+	q := db.GetDB(ctx, url)
 	ds := &dataStore{}
 	ds.users = newUserRepository(q)
 	ds.posts = newPostRepository(q)
@@ -63,7 +60,7 @@ func NewDataStore(ctx context.Context, url string) (DataStore, error) {
 	ds.likes = newLikeRepository(q)
 	ds.shares = newShareRepository(q)
 	ds.raw = q
-	return ds, nil
+	return ds
 }
 
 func (ds *dataStore) Raw() *db.Queries {
