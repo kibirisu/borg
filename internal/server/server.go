@@ -13,15 +13,17 @@ import (
 	"github.com/kibirisu/borg/internal/api"
 	"github.com/kibirisu/borg/internal/config"
 	"github.com/kibirisu/borg/internal/domain"
+	"github.com/kibirisu/borg/internal/service"
 	"github.com/kibirisu/borg/web"
 )
 
 var _ api.ServerInterface = (*Server)(nil)
 
 type Server struct {
-	ds     domain.DataStore
-	assets fs.FS
-	conf   *config.Config
+	ds      domain.DataStore
+	assets  fs.FS
+	conf    *config.Config
+	service service.FederationService
 }
 
 type Actor struct {
@@ -41,6 +43,7 @@ func New(conf *config.Config, ds domain.DataStore) *http.Server {
 		ds,
 		assets,
 		conf,
+		nil,
 	}
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
