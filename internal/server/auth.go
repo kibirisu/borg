@@ -69,12 +69,6 @@ func loginUser(repo domain.UserRepository) http.HandlerFunc {
 	}
 }
 
-func preAuthMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		next.ServeHTTP(w, r)
-	})
-}
-
 func (s *Server) createAuthMiddleware() func(http.Handler) http.Handler {
 	spec, err := api.GetSwagger()
 	if err != nil {

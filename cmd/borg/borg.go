@@ -18,7 +18,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	s := server.NewServer(conf, ds)
+	s := server.New(conf, ds)
 	err = s.ListenAndServe()
 	if err != nil {
 		log.Fatal(err)

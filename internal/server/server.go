@@ -35,11 +35,8 @@ type Actor struct {
 	Followers         string `json:"followers"`
 }
 
-func NewServer(conf *config.Config, ds domain.DataStore) *http.Server {
-	assets, err := web.GetAssets()
-	if err != nil {
-		panic(err)
-	}
+func New(conf *config.Config, ds domain.DataStore) *http.Server {
+	assets := web.GetAssets()
 	server := &Server{
 		ds,
 		assets,
@@ -83,12 +80,11 @@ func NewServer(conf *config.Config, ds domain.DataStore) *http.Server {
 			log.Println(username)
 		})
 	})
-	// API routes muszą być przed catch-all route
 	h := api.HandlerWithOptions(
 		server,
 		api.ChiServerOptions{
 			BaseRouter:  r,
-			Middlewares: []api.MiddlewareFunc{server.createAuthMiddleware()},
+			Middlewares: []api.MiddlewareFunc{preAuthMiddleware, server.createAuthMiddleware()},
 		},
 	)
 
