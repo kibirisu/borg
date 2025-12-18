@@ -532,82 +532,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/auth/register": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Register a user */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["Login"];
-                };
-            };
-            responses: {
-                /** @description Successfully signed up */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/auth/login": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Login a user */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["Login"];
-                };
-            };
-            responses: {
-                /** @description Successfully signed in */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/auth/login": {
         parameters: {
             query?: never;
@@ -800,9 +724,25 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        NewUser: {
+        AuthForm: {
             username: string;
             password: string;
+        };
+        Account: {
+            id: number;
+            username: string;
+            acct: string;
+            displayName: string;
+            url: string;
+        };
+        WebFingerResponse: {
+            subject: string;
+            links: components["schemas"]["WebFingerLink"][];
+        };
+        WebFingerLink: {
+            rel: string;
+            type: string;
+            href: string;
         };
         User: {
             id: number;
@@ -817,29 +757,24 @@ export interface components {
             /** Format: date-time */
             updatedAt: string;
         };
+        NewUser: {
+            username: string;
+            password: string;
+        };
         UpdateUser: {
             bio?: string;
             isAdmin?: boolean;
         };
-        Post: {
+        Share: {
             id: number;
+            postID: number;
             userID: number;
-            content: string;
-            likeCount: number;
-            shareCount: number;
-            commentCount: number;
             /** Format: date-time */
             createdAt: string;
-            /** Format: date-time */
-            updatedAt: string;
-            username?: string;
         };
-        NewPost: {
+        NewShare: {
+            postID: number;
             userID: number;
-            content: string;
-        };
-        UpdatePost: {
-            content?: string;
         };
         Comment: {
             id: number;
@@ -868,40 +803,25 @@ export interface components {
             postID: number;
             userID: number;
         };
-        Share: {
+        Post: {
             id: number;
-            postID: number;
             userID: number;
+            content: string;
+            likeCount: number;
+            shareCount: number;
+            commentCount: number;
             /** Format: date-time */
             createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+            username?: string;
         };
-        NewShare: {
-            postID: number;
+        NewPost: {
             userID: number;
+            content: string;
         };
-        Login: {
-            username: string;
-            password: string;
-        };
-        AuthForm: {
-            username: string;
-            password: string;
-        };
-        WebFingerLink: {
-            rel: string;
-            type: string;
-            href: string;
-        };
-        WebFingerResponse: {
-            subject: string;
-            links: components["schemas"]["WebFingerLink"][];
-        };
-        Account: {
-            id: number;
-            username: string;
-            acct: string;
-            displayName: string;
-            url: string;
+        UpdatePost: {
+            content?: string;
         };
     };
     responses: never;
