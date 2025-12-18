@@ -8,6 +8,7 @@ import (
 
 type UserRepository interface {
 	Create(context.Context, db.CreateUserParams) error
+	GetByUsername(context.Context, string) (db.AuthDataRow, error)
 }
 
 type userRepository struct {
@@ -23,4 +24,12 @@ func NewUserRepository(q *db.Queries) UserRepository {
 // Create implements UserRepository.
 func (u *userRepository) Create(ctx context.Context, user db.CreateUserParams) error {
 	return u.q.CreateUser(ctx, user)
+}
+
+// GetByUsername implements UserRepository.
+func (u *userRepository) GetByUsername(
+	ctx context.Context,
+	username string,
+) (db.AuthDataRow, error) {
+	return u.q.AuthData(ctx, username)
 }

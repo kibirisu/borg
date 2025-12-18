@@ -8,46 +8,26 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang-jwt/jwt/v5"
-	"golang.org/x/crypto/bcrypt"
-
 	"github.com/kibirisu/borg/internal/api"
 	"github.com/kibirisu/borg/internal/db"
+	"github.com/kibirisu/borg/internal/util"
 )
-
-// Since there gonna be a lot of API requests triggering our server to perform HTTP request to another server,
-// we build worker that will perform those request and return to the calling handler, ideally.
-// The worker shall work separately from the server thread performing tasks enqueued by the handlers
 
 // PostAuthLogin implements api.ServerInterface.
 func (s *Server) PostAuthLogin(w http.ResponseWriter, r *http.Request) {
 	var form api.AuthForm
-	if err := json.NewDecoder(r.Body).Decode(&form); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+	if err := util.ReadJSON(r, &form); err != nil {
+		log.Println(err)
+		util.WriteError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	auth, err := s.ds.Raw().AuthData(r.Context(), form.Username)
+
+	token, err := s.appService.Login(r.Context(), form)
 	if err != nil {
 		log.Println(err)
-		w.WriteHeader(http.StatusNoContent)
-		return
+		util.WriteError(w, http.StatusUnauthorized, err.Error())
 	}
-	if err = bcrypt.CompareHashAndPassword([]byte(auth.PasswordHash), []byte(form.Password)); err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	}
-	jwt := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"sub":  auth.ID,
-		"iss":  "http://" + s.conf.ListenHost,
-		"name": form.Username,
-	})
-	token, err := jwt.SignedString([]byte("changeme"))
-	if err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
+
 	w.Header().Set("Authorization", "Bearer: "+token)
 	w.WriteHeader(http.StatusOK)
 }
@@ -55,34 +35,16 @@ func (s *Server) PostAuthLogin(w http.ResponseWriter, r *http.Request) {
 // PostAuthRegister implements api.ServerInterface.
 func (s *Server) PostAuthRegister(w http.ResponseWriter, r *http.Request) {
 	var form api.AuthForm
-	if err := json.NewDecoder(r.Body).Decode(&form); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
+	if err := util.ReadJSON(r, &form); err != nil {
+		log.Println(err)
+		util.WriteError(w, http.StatusBadRequest, err.Error())
 	}
-	// in future we need validate that provided username is sanitized and without "@" character
-	uri := "http://" + s.conf.ListenHost + "/users/" + form.Username
-	actor, err := s.ds.Raw().CreateActor(r.Context(), db.CreateActorParams{
-		Username:    form.Username,
-		Uri:         uri,
-		DisplayName: sql.NullString{}, // hassle to maintain that, gonna abandon display name
-		Domain:      sql.NullString{},
-		InboxUri:    uri + "/inbox",
-		OutboxUri:   uri + "/outbox",
-		Url:         "http://" + s.conf.ListenHost + "/profiles/" + form.Username, // maybe we make profile page on /@<username> ???
-	})
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+
+	if err := s.appService.Register(r.Context(), form); err != nil {
+		log.Println(err)
+		util.WriteError(w, http.StatusInternalServerError, err.Error())
 	}
-	if err = s.ds.Raw().CreateUser(r.Context(), db.CreateUserParams{
-		AccountID:    actor.ID,
-		PasswordHash: "",
-	}); err != nil {
-		// bad, very BAD thing happened, probably good idea is to delete actor from db
-		// or use one query but i don't remember postgres this much if that would even work
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
+
 	w.WriteHeader(http.StatusCreated)
 }
 

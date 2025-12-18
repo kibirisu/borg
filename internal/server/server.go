@@ -20,10 +20,10 @@ import (
 var _ api.ServerInterface = (*Server)(nil)
 
 type Server struct {
-	ds      domain.DataStore
-	assets  fs.FS
-	conf    *config.Config
-	service service.FederationService
+	ds         domain.DataStore
+	assets     fs.FS
+	conf       *config.Config
+	appService service.AppService
 }
 
 type Actor struct {
