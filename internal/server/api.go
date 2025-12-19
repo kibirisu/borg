@@ -3,8 +3,12 @@ package server
 import (
 	"log"
 	"net/http"
+	"strings"
+	"time"
 
 	"github.com/kibirisu/borg/internal/api"
+	"github.com/kibirisu/borg/internal/domain"
+	"github.com/kibirisu/borg/internal/server/mapper"
 	"github.com/kibirisu/borg/internal/util"
 )
 
@@ -51,124 +55,90 @@ func (s *Server) GetApiAccountsLookup(
 ) {
 	// // we must check if account is local or from other instance
 	// // if from other instance we do webfinger lookup
-	// acct := params.Acct
-	// arr := strings.Split(acct, "@")
-	// username := arr[0]
-	// domain := arr[1]
+	acct := params.Acct
+	arr := strings.Split(acct, "@")
+	username := arr[0]
+	addr := arr[1]
 	//
-	// if domain == s.conf.ListenHost {
-	// 	actor, err := s.ds.Raw().GetActor(r.Context(), username)
-	// 	// actor, err := s.ds.Raw().GetActor(r.Context(), username)
-	// 	if err != nil {
-	// 		log.Println(err)
-	// 		w.WriteHeader(http.StatusInternalServerError)
-	// 		return
-	// 	}
-	// 	account := api.Account{
-	// 		Acct:        acct,
-	// 		DisplayName: actor.DisplayName.String,
-	// 		Id:          int(actor.ID),
-	// 		Url:         actor.Url,
-	// 		Username:    actor.Username,
-	// 	}
-	// 	json.NewEncoder(w).Encode(&account)
-	// 	w.Header().Set("Content-Type", "application/json")
-	// 	w.WriteHeader(http.StatusOK)
-	// } else if domain != "" {
-	// 	actor, err := s.ds.Raw().GetAccount(r.Context(), db.GetAccountParams{username, sql.NullString{domain, true}})
-	// 	if err != nil {
-	// 		// we should do webfinger lookup at this point
-	//
-	// 		client := http.Client{Timeout: 2 * time.Second}
-	// 		req, err := http.NewRequest("GET", "http://"+domain+"/.well-known/webfinger", nil)
-	// 		q := req.URL.Query()
-	// 		q.Set("resource", acct)
-	// 		req.URL.RawQuery = q.Encode()
-	// 		if err != nil {
-	// 			log.Println(err)
-	// 			w.WriteHeader(http.StatusInternalServerError)
-	// 			return
-	// 		}
-	// 		resp, err := client.Do(req)
-	// 		if err != nil {
-	// 			log.Println(err)
-	// 			w.WriteHeader(http.StatusInternalServerError)
-	// 			return
-	// 		}
-	// 		var webfinger api.WebFingerResponse
-	// 		if err = json.NewDecoder(req.Body).Decode(&webfinger); err != nil {
-	// 			log.Println(err)
-	// 			_ = resp.Body.Close()
-	// 			w.WriteHeader(http.StatusInternalServerError)
-	// 			return
-	// 		}
-	// 		_ = resp.Body.Close()
-	//
-	// 		// at this point we successfully looked up a account
-	// 		// and we should ask the other server for actor associated with the account
-	//
-	// 		req, err = http.NewRequest("GET", webfinger.Links[0].Href, nil)
-	// 		if err != nil {
-	// 			log.Println(err)
-	// 			w.WriteHeader(http.StatusInternalServerError)
-	// 			return
-	// 		}
-	// 		resp, err = client.Do(req)
-	// 		if err != nil {
-	// 			log.Println(err)
-	// 			w.WriteHeader(http.StatusInternalServerError)
-	// 			return
-	// 		}
-	// 		var actor Actor
-	// 		if err = json.NewDecoder(resp.Body).Decode(&actor); err != nil {
-	// 			log.Println(err)
-	// 			_ = resp.Body.Close()
-	// 			w.WriteHeader(http.StatusInternalServerError)
-	// 			return
-	// 		}
-	// 		log.Println(actor)
-	// 		// we fetched remote actor
-	// 		// we must store it in database and return account in response
-	// 		_ = resp.Body.Close()
-	// 		row, err := s.ds.Raw().CreateActor(r.Context(), db.CreateActorParams{
-	// 			Username:    username, // probably...
-	// 			Uri:         actor.ID,
-	// 			DisplayName: sql.NullString{actor.PreferredUsername, true}, // probably not...
-	// 			Domain:      sql.NullString{domain, true},
-	// 			InboxUri:    actor.Inbox,
-	// 			OutboxUri:   actor.Outbox,
-	// 			Url:         "", // TODO: we should send web profile addr in webfinger
-	// 		})
-	// 		if err != nil {
-	// 			log.Println(err)
-	// 			w.WriteHeader(http.StatusInternalServerError)
-	// 			return
-	// 		}
-	// 		log.Println(row)
-	// 		account := api.Account{
-	// 			Acct:        acct,
-	// 			DisplayName: row.DisplayName.String,
-	// 			Id:          int(row.ID),
-	// 			Url:         row.Url,
-	// 			Username:    row.Username,
-	// 		}
-	// 		_ = json.NewEncoder(w).Encode(&account)
-	// 		w.Header().Set("Content-Type", "application/json")
-	// 		w.WriteHeader(http.StatusOK)
-	// 	}
-	// 	account := api.Account{
-	// 		Acct:        acct,
-	// 		DisplayName: actor.DisplayName.String,
-	// 		Id:          int(actor.ID),
-	// 		Url:         actor.Url,
-	// 		Username:    actor.Username,
-	// 	}
-	// 	_ = json.NewEncoder(w).Encode(&account)
-	// 	w.Header().Set("Content-Type", "application/json")
-	// 	w.WriteHeader(http.StatusOK)
-	// } else {
-	// 	w.WriteHeader(http.StatusBadRequest)
-	// }
+	if addr == s.conf.ListenHost {
+		account, err := s.service.App.GetLocalAccount(r.Context(), username)
+		if err != nil {
+			log.Println(err)
+			util.WriteError(w, http.StatusNotFound, err.Error())
+			return
+		}
+		util.WriteJSON(w, http.StatusOK, mapper.AccountToAPI(account))
+	} else if addr != "" {
+		// actor, err := s.ds.Raw().GetAccount(r.Context(), db.GetAccountParams{username, sql.NullString{domain, true}})
+		account, err := s.service.App.GetLocalAccount(r.Context(), username)
+		if err != nil {
+			// we should do webfinger lookup at this point
+			// code bellow will be move to worker
+
+			client := http.Client{Timeout: 2 * time.Second}
+			req, err := http.NewRequest("GET", "http://"+addr+"/.well-known/webfinger", nil)
+			q := req.URL.Query()
+			q.Set("resource", acct)
+			req.URL.RawQuery = q.Encode()
+			if err != nil {
+				log.Println(err)
+				util.WriteError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+			resp, err := client.Do(req)
+			if err != nil {
+				log.Println(err)
+				util.WriteError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+			var webfinger api.WebFingerResponse
+			if err = util.ReadJSON(r, &webfinger); err != nil {
+				log.Println(err)
+				_ = resp.Body.Close()
+				util.WriteError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+			_ = resp.Body.Close()
+
+			// at this point we successfully looked up a account
+			// and we should ask the other server for actor associated with the account
+
+			req, err = http.NewRequest("GET", webfinger.Links[0].Href, nil)
+			if err != nil {
+				log.Println(err)
+				util.WriteError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+			resp, err = client.Do(req)
+			if err != nil {
+				log.Println(err)
+				util.WriteError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+			var actor domain.Actor
+			if err = util.ReadJSON(r, &actor); err != nil {
+				log.Println(err)
+				_ = resp.Body.Close()
+				util.WriteError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+			log.Println(actor)
+			// we fetched remote actor
+			// we must store it in database and return account in response
+			_ = resp.Body.Close()
+			row, err := s.service.Federation.CreateActor(r.Context(), *mapper.ActorToDB(&actor, addr))
+			if err != nil {
+				log.Println(err)
+				util.WriteError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+			log.Println(row)
+			util.WriteJSON(w, http.StatusOK, mapper.AccountToAPI(row))
+		}
+		util.WriteJSON(w, http.StatusOK, mapper.AccountToAPI(account))
+	} else {
+		w.WriteHeader(http.StatusBadRequest)
+	}
 }
 
 // PostApiAccountsIdFollow implements api.ServerInterface.

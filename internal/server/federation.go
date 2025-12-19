@@ -5,6 +5,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"github.com/kibirisu/borg/internal/server/mapper"
 	"github.com/kibirisu/borg/internal/util"
 )
 
@@ -16,11 +17,11 @@ func (s *Server) federationRoutes() func(chi.Router) {
 			// so just mounting subrouter under "user/{username}" would be easier
 			r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 				user := chi.URLParam(r, "username")
-				actor, err := s.service.Federation.GetLocalActor(r.Context(), user)
+				account, err := s.service.App.GetLocalAccount(r.Context(), user)
 				if err != nil {
 					util.WriteError(w, http.StatusBadRequest, err.Error())
 				}
-				util.WriteActivityJSON(w, http.StatusOK, &actor)
+				util.WriteActivityJSON(w, http.StatusOK, mapper.AccountToActor(account))
 			})
 			r.Post("/inbox", func(w http.ResponseWriter, r *http.Request) {
 				panic("unimplemented")

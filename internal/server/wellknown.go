@@ -36,7 +36,7 @@ func (s *Server) GetWellKnownWebfinger(
 	// And return minimal response as defined in WebFinger spec
 
 	// FIME: be aware that below function unnecessarily map account object to activity
-	actor, err := s.service.Federation.GetLocalActor(r.Context(), username)
+	account, err := s.service.App.GetLocalAccount(r.Context(), username)
 	if err != nil {
 		log.Println(err)
 		util.WriteError(w, http.StatusBadRequest, err.Error())
@@ -49,7 +49,7 @@ func (s *Server) GetWellKnownWebfinger(
 		api.WebFingerLink{
 			Rel:  "self",
 			Type: "application/activity+json",
-			Href: actor.ID,
+			Href: account.Uri,
 		},
 	)
 	util.WriteWebFingerJSON(w, http.StatusOK, &resp)
