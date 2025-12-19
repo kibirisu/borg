@@ -17,7 +17,7 @@ func (s *Server) PostAuthLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := s.service.API.Login(r.Context(), form)
+	token, err := s.service.App.Login(r.Context(), form)
 	if err != nil {
 		log.Println(err)
 		util.WriteError(w, http.StatusUnauthorized, err.Error())
@@ -35,7 +35,7 @@ func (s *Server) PostAuthRegister(w http.ResponseWriter, r *http.Request) {
 		util.WriteError(w, http.StatusBadRequest, err.Error())
 	}
 
-	if err := s.service.API.Register(r.Context(), form); err != nil {
+	if err := s.service.App.Register(r.Context(), form); err != nil {
 		log.Println(err)
 		util.WriteError(w, http.StatusInternalServerError, err.Error())
 	}
@@ -49,16 +49,16 @@ func (s *Server) GetApiAccountsLookup(
 	r *http.Request,
 	params api.GetApiAccountsLookupParams,
 ) {
-	// we must check if account is local or from other instance
-	// if from other instance we do webfinger lookup
+	// // we must check if account is local or from other instance
+	// // if from other instance we do webfinger lookup
 	// acct := params.Acct
-	// log.Println(acct)
 	// arr := strings.Split(acct, "@")
 	// username := arr[0]
 	// domain := arr[1]
 	//
 	// if domain == s.conf.ListenHost {
 	// 	actor, err := s.ds.Raw().GetActor(r.Context(), username)
+	// 	// actor, err := s.ds.Raw().GetActor(r.Context(), username)
 	// 	if err != nil {
 	// 		log.Println(err)
 	// 		w.WriteHeader(http.StatusInternalServerError)

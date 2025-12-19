@@ -6,14 +6,14 @@ import (
 )
 
 type Container struct {
-	API        AppService
+	App        AppService
 	Federation FederationService
 }
 
 func NewContainer(conf *config.Config) *Container {
 	store := repository.NewStore(conf.DatabaseURL)
 	return &Container{
-		API:        NewAppService(store, conf),
+		App:        NewAppService(store, conf),
 		Federation: NewFederationService(store),
 	}
 }

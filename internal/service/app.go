@@ -16,6 +16,7 @@ import (
 type AppService interface {
 	Register(context.Context, api.AuthForm) error
 	Login(context.Context, api.AuthForm) (string, error)
+	GetLocalAccount(context.Context, string) (*db.Account, error)
 }
 
 type appService struct {
@@ -74,4 +75,10 @@ func (s *appService) Login(ctx context.Context, form api.AuthForm) (string, erro
 		return "", err
 	}
 	return token, nil
+}
+
+// GetLocalAccount implements AppService.
+func (s *appService) GetLocalAccount(ctx context.Context, username string) (*db.Account, error) {
+	user, err := s.store.Accounts().GetLocalByUsername(ctx, username)
+	return &user, err
 }
