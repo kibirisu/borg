@@ -19,26 +19,23 @@ type AppService interface {
 }
 
 type appService struct {
-	accounts repo.AccountRepository
-	users    repo.UserRepository
-	conf     *config.Config
+	store repo.Store
+	conf  *config.Config
 }
 
 var _ AppService = (*appService)(nil)
 
 func NewAppService(
-	accounts repo.AccountRepository,
-	users repo.UserRepository,
+	store repo.Store,
 	conf *config.Config,
 ) AppService {
-	return &appService{accounts, users, conf}
+	return &appService{store, conf}
 }
 
 // Register implements AppService.
 func (s *appService) Register(ctx context.Context, form api.AuthForm) error {
-	// uri := "http://" + s.conf.ListenHost + "/users/" + form.Username
 	uri := fmt.Sprintf("http://%s/users/%s", s.conf.ListenHost, form.Username)
-	actor, err := s.accounts.Create(ctx, db.CreateActorParams{
+	actor, err := s.store.Accounts().Create(ctx, db.CreateActorParams{
 		Username:    form.Username,
 		Uri:         uri,
 		DisplayName: sql.NullString{}, // hassle to maintain that, gonna abandon display name
@@ -54,7 +51,7 @@ func (s *appService) Register(ctx context.Context, form api.AuthForm) error {
 	if err != nil {
 		return err
 	}
-	if err = s.users.Create(ctx, db.CreateUserParams{
+	if err = s.store.Users().Create(ctx, db.CreateUserParams{
 		AccountID:    actor.ID,
 		PasswordHash: string(hash),
 	}); err != nil {
@@ -65,7 +62,7 @@ func (s *appService) Register(ctx context.Context, form api.AuthForm) error {
 
 // Login implements AppService.
 func (s *appService) Login(ctx context.Context, form api.AuthForm) (string, error) {
-	auth, err := s.users.GetByUsername(ctx, form.Username)
+	auth, err := s.store.Users().GetByUsername(ctx, form.Username)
 	if err != nil {
 		return "", err
 	}

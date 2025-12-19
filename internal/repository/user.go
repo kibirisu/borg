@@ -17,10 +17,6 @@ type userRepository struct {
 
 var _ UserRepository = (*userRepository)(nil)
 
-func NewUserRepository(q *db.Queries) UserRepository {
-	return &userRepository{q}
-}
-
 // Create implements UserRepository.
 func (u *userRepository) Create(ctx context.Context, user db.CreateUserParams) error {
 	return u.q.CreateUser(ctx, user)

@@ -13,7 +13,7 @@ import (
 //go:embed migrations/*.sql
 var migrations embed.FS
 
-func GetDB(ctx context.Context, url string) *Queries {
+func GetDB(ctx context.Context, url string) (*sql.DB, *Queries) {
 	pool, err := sql.Open("pgx", url)
 	if err != nil {
 		log.Fatal(err)
@@ -28,5 +28,5 @@ func GetDB(ctx context.Context, url string) *Queries {
 		log.Fatal(err)
 	}
 
-	return New(pool)
+	return pool, New(pool)
 }

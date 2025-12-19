@@ -2,9 +2,7 @@ package server
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
-	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -14,7 +12,6 @@ import (
 	middleware "github.com/oapi-codegen/nethttp-middleware"
 
 	"github.com/kibirisu/borg/internal/api"
-	"github.com/kibirisu/borg/internal/domain"
 )
 
 type tokenContainer struct {
@@ -22,52 +19,6 @@ type tokenContainer struct {
 }
 
 var signingKey string
-
-func registerUser(repo domain.UserRepository) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		var creds api.Login
-		if err := json.NewDecoder(r.Body).Decode(&creds); err != nil {
-			log.Println(err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		if err := repo.RegisterUser(r.Context(), &creds); err != nil {
-			log.Println(err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		w.WriteHeader(http.StatusOK)
-	}
-}
-
-func loginUser(repo domain.UserRepository) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		var creds api.Login
-		if err := json.NewDecoder(r.Body).Decode(&creds); err != nil {
-			log.Println(err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		if err := repo.ValidateCredentials(r.Context(), &creds); err != nil {
-			log.Println(err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		jwt := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-			"sub":  "TODO",         // should be set to account ID from databse
-			"iss":  "TODO",         // should be instance URL
-			"name": creds.Username, // should be display name or username
-		})
-		token, err := jwt.SignedString([]byte(signingKey))
-		if err != nil {
-			log.Println(err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Authorization", "Bearer: "+token)
-		w.WriteHeader(http.StatusOK)
-	}
-}
 
 func (s *Server) createAuthMiddleware() func(http.Handler) http.Handler {
 	spec, err := api.GetSwagger()
@@ -83,6 +34,8 @@ func (s *Server) createAuthMiddleware() func(http.Handler) http.Handler {
 	})
 }
 
+// most likely there is no need to create such a simple middleware
+// chi provides similar already
 func preAuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := context.WithValue(r.Context(), "token", &tokenContainer{})
@@ -100,6 +53,7 @@ func authFunc(ctx context.Context, ai *openapi3filter.AuthenticationInput) error
 		return errors.New("header value should start with \"Bearer: \"")
 	}
 	if _, err := jwt.Parse(token, func(t *jwt.Token) (any, error) {
+		// maybe it is not the right place to check this since jwt.Parse already returns Token object (???)
 		container := ctx.Value("token").(*tokenContainer)
 		claim, err := t.Claims.GetSubject()
 		if err != nil {

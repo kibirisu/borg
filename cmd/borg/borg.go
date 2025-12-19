@@ -1,17 +1,17 @@
 package main
 
 import (
-	"context"
+	// "context"
 
 	"github.com/kibirisu/borg/internal/config"
-	"github.com/kibirisu/borg/internal/domain"
+	// "github.com/kibirisu/borg/internal/domain"
 	"github.com/kibirisu/borg/internal/server"
 )
 
 func main() {
-	ctx := context.Background()
+	// ctx := context.Background()
 	conf := config.GetConfig()
-	ds := domain.NewDataStore(ctx, conf.DatabaseURL)
-	s := server.New(conf, ds)
+	// _ = domain.NewDataStore(ctx, conf.DatabaseURL)
+	s := server.New(conf)
 	panic(s.ListenAndServe())
 }

@@ -17,10 +17,6 @@ type accountRepository struct {
 
 var _ AccountRepository = (*accountRepository)(nil)
 
-func NewAccountRepository(q *db.Queries) AccountRepository {
-	return &accountRepository{q}
-}
-
 // GetLocalByUsername implements AccountRepository.
 func (r *accountRepository) GetLocalByUsername(
 	ctx context.Context,
