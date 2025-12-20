@@ -6,9 +6,9 @@ SELECT a.id, u.password_hash FROM accounts a JOIN users u ON a.id = u.account_id
 
 -- name: CreateActor :one
 INSERT INTO accounts (
-    username, uri, display_name, domain, inbox_uri, outbox_uri, url
+    username, uri, display_name, domain, inbox_uri, outbox_uri, url, followers_uri, following_uri
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7
+    $1, $2, $3, $4, $5, $6, $7, $8, $9
 ) RETURNING *;
 
 -- name: CreateUser :exec
@@ -20,3 +20,13 @@ INSERT INTO users (
 
 -- name: GetAccount :one
 SELECT * FROM accounts WHERE username = $1 AND domain = $2;
+
+-- name: CreateFollow :exec
+INSERT INTO follows (
+    uri, account_id, target_account_id
+) VALUES (
+    $1, $2, $3
+) ON CONFLICT (account_id, target_account_id) 
+DO UPDATE SET 
+    uri = EXCLUDED.uri,
+    updated_at = CURRENT_TIMESTAMP;

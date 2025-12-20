@@ -28,20 +28,22 @@ func (q *Queries) AuthData(ctx context.Context, username string) (AuthDataRow, e
 
 const createActor = `-- name: CreateActor :one
 INSERT INTO accounts (
-    username, uri, display_name, domain, inbox_uri, outbox_uri, url
+    username, uri, display_name, domain, inbox_uri, outbox_uri, url, followers_uri, following_uri
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7
+    $1, $2, $3, $4, $5, $6, $7, $8, $9
 ) RETURNING id, created_at, updated_at, username, uri, display_name, domain, inbox_uri, outbox_uri, followers_uri, following_uri, url
 `
 
 type CreateActorParams struct {
-	Username    string
-	Uri         string
-	DisplayName sql.NullString
-	Domain      sql.NullString
-	InboxUri    string
-	OutboxUri   string
-	Url         string
+	Username     string
+	Uri          string
+	DisplayName  sql.NullString
+	Domain       sql.NullString
+	InboxUri     string
+	OutboxUri    string
+	Url          string
+	FollowersUri string
+	FollowingUri string
 }
 
 func (q *Queries) CreateActor(ctx context.Context, arg CreateActorParams) (Account, error) {
@@ -53,6 +55,8 @@ func (q *Queries) CreateActor(ctx context.Context, arg CreateActorParams) (Accou
 		arg.InboxUri,
 		arg.OutboxUri,
 		arg.Url,
+		arg.FollowersUri,
+		arg.FollowingUri,
 	)
 	var i Account
 	err := row.Scan(
@@ -70,6 +74,28 @@ func (q *Queries) CreateActor(ctx context.Context, arg CreateActorParams) (Accou
 		&i.Url,
 	)
 	return i, err
+}
+
+const createFollow = `-- name: CreateFollow :exec
+INSERT INTO follows (
+    uri, account_id, target_account_id
+) VALUES (
+    $1, $2, $3
+) ON CONFLICT (account_id, target_account_id) 
+DO UPDATE SET 
+    uri = EXCLUDED.uri,
+    updated_at = CURRENT_TIMESTAMP
+`
+
+type CreateFollowParams struct {
+	Uri             string
+	AccountID       int32
+	TargetAccountID int32
+}
+
+func (q *Queries) CreateFollow(ctx context.Context, arg CreateFollowParams) error {
+	_, err := q.db.ExecContext(ctx, createFollow, arg.Uri, arg.AccountID, arg.TargetAccountID)
+	return err
 }
 
 const createUser = `-- name: CreateUser :exec
