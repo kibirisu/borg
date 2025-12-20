@@ -13,7 +13,7 @@ const Navbar = () => {
   };
 
   return (
-    <header className="border-b border-white/10 bg-gray-900">
+    <header className="border-b border-indigo-700 bg-indigo-600">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
         {/* Logo */}
         <Link to="/" className="text-xl font-bold text-white">
