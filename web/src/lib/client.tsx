@@ -24,20 +24,22 @@ const createMiddleware = (
   token: RefObject<string | null>,
   setToken: Dispatch<SetStateAction<string | null>>,
 ): Middleware => {
+  const stripPrefix = (value: string) => value.replace(/^Bearer:\s*/i, "");
   return {
     async onRequest({ request }) {
       if (token.current) {
-        request.headers.set("Authorization", token.current);
+        request.headers.set("Authorization", `Bearer: ${token.current}`);
       }
       return request;
     },
 
     async onResponse({ response, schemaPath }) {
       if (schemaPath === "/api/auth/login") {
-        const token = response.headers.get("Authorization");
-        if (token) {
-          localStorage.setItem("jwt", token);
-          setToken(token);
+        const bearer = response.headers.get("Authorization");
+        if (bearer) {
+          const raw = stripPrefix(bearer);
+          localStorage.setItem("jwt", raw);
+          setToken(raw);
         }
       }
       return response;

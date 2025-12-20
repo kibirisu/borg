@@ -11,8 +11,17 @@ export function signInAction(client: AppClient) {
 
     const errors: Record<string, string> = {};
 
-    if (!username) errors.username = "Username is required";
-    if (!password) errors.password = "Password is required";
+    if (!username) {
+      errors.username = "Field is mandatory";
+    } else if (username.length < 6) {
+      errors.username = "Username should be at least 6 characters";
+    }
+
+    if (!password) {
+      errors.password = "Field is mandatory";
+    } else if (password.length < 6) {
+      errors.password = "Password should be at least 6 characters";
+    }
 
     if (Object.keys(errors).length > 0) {
       return errors;
@@ -30,9 +39,9 @@ export function signInAction(client: AppClient) {
     try {
       await mutation();
     } catch {
-      return { form: "Invalid username or password" };
+      return redirect("/?alert=user-missing");
     }
 
-    return redirect("/");
+    return redirect("/explore");
   };
 }

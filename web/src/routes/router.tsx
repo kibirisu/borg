@@ -2,8 +2,8 @@ import { useContext } from "react";
 import {
   createBrowserRouter,
   createContext,
-  RouterProvider as Provider,
   RouterContextProvider,
+  RouterProvider as Provider,
 } from "react-router";
 import Feed, { loader as feedLoader } from "../components/common/Feed";
 import { action as addCommentAction } from "../components/feed/CommentForm";
@@ -16,7 +16,12 @@ import MainFeed, {
   loader as mainFeedLoader,
 } from "../components/feed/MainFeed";
 import { action as addPostAction } from "../components/feed/NewPostForm";
-import User, { loader as userLoader } from "../components/profile/UserProfile";
+import ProfilePage, {
+  loader as profileLoader,
+} from "../components/pages/ProfilePage";
+import ExplorePage, {
+  loader as exploreLoader,
+} from "../components/pages/ExplorePage";
 import Root from "../components/Root";
 import ClientContext, { type AppClient } from "../lib/client";
 import { Home } from "lucide-react";
@@ -62,6 +67,12 @@ function router(client: AppClient) {
             action: signUpAction(client),
           },
           {
+            path: "explore",
+            Component: ExplorePage,
+            loader: exploreLoader(client),
+            errorElement: "error",
+          },
+          {
             path: "",
             Component: MainFeed,
             errorElement: "error",
@@ -76,8 +87,8 @@ function router(client: AppClient) {
           },
           {
             path: "profile/:handle",
-            Component: User,
-            loader: userLoader(client),
+            Component: ProfilePage,
+            loader: profileLoader(client),
             errorElement: "error",
             children: [
               {

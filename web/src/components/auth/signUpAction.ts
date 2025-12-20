@@ -13,10 +13,21 @@ export function signUpAction(client: AppClient) {
 
     const errors: Record<string, string> = {};
 
-    if (!username) errors.username = "Username is required";
-    if (!password) errors.password = "Password is required";
-    if (!confirmPassword)
-      errors.confirmPassword = "Please confirm your password";
+    if (!username) {
+      errors.username = "Field is mandatory";
+    } else if (username.length < 6) {
+      errors.username = "Username should be at least 6 characters";
+    }
+
+    if (!password) {
+      errors.password = "Field is mandatory";
+    } else if (password.length < 6) {
+      errors.password = "Password should be at least 6 characters";
+    }
+
+    if (!confirmPassword) {
+      errors.confirmPassword = "Field is mandatory";
+    }
 
     if (password && confirmPassword && password !== confirmPassword) {
       errors.confirmPassword = "Passwords do not match";

@@ -1,7 +1,14 @@
-import { Form, useNavigate } from "react-router";
+import { Form, useActionData, useNavigate } from "react-router";
+
+type SignInErrors = {
+  username?: string;
+  password?: string;
+  form?: string;
+};
 
 export const SignIn = () => {
   const navigate = useNavigate();
+  const errors = useActionData() as SignInErrors | undefined;
 
   return (
     <div className="min-h-full bg-white">
@@ -46,6 +53,8 @@ export const SignIn = () => {
                   type="text"
                   required
                   autoComplete="username"
+                  aria-invalid={errors?.username ? true : undefined}
+                  aria-describedby={errors?.username ? "username-error" : undefined}
                   className="block w-full rounded-md bg-white px-3 py-1.5 text-base
                     text-gray-900 outline-1 -outline-offset-1 outline-gray-300
                     placeholder:text-gray-400
@@ -53,6 +62,11 @@ export const SignIn = () => {
                     sm:text-sm/6"
                 />
               </div>
+              {errors?.username ? (
+                <p id="username-error" className="mt-2 text-sm text-red-600">
+                  {errors.username}
+                </p>
+              ) : null}
             </div>
 
             {/* PASSWORD */}
@@ -73,6 +87,8 @@ export const SignIn = () => {
                   type="password"
                   required
                   autoComplete="current-password"
+                  aria-invalid={errors?.password ? true : undefined}
+                  aria-describedby={errors?.password ? "password-error" : undefined}
                   className="block w-full rounded-md bg-white px-3 py-1.5 text-base
                     text-gray-900 outline-1 -outline-offset-1 outline-gray-300
                     placeholder:text-gray-400
@@ -80,6 +96,11 @@ export const SignIn = () => {
                     sm:text-sm/6"
                 />
               </div>
+              {errors?.password ? (
+                <p id="password-error" className="mt-2 text-sm text-red-600">
+                  {errors.password}
+                </p>
+              ) : null}
             </div>
 
             {/* SUBMIT */}

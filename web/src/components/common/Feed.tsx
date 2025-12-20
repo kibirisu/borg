@@ -29,7 +29,7 @@ export default function Feed() {
     return <></>;
   }
   return (
-    <div className="max-w-2xl mx-auto border-x border-gray-300 min-h-screen bg-white">
+    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm divide-y">
       {data?.map((post) => (
         <PostItem key={post.id} post={{ data: post }} client={client!} />
       ))}

@@ -17,6 +17,7 @@ type UserRepository interface {
 	GetFollowers(context.Context, int32) ([]*api.User, error)
 	RegisterUser(context.Context, *api.Login) error
 	ValidateCredentials(context.Context, *api.Login) error
+	GetByUsername(context.Context, string) (*api.User, error)
 }
 
 type userRepository struct {
@@ -35,6 +36,14 @@ func (r *userRepository) Create(ctx context.Context, user *api.NewUser) error {
 
 func (r *userRepository) GetByID(ctx context.Context, id int32) (*api.User, error) {
 	u, err := r.GetUser(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	return userToAPI(&u), nil
+}
+
+func (r *userRepository) GetByUsername(ctx context.Context, username string) (*api.User, error) {
+	u, err := r.GetUserByUsername(ctx, username)
 	if err != nil {
 		return nil, err
 	}

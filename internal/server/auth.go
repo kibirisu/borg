@@ -48,8 +48,15 @@ func loginUser(repo domain.UserRepository) http.HandlerFunc {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+		user, err := repo.GetByUsername(r.Context(), creds.Username)
+		if err != nil {
+			log.Println(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 		jwt := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 			"username": creds.Username,
+			"userId":   user.Id,
 		})
 		token, err := jwt.SignedString([]byte(signingKey))
 		if err != nil {

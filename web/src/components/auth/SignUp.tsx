@@ -1,7 +1,15 @@
-import { Form, Link, useNavigate } from "react-router";
+import { Form, Link, useActionData, useNavigate } from "react-router";
+
+type SignUpErrors = {
+  username?: string;
+  password?: string;
+  confirmPassword?: string;
+  form?: string;
+};
 
 export const SignUp = () => {
   const navigate = useNavigate();
+  const errors = useActionData() as SignUpErrors | undefined;
 
   return (
     <div className="min-h-full bg-white">
@@ -29,6 +37,9 @@ export const SignUp = () => {
 
         <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
           <Form method="post" className="space-y-6">
+            {errors?.form ? (
+              <p className="text-sm text-red-600">{errors.form}</p>
+            ) : null}
             {/* USERNAME */}
             <div>
               <label
@@ -44,6 +55,8 @@ export const SignUp = () => {
                   type="text"
                   required
                   autoComplete="username"
+                  aria-invalid={errors?.username ? true : undefined}
+                  aria-describedby={errors?.username ? "signup-username-error" : undefined}
                   className="block w-full rounded-md bg-white px-3 py-1.5 text-base
                     text-gray-900 outline-1 -outline-offset-1 outline-gray-300
                     placeholder:text-gray-400
@@ -51,6 +64,14 @@ export const SignUp = () => {
                     sm:text-sm/6"
                 />
               </div>
+              {errors?.username ? (
+                <p
+                  id="signup-username-error"
+                  className="mt-2 text-sm text-red-600"
+                >
+                  {errors.username}
+                </p>
+              ) : null}
             </div>
 
             {/* PASSWORD */}
@@ -68,6 +89,8 @@ export const SignUp = () => {
                   type="password"
                   required
                   autoComplete="new-password"
+                  aria-invalid={errors?.password ? true : undefined}
+                  aria-describedby={errors?.password ? "signup-password-error" : undefined}
                   className="block w-full rounded-md bg-white px-3 py-1.5 text-base
                     text-gray-900 outline-1 -outline-offset-1 outline-gray-300
                     placeholder:text-gray-400
@@ -75,6 +98,14 @@ export const SignUp = () => {
                     sm:text-sm/6"
                 />
               </div>
+              {errors?.password ? (
+                <p
+                  id="signup-password-error"
+                  className="mt-2 text-sm text-red-600"
+                >
+                  {errors.password}
+                </p>
+              ) : null}
             </div>
 
             {/* CONFIRM PASSWORD */}
@@ -92,6 +123,12 @@ export const SignUp = () => {
                   type="password"
                   required
                   autoComplete="new-password"
+                  aria-invalid={errors?.confirmPassword ? true : undefined}
+                  aria-describedby={
+                    errors?.confirmPassword
+                      ? "signup-confirm-password-error"
+                      : undefined
+                  }
                   className="block w-full rounded-md bg-white px-3 py-1.5 text-base
                     text-gray-900 outline-1 -outline-offset-1 outline-gray-300
                     placeholder:text-gray-400
@@ -99,6 +136,14 @@ export const SignUp = () => {
                     sm:text-sm/6"
                 />
               </div>
+              {errors?.confirmPassword ? (
+                <p
+                  id="signup-confirm-password-error"
+                  className="mt-2 text-sm text-red-600"
+                >
+                  {errors.confirmPassword}
+                </p>
+              ) : null}
             </div>
 
             {/* SUBMIT */}
