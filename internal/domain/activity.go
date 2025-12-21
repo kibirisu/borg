@@ -15,24 +15,27 @@ type Actor struct {
 	Following         string `json:"following"`
 	Followers         string `json:"followers"`
 }
+
 type Activity struct {
-	Context interface{}     `json:"@context"`
+	Context any             `json:"@context"`
 	ID      string          `json:"id"`
 	Type    string          `json:"type"`
 	Actor   json.RawMessage `json:"actor"`
 	Object  json.RawMessage `json:"object"`
 }
+
 type Create struct {
-	ID     string			`json:"id"    `
-	Type   string         	`json:"type"  `
-	Actor  json.RawMessage	`json:"actor" `
-	Object json.RawMessage	`json:"object"`
+	ID     string          `json:"id"`
+	Type   string          `json:"type"`
+	Actor  json.RawMessage `json:"actor"`
+	Object json.RawMessage `json:"object"`
 }
+
 type Follow struct {
-	ID     string			`json:"id"`
-	Type   string 			`json:"type"`
-	Actor  json.RawMessage	`json:"actor"`
-	Object json.RawMessage	`json:"object"`
+	ID     string          `json:"id"`
+	Type   string          `json:"type"`
+	Actor  json.RawMessage `json:"actor"`
+	Object json.RawMessage `json:"object"`
 }
 
 type Note struct {
@@ -43,10 +46,11 @@ type Note struct {
 	Content      string    `json:"content"`
 	To           []string  `json:"to"`
 }
+
 type Accept struct {
-    Context any    `json:"@context"`
-    ID      string `json:"id"`
-    Type    string `json:"type"`
-    Actor   string `json:"actor"`
-    Object  any    `json:"object"`
+	Context any    `json:"@context"`
+	ID      string `json:"id"`
+	Type    string `json:"type"`
+	Actor   string `json:"actor"`
+	Object  any    `json:"object"`
 }

@@ -5,11 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"time"
 
 	"github.com/go-chi/chi/v5"
+
 	"github.com/kibirisu/borg/internal/db"
 	"github.com/kibirisu/borg/internal/domain"
 	"github.com/kibirisu/borg/internal/server/mapper"
@@ -40,32 +42,33 @@ func (s *Server) handleInbox(w http.ResponseWriter, r *http.Request) {
 	var activity domain.Activity
 	bodyBytes, err := io.ReadAll(r.Body)
 	if err != nil {
-        util.WriteError(w, http.StatusBadRequest, "read error")
-        return
-    }
+		util.WriteError(w, http.StatusBadRequest, "read error")
+		return
+	}
 
-    if err := json.Unmarshal(bodyBytes, &activity); err != nil {
-        return
-    }
+	if err = json.Unmarshal(bodyBytes, &activity); err != nil {
+		return
+	}
 
 	switch activity.Type {
 	case "Follow":
 		var followReq domain.Follow
-        if err := json.Unmarshal(bodyBytes, &followReq); err != nil {
-            return
-        }
+		if err = json.Unmarshal(bodyBytes, &followReq); err != nil {
+			return
+		}
 
 		s.handleFollow(w, r, username, followReq)
 
 	case "Create", "Accept":
-		fmt.Printf("Acknowledge activity: %s\n", activity.Type)
+		log.Printf("Acknowledge activity: %s\n", activity.Type)
 		w.WriteHeader(http.StatusAccepted)
 
 	default:
-		fmt.Printf("Received unsupported activity type: %s\n", activity.Type)
+		log.Printf("Received unsupported activity type: %s\n", activity.Type)
 		w.WriteHeader(http.StatusAccepted)
 	}
 }
+
 func (s *Server) fetchRemoteActor(ctx context.Context, uri string) (domain.Actor, error) {
 	var actor domain.Actor
 
@@ -80,29 +83,35 @@ func (s *Server) fetchRemoteActor(ctx context.Context, uri string) (domain.Actor
 	if err != nil {
 		return actor, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		err = resp.Body.Close()
+		if err != nil {
+			log.Println(err)
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return actor, fmt.Errorf("remote server returned status %d", resp.StatusCode)
 	}
 
-	if err := json.NewDecoder(resp.Body).Decode(&actor); err != nil {
+	if err = util.ReadJSON(req, &actor); err != nil {
 		return actor, fmt.Errorf("failed to decode actor: %w", err)
 	}
 
 	return actor, nil
 }
+
 func (s *Server) resolveActor(ctx context.Context, raw json.RawMessage) domain.Actor {
-    var actor domain.Actor
-    if err := json.Unmarshal(raw, &actor); err == nil && actor.ID != "" {
-        return actor
-    }
+	var actor domain.Actor
+	if err := json.Unmarshal(raw, &actor); err == nil && actor.ID != "" {
+		return actor
+	}
 	var uri string
-	//not tested yet
+	// not tested yet
 	if err := json.Unmarshal(raw, &uri); err == nil && uri != "" {
 		fetchedActor, err := s.fetchRemoteActor(ctx, uri)
 		if err != nil {
-			fmt.Printf("Warning: could not fetch remote actor %s: %v\n", uri, err)
+			log.Printf("Warning: could not fetch remote actor %s: %v\n", uri, err)
 			actor.ID = uri
 			return actor
 		}
@@ -112,7 +121,12 @@ func (s *Server) resolveActor(ctx context.Context, raw json.RawMessage) domain.A
 	return actor
 }
 
-func (s *Server) handleFollow(w http.ResponseWriter, r *http.Request, localUsername string, msg domain.Follow) {
+func (s *Server) handleFollow(
+	w http.ResponseWriter,
+	r *http.Request,
+	localUsername string,
+	msg domain.Follow,
+) {
 	followerActor := s.resolveActor(r.Context(), msg.Actor)
 	followeeActor := s.resolveActor(r.Context(), msg.Object)
 
@@ -132,25 +146,28 @@ func (s *Server) handleFollow(w http.ResponseWriter, r *http.Request, localUsern
 	}
 	originDomain := u.Host
 
-	addRemoteAccount := mapper.ActorToAccountCreate(&followerActor, originDomain);
+	addRemoteAccount := mapper.ActorToAccountCreate(&followerActor, originDomain)
 	followerAccount, err := s.service.App.AddRemoteAccount(r.Context(), addRemoteAccount)
-
 	if err != nil {
-		util.WriteError(w, http.StatusInternalServerError, "Error when adding remote actor: " + err.Error())
+		util.WriteError(
+			w,
+			http.StatusInternalServerError,
+			"Error when adding remote actor: "+err.Error(),
+		)
 		return
 	}
-	createFollow := db.CreateFollowParams {
-		Uri: "",
-		AccountID: followerAccount.ID,
+	createFollow := db.CreateFollowParams{
+		Uri:             "",
+		AccountID:       followerAccount.ID,
 		TargetAccountID: localAccount.ID,
-	};
+	}
 	err = s.service.App.CreateFollow(r.Context(), &createFollow)
 	if err != nil {
-		util.WriteError(w, http.StatusInternalServerError, "Error when adding follow: " + err.Error())
+		util.WriteError(w, http.StatusInternalServerError, "Error when adding follow: "+err.Error())
 		return
 	}
 
-	fmt.Printf("User %s received follow from %s\n", localUsername, followerAccount.Username)
+	log.Printf("User %s received follow from %s\n", localUsername, followerAccount.Username)
 
 	accept := domain.Accept{
 		Context: "https://www.w3.org/ns/activitystreams",
@@ -160,7 +177,7 @@ func (s *Server) handleFollow(w http.ResponseWriter, r *http.Request, localUsern
 		Object:  msg,
 	}
 	// TODO deliver
-    _ = accept 
+	_ = accept
 
 	w.WriteHeader(http.StatusAccepted)
 }
