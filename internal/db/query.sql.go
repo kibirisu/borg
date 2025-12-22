@@ -28,20 +28,22 @@ func (q *Queries) AuthData(ctx context.Context, username string) (AuthDataRow, e
 
 const createActor = `-- name: CreateActor :one
 INSERT INTO accounts (
-    username, uri, display_name, domain, inbox_uri, outbox_uri, url
+    username, uri, display_name, domain, inbox_uri, outbox_uri, url, followers_uri, following_uri
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7
+    $1, $2, $3, $4, $5, $6, $7, $8, $9
 ) RETURNING id, created_at, updated_at, username, uri, display_name, domain, inbox_uri, outbox_uri, followers_uri, following_uri, url
 `
 
 type CreateActorParams struct {
-	Username    string
-	Uri         string
-	DisplayName sql.NullString
-	Domain      sql.NullString
-	InboxUri    string
-	OutboxUri   string
-	Url         string
+	Username     string
+	Uri          string
+	DisplayName  sql.NullString
+	Domain       sql.NullString
+	InboxUri     string
+	OutboxUri    string
+	Url          string
+	FollowersUri string
+	FollowingUri string
 }
 
 func (q *Queries) CreateActor(ctx context.Context, arg CreateActorParams) (Account, error) {
@@ -53,6 +55,8 @@ func (q *Queries) CreateActor(ctx context.Context, arg CreateActorParams) (Accou
 		arg.InboxUri,
 		arg.OutboxUri,
 		arg.Url,
+		arg.FollowersUri,
+		arg.FollowingUri,
 	)
 	var i Account
 	err := row.Scan(
@@ -70,6 +74,59 @@ func (q *Queries) CreateActor(ctx context.Context, arg CreateActorParams) (Accou
 		&i.Url,
 	)
 	return i, err
+}
+
+const createFollow = `-- name: CreateFollow :exec
+INSERT INTO follows (
+    uri, account_id, target_account_id
+) VALUES (
+    $1, $2, $3
+) ON CONFLICT (account_id, target_account_id) 
+DO UPDATE SET 
+    uri = EXCLUDED.uri,
+    updated_at = CURRENT_TIMESTAMP
+`
+
+type CreateFollowParams struct {
+	Uri             string
+	AccountID       int32
+	TargetAccountID int32
+}
+
+func (q *Queries) CreateFollow(ctx context.Context, arg CreateFollowParams) error {
+	_, err := q.db.ExecContext(ctx, createFollow, arg.Uri, arg.AccountID, arg.TargetAccountID)
+	return err
+}
+
+const createStatus = `-- name: CreateStatus :exec
+INSERT INTO statuses (
+    uri, url, local, content, account_id, in_reply_to_id, reblog_of_id
+) VALUES (
+    $1, $2, $3, $4, $5, $6, $7
+)
+`
+
+type CreateStatusParams struct {
+	Uri         string
+	Url         string
+	Local       sql.NullBool
+	Content     string
+	AccountID   int32
+	InReplyToID sql.NullInt32
+	ReblogOfID  sql.NullInt32
+}
+
+func (q *Queries) CreateStatus(ctx context.Context, arg CreateStatusParams) error {
+	_, err := q.db.ExecContext(ctx, createStatus,
+		arg.Uri,
+		arg.Url,
+		arg.Local,
+		arg.Content,
+		arg.AccountID,
+		arg.InReplyToID,
+		arg.ReblogOfID,
+	)
+	return err
 }
 
 const createUser = `-- name: CreateUser :exec

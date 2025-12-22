@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
@@ -28,7 +29,8 @@ func (s *Server) GetWellKnownWebfinger(
 	}
 
 	if domain != s.conf.ListenHost {
-		util.WriteError(w, http.StatusNotFound, "yyy")
+		msg := fmt.Sprintf("domain mismatch: got %s, expected %s", domain, s.conf.ListenHost)
+		util.WriteError(w, http.StatusNotFound, msg)
 		return
 	}
 
