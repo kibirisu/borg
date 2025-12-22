@@ -22,6 +22,10 @@ import ProfilePage, {
 import ExplorePage, {
   loader as exploreLoader,
 } from "../components/pages/ExplorePage";
+import LikesPage, { loader as likesLoader } from "../components/pages/LikesPage";
+import SharedPage, {
+  loader as sharedLoader,
+} from "../components/pages/SharedPage";
 import Root from "../components/Root";
 import ClientContext, { type AppClient } from "../lib/client";
 import { Home } from "lucide-react";
@@ -70,6 +74,18 @@ function router(client: AppClient) {
             path: "explore",
             Component: ExplorePage,
             loader: exploreLoader(client),
+            errorElement: "error",
+          },
+          {
+            path: "likes",
+            Component: LikesPage,
+            loader: likesLoader(client),
+            errorElement: "error",
+          },
+          {
+            path: "shared",
+            Component: SharedPage,
+            loader: sharedLoader(client),
             errorElement: "error",
           },
           {
