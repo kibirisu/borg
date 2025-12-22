@@ -1,14 +1,15 @@
 package domain
 
-import (
-	"encoding/json"
-	"time"
-)
+import "time"
+
+type Object struct {
+	Context any    `json:"@context"`
+	Type    string `json:"type"`
+	ID      string `json:"id"`
+}
 
 type Actor struct {
-	Context           any    `json:"@context"`
-	ID                string `json:"id"`
-	Type              string `json:"type"`
+	Object
 	PreferredUsername string `json:"preferredUsername"`
 	Inbox             string `json:"inbox"`
 	Outbox            string `json:"outbox"`
@@ -17,40 +18,29 @@ type Actor struct {
 }
 
 type Activity struct {
-	Context any             `json:"@context"`
-	ID      string          `json:"id"`
-	Type    string          `json:"type"`
-	Actor   json.RawMessage `json:"actor"`
-	Object  json.RawMessage `json:"object"`
+	Object
+	Actor Actor `json:"actor"`
 }
 
 type Create struct {
-	ID     string          `json:"id"`
-	Type   string          `json:"type"`
-	Actor  json.RawMessage `json:"actor"`
-	Object json.RawMessage `json:"object"`
+	Activity
+	Object Note `json:"object"`
 }
 
 type Follow struct {
-	ID     string          `json:"id"`
-	Type   string          `json:"type"`
-	Actor  json.RawMessage `json:"actor"`
-	Object json.RawMessage `json:"object"`
+	Activity
+	Object Actor `json:"object"`
+}
+
+type Accept struct {
+	Activity
+	Object Follow `json:"object"`
 }
 
 type Note struct {
-	ID           string    `json:"id"`
-	Type         string    `json:"type"`
+	Object
 	Published    time.Time `json:"published"`
 	AttributedTo string    `json:"attributedTo"`
 	Content      string    `json:"content"`
 	To           []string  `json:"to"`
-}
-
-type Accept struct {
-	Context any    `json:"@context"`
-	ID      string `json:"id"`
-	Type    string `json:"type"`
-	Actor   string `json:"actor"`
-	Object  any    `json:"object"`
 }
