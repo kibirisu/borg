@@ -2,7 +2,7 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { type LoaderFunctionArgs, Outlet, useLoaderData } from "react-router";
 import type { AppClient } from "../../lib/client";
-import Sidebar from "../layout/Sidebar";
+import Sidebar from "../common/Sidebar";
 
 export const loader =
   (client: AppClient) =>

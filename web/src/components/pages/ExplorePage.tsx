@@ -4,7 +4,7 @@ import { useLoaderData } from "react-router";
 import type { AppClient } from "../../lib/client";
 import ClientContext from "../../lib/client";
 import { PostItem } from "../common/PostItem";
-import Sidebar from "../layout/Sidebar";
+import Sidebar from "../common/Sidebar";
 
 export const loader = (client: AppClient) => async () => {
   const opts = client.$api.queryOptions("get", "/api/posts", {});
