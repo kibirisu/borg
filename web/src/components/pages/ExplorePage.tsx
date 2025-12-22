@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useContext } from "react";
+import { useContext, useState } from "react";
 import { useLoaderData } from "react-router";
 import type { AppClient } from "../../lib/client";
 import ClientContext from "../../lib/client";
@@ -18,6 +18,29 @@ export default function ExplorePage() {
     ReturnType<ReturnType<typeof loader>>
   >;
   const { data, isPending } = useQuery(opts);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [searchError, setSearchError] = useState("");
+
+  const handleSearch = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const trimmed = searchTerm.trim();
+    const handlePattern = /^[A-Za-z0-9._-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+    if (!handlePattern.test(trimmed)) {
+      setSearchError("Format must be user@instance.com");
+      return;
+    }
+    setSearchError("");
+    // TODO: replace with actual search logic once API endpoint is ready
+    console.info("Searching for handle:", trimmed);
+    console.log("Search input value:", trimmed);
+  };
+
+  const onSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(event.target.value);
+    if (searchError) {
+      setSearchError("");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -31,6 +54,63 @@ export default function ExplorePage() {
               See what others are talking about right now.
             </p>
           </section>
+          <form
+            onSubmit={handleSearch}
+            className="max-w-md mx-auto flex items-center space-x-2"
+          >
+            <label htmlFor="explore-search" className="sr-only">
+              Search
+            </label>
+            <div className="relative w-full">
+              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                <svg
+                  className="h-4 w-4 text-gray-500"
+                  aria-hidden="true"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke="currentColor"
+                    strokeLinecap="round"
+                    strokeWidth="2"
+                    d="m21 21-3.5-3.5M17 10a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z"
+                  />
+                </svg>
+              </div>
+              <input
+                id="explore-search"
+                type="search"
+                placeholder="Search"
+                className="block w-full rounded-xl border border-gray-200 bg-gray-50 p-3 pl-9 text-sm text-gray-900 placeholder:text-gray-500 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 focus:outline-none"
+                value={searchTerm}
+                onChange={onSearchChange}
+              />
+            </div>
+            <button
+              type="submit"
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-sm focus:outline-none focus:ring-4 focus:ring-indigo-300 hover:bg-indigo-700"
+            >
+              <svg
+                className="h-5 w-5"
+                aria-hidden="true"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeWidth="2"
+                  d="m21 21-3.5-3.5M17 10a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z"
+                />
+              </svg>
+              <span className="sr-only">Search</span>
+            </button>
+          </form>
+          {searchError && (
+            <p className="text-center text-sm text-red-600">{searchError}</p>
+          )}
           <section className="bg-white rounded-2xl border border-gray-200 p-4 space-y-4 min-h-[400px]">
             {isPending && (
               <p className="text-gray-500 text-center">Loading…</p>
