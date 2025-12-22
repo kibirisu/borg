@@ -20,3 +20,9 @@ INSERT INTO users (
 
 -- name: GetAccount :one
 SELECT * FROM accounts WHERE username = $1 AND domain = $2;
+
+-- name: GetAllStatuses :many
+SELECT s.id, s.created_at, s.updated_at, s.uri, s.url, s.local, s.content, s.account_id, s.in_reply_to_id, s.reblog_of_id, a.username 
+FROM statuses s 
+JOIN accounts a ON s.account_id = a.id 
+ORDER BY s.created_at DESC;

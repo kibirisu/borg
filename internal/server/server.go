@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"io/fs"
 	"net/http"
 	"time"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/kibirisu/borg/internal/api"
 	"github.com/kibirisu/borg/internal/config"
+	"github.com/kibirisu/borg/internal/db"
 	"github.com/kibirisu/borg/internal/service"
 	"github.com/kibirisu/borg/web"
 )
@@ -20,15 +22,18 @@ type Server struct {
 	assets  fs.FS
 	conf    *config.Config
 	service *service.Container
+	queries *db.Queries
 }
 
 func New(conf *config.Config) *http.Server {
 	assets := web.GetAssets()
 	service := service.NewContainer(conf)
+	_, queries := db.GetDB(context.Background(), conf.DatabaseURL)
 	server := &Server{
 		assets,
 		conf,
 		service,
+		queries,
 	}
 
 	r := chi.NewRouter()

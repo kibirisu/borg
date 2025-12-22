@@ -244,5 +244,18 @@ func (s *Server) GetApiUsersIdFollowing(w http.ResponseWriter, r *http.Request, 
 
 // GetApiPosts implements api.ServerInterface.
 func (s *Server) GetApiPosts(w http.ResponseWriter, r *http.Request) {
-	panic("unimplemented")
+	log.Println("GetApiPosts: Starting to fetch statuses")
+	statuses, err := s.queries.GetAllStatuses(r.Context())
+	if err != nil {
+		log.Printf("GetApiPosts: Error getting statuses: %v", err)
+		util.WriteJSON(w, http.StatusOK, []api.Post{})
+		return
+	}
+
+	posts := make([]api.Post, 0, len(statuses))
+	for _, status := range statuses {
+		posts = append(posts, mapper.PostToAPI(status))
+	}
+
+	util.WriteJSON(w, http.StatusOK, posts)
 }
