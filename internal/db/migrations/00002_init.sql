@@ -39,3 +39,11 @@ DELETE FROM follows;
 DELETE FROM statuses;
 DELETE FROM users;
 DELETE FROM accounts;
+
+
+-- +goose Down
+DROP TABLE accounts;
+DROP TABLE statuses;
+DROP TABLE follows;
+DROP TABLE favourites;
+DROP TABLE users;

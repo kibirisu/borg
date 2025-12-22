@@ -8,6 +8,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"time"
 )
 
 const authData = `-- name: AuthData :one
@@ -141,4 +142,60 @@ func (q *Queries) GetActor(ctx context.Context, username string) (Account, error
 		&i.Url,
 	)
 	return i, err
+}
+
+const getAllStatuses = `-- name: GetAllStatuses :many
+SELECT s.id, s.created_at, s.updated_at, s.uri, s.url, s.local, s.content, s.account_id, s.in_reply_to_id, s.reblog_of_id, a.username 
+FROM statuses s 
+JOIN accounts a ON s.account_id = a.id 
+ORDER BY s.created_at DESC
+`
+
+type GetAllStatusesRow struct {
+	ID          int32
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	Uri         string
+	Url         string
+	Local       sql.NullBool
+	Content     string
+	AccountID   int32
+	InReplyToID sql.NullInt32
+	ReblogOfID  sql.NullInt32
+	Username    string
+}
+
+func (q *Queries) GetAllStatuses(ctx context.Context) ([]GetAllStatusesRow, error) {
+	rows, err := q.db.QueryContext(ctx, getAllStatuses)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetAllStatusesRow
+	for rows.Next() {
+		var i GetAllStatusesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Uri,
+			&i.Url,
+			&i.Local,
+			&i.Content,
+			&i.AccountID,
+			&i.InReplyToID,
+			&i.ReblogOfID,
+			&i.Username,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

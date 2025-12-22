@@ -55,9 +55,4 @@ CREATE TABLE users (
     password_hash TEXT NOT NULL
 );
 
--- +goose Down
-DROP TABLE accounts;
-DROP TABLE statuses;
-DROP TABLE follows;
-DROP TABLE favourites;
-DROP TABLE users;
+
