@@ -7,6 +7,7 @@ import (
 )
 
 type AccountRepository interface {
+	Get(context.Context, db.GetAccountParams) (db.Account, error)
 	GetLocalByUsername(context.Context, string) (db.Account, error)
 	Create(context.Context, db.CreateActorParams) (db.Account, error)
 }
@@ -31,4 +32,12 @@ func (r *accountRepository) Create(
 	account db.CreateActorParams,
 ) (db.Account, error) {
 	return r.q.CreateActor(ctx, account)
+}
+
+// Get implements AccountRepository.
+func (r *accountRepository) Get(
+	ctx context.Context,
+	account db.GetAccountParams,
+) (db.Account, error) {
+	return r.q.GetAccount(ctx, account)
 }

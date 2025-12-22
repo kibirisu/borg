@@ -98,6 +98,37 @@ func (q *Queries) CreateFollow(ctx context.Context, arg CreateFollowParams) erro
 	return err
 }
 
+const createStatus = `-- name: CreateStatus :exec
+INSERT INTO statuses (
+    uri, url, local, content, account_id, in_reply_to_id, reblog_of_id
+) VALUES (
+    $1, $2, $3, $4, $5, $6, $7
+)
+`
+
+type CreateStatusParams struct {
+	Uri         string
+	Url         string
+	Local       sql.NullBool
+	Content     string
+	AccountID   int32
+	InReplyToID sql.NullInt32
+	ReblogOfID  sql.NullInt32
+}
+
+func (q *Queries) CreateStatus(ctx context.Context, arg CreateStatusParams) error {
+	_, err := q.db.ExecContext(ctx, createStatus,
+		arg.Uri,
+		arg.Url,
+		arg.Local,
+		arg.Content,
+		arg.AccountID,
+		arg.InReplyToID,
+		arg.ReblogOfID,
+	)
+	return err
+}
+
 const createUser = `-- name: CreateUser :exec
 INSERT INTO users (
     account_id, password_hash

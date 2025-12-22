@@ -17,6 +17,6 @@ type followRepository struct {
 var _ FollowRepository = (*followRepository)(nil)
 
 // Create implements FollowRepository.
-func (u *followRepository) Create(ctx context.Context, follow db.CreateFollowParams) error {
-	return u.q.CreateFollow(ctx, follow)
+func (r *followRepository) Create(ctx context.Context, follow db.CreateFollowParams) error {
+	return r.q.CreateFollow(ctx, follow)
 }

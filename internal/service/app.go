@@ -20,6 +20,8 @@ type AppService interface {
 	GetLocalAccount(context.Context, string) (*db.Account, error)
 	AddRemoteAccount(ctx context.Context, remote *db.CreateActorParams) (*db.Account, error)
 	CreateFollow(ctx context.Context, follow *db.CreateFollowParams) error
+	AddNote(context.Context, db.CreateStatusParams) error
+	GetAccount(context.Context, db.GetAccountParams) (*db.Account, error)
 }
 
 type appService struct {
@@ -85,14 +87,32 @@ func (s *appService) GetLocalAccount(ctx context.Context, username string) (*db.
 	user, err := s.store.Accounts().GetLocalByUsername(ctx, username)
 	return &user, err
 }
-func (s *appService) AddRemoteAccount(ctx context.Context, remote *db.CreateActorParams) (*db.Account, error) {
+
+func (s *appService) AddRemoteAccount(
+	ctx context.Context,
+	remote *db.CreateActorParams,
+) (*db.Account, error) {
 	if !remote.Domain.Valid {
-		return nil, errors.New("Domain must be a remote server");
+		return nil, errors.New("domain must be a remote server")
 	}
-	acc, err := s.store.Accounts().Create(ctx, *remote);
+	acc, err := s.store.Accounts().Create(ctx, *remote)
 	return &acc, err
 }
 
 func (s *appService) CreateFollow(ctx context.Context, follow *db.CreateFollowParams) error {
-	return s.store.Follows().Create(ctx, *follow);
+	return s.store.Follows().Create(ctx, *follow)
+}
+
+// AddNote implements AppService.
+func (s *appService) AddNote(ctx context.Context, note db.CreateStatusParams) error {
+	return s.store.Statuses().Create(ctx, note)
+}
+
+// GetAccount implements AppService.
+func (s *appService) GetAccount(
+	ctx context.Context,
+	account db.GetAccountParams,
+) (*db.Account, error) {
+	res, err := s.store.Accounts().Get(ctx, account)
+	return &res, err
 }
