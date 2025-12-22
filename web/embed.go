@@ -8,7 +8,10 @@ import (
 //go:embed dist
 var assets embed.FS
 
-func GetAssets() (res fs.FS, err error) {
-	res, err = fs.Sub(assets, "dist")
-	return
+func GetAssets() fs.FS {
+	res, err := fs.Sub(assets, "dist")
+	if err != nil {
+		panic(err)
+	}
+	return res
 }

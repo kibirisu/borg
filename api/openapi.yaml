@@ -7,35 +7,353 @@ info:
 
 paths:
   /api/users:
-    $ref: "users.yaml#/paths/~1api~1users"
+    post:
+      summary: Create a user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewUser"
+      responses:
+        "201":
+          description: Created user
   /api/users/{id}:
-    $ref: "users.yaml#/paths/~1api~1users~1{id}"
+    get:
+      summary: Get a user by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+    delete:
+      summary: Delete a user by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted successfully
+
+    put:
+      summary: Update a user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUser"
+      responses:
+        "200":
+          description: Updated user
   /api/users/{id}/posts:
-    $ref: "posts.yaml#/paths/~1api~1users~1{id}~1posts"
+    get:
+      summary: Get posts of user with ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Post"
   /api/users/{id}/followers:
-    $ref: "users.yaml#/paths/~1api~1users~1{id}~1followers"
+    get:
+      summary: Get followers of the user with ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
   /api/users/{id}/following:
-    $ref: "users.yaml#/paths/~1api~1users~1{id}~1following"
+    get:
+      summary: Get followed of the user with ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
   /api/posts:
-    $ref: "posts.yaml#/paths/~1api~1posts"
+    get:
+      summary: Get all posts
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Post"
+    post:
+      summary: Create a post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewPost"
   /api/posts/{id}:
-    $ref: "posts.yaml#/paths/~1api~1posts~1{id}"
+    get:
+      summary: Get a post by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Post"
+    delete:
+      summary: Delete a post by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted successfully
+    put:
+      summary: Update a post
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePost"
+      responses:
+        "200":
+          description: Updated user
   /api/posts/{id}/comments:
-    $ref: "posts.yaml#/paths/~1api~1posts~1{id}~1comments"
+    get:
+      summary: Get a post's comments by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Comment"
+    post:
+      summary: Create a post comment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewComment"
+      security:
+        - BearerAuth: []
   /api/posts/{id}/likes:
-    $ref: "posts.yaml#/paths/~1api~1posts~1{id}~1likes"
+    get:
+      summary: Get post's likes
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Like"
+    post:
+      summary: Create a post like
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewLike"
+      security:
+        - BearerAuth: []
   /api/posts/{id}/shares:
-    $ref: "posts.yaml#/paths/~1api~1posts~1{id}~1shares"
-  /api/auth/register:
-    $ref: "auth.yaml#/paths/~1api~1auth~1register"
-  /api/auth/login:
-    $ref: "auth.yaml#/paths/~1api~1auth~1login"
+    get:
+      summary: Get post's shares
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Share"
+    post:
+      summary: Create a post share
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewShare"
+      security:
+        - BearerAuth: []
+  /auth/login:
+    post:
+      summary: Login the user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthForm"
+      responses:
+        "200":
+          description: Successfully signed in
+  /auth/register:
+    post:
+      summary: Register the user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthForm"
+      responses:
+        "200":
+          description: Successfully signed up
   /.well-known/webfinger:
-    $ref: "federation.yaml#/paths/~1.well-known~1webfinger"
+    get:
+      summary: Get WebFinger
+      parameters:
+        - name: resource
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/jrd+json:
+              schema:
+                $ref: "#/components/schemas/WebFingerResponse"
   /api/accounts/lookup:
-    $ref: "federation.yaml#/paths/~1api~1accounts~1lookup"
+    get:
+      summary: Look up a user
+      parameters:
+        - name: acct
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Found the user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Account"
   /api/accounts/{id}/follow:
-    $ref: "federation.yaml#/paths/~1api~1accounts~1{id}~1follow"
+    post:
+      summary: Follow a user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Followed successfully
+      security:
+        - BearerAuth: []
 
 components:
   securitySchemes:
@@ -43,3 +361,252 @@ components:
       type: http
       scheme: Bearer
       bearerFormat: JWT
+  schemas:
+    AuthForm:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+    Account:
+      type: object
+      required:
+        - id
+        - username
+        - acct
+        - displayName
+        - url
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        acct:
+          type: string
+        displayName:
+          type: string
+        url:
+          type: string
+    WebFingerResponse:
+      type: object
+      required:
+        - subject
+        - links
+      properties:
+        subject:
+          type: string
+        links:
+          type: array
+          items:
+            $ref: "#/components/schemas/WebFingerLink"
+    WebFingerLink:
+      type: object
+      required:
+        - rel
+        - type
+        - href
+      properties:
+        rel:
+          type: string
+        type:
+          type: string
+        href:
+          type: string
+    User:
+      type: object
+      required:
+        - id
+        - username
+        - bio
+        - origin
+        - isAdmin
+        - followersCount
+        - followingCount
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        bio:
+          type: string
+        origin:
+          type: string
+        isAdmin:
+          type: boolean
+        followersCount:
+          type: integer
+        followingCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    NewUser:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+
+    UpdateUser:
+      type: object
+      properties:
+        bio:
+          type: string
+        isAdmin:
+          type: boolean
+
+    Share:
+      type: object
+      required:
+        - id
+        - postID
+        - userID
+        - createdAt
+      properties:
+        id:
+          type: integer
+        postID:
+          type: integer
+        userID:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+    NewShare:
+      type: object
+      required:
+        - postID
+        - userID
+      properties:
+        postID:
+          type: integer
+        userID:
+          type: integer
+    Comment:
+      type: object
+      required:
+        - id
+        - postID
+        - userID
+        - content
+        - parentID
+        - createdAt
+        - UpdatedAt
+      properties:
+        id:
+          type: integer
+        postID:
+          type: integer
+        userID:
+          type: integer
+        content:
+          type: string
+        parentID:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        UpdatedAt:
+          type: string
+          format: date-time
+    NewComment:
+      type: object
+      required:
+        - postID
+        - userID
+        - content
+      properties:
+        postID:
+          type: integer
+        userID:
+          type: integer
+        content:
+          type: string
+    Like:
+      type: object
+      required:
+        - id
+        - postID
+        - userID
+        - createdAt
+      properties:
+        id:
+          type: integer
+        postID:
+          type: integer
+        userID:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+    NewLike:
+      type: object
+      required:
+        - postID
+        - userID
+      properties:
+        postID:
+          type: integer
+        userID:
+          type: integer
+    Post:
+      type: object
+      required:
+        - id
+        - userID
+        - content
+        - likeCount
+        - shareCount
+        - commentCount
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: integer
+        userID:
+          type: integer
+        content:
+          type: string
+        likeCount:
+          type: integer
+        shareCount:
+          type: integer
+        commentCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        username:
+          type: string
+    NewPost:
+      type: object
+      required:
+        - userID
+        - content
+      properties:
+        userID:
+          type: integer
+        content:
+          type: string
+    UpdatePost:
+      type: object
+      properties:
+        content:
+          type: string

@@ -13,11 +13,176 @@ import (
 	"net/url"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-chi/chi/v5"
 	"github.com/oapi-codegen/runtime"
 )
+
+const (
+	BearerAuthScopes = "BearerAuth.Scopes"
+)
+
+// Account defines model for Account.
+type Account struct {
+	Acct        string `json:"acct"`
+	DisplayName string `json:"displayName"`
+	Id          int    `json:"id"`
+	Url         string `json:"url"`
+	Username    string `json:"username"`
+}
+
+// AuthForm defines model for AuthForm.
+type AuthForm struct {
+	Password string `json:"password"`
+	Username string `json:"username"`
+}
+
+// Comment defines model for Comment.
+type Comment struct {
+	UpdatedAt time.Time `json:"UpdatedAt"`
+	Content   string    `json:"content"`
+	CreatedAt time.Time `json:"createdAt"`
+	Id        int       `json:"id"`
+	ParentID  int       `json:"parentID"`
+	PostID    int       `json:"postID"`
+	UserID    int       `json:"userID"`
+}
+
+// Like defines model for Like.
+type Like struct {
+	CreatedAt time.Time `json:"createdAt"`
+	Id        int       `json:"id"`
+	PostID    int       `json:"postID"`
+	UserID    int       `json:"userID"`
+}
+
+// NewComment defines model for NewComment.
+type NewComment struct {
+	Content string `json:"content"`
+	PostID  int    `json:"postID"`
+	UserID  int    `json:"userID"`
+}
+
+// NewLike defines model for NewLike.
+type NewLike struct {
+	PostID int `json:"postID"`
+	UserID int `json:"userID"`
+}
+
+// NewPost defines model for NewPost.
+type NewPost struct {
+	Content string `json:"content"`
+	UserID  int    `json:"userID"`
+}
+
+// NewShare defines model for NewShare.
+type NewShare struct {
+	PostID int `json:"postID"`
+	UserID int `json:"userID"`
+}
+
+// NewUser defines model for NewUser.
+type NewUser struct {
+	Password string `json:"password"`
+	Username string `json:"username"`
+}
+
+// Post defines model for Post.
+type Post struct {
+	CommentCount int       `json:"commentCount"`
+	Content      string    `json:"content"`
+	CreatedAt    time.Time `json:"createdAt"`
+	Id           int       `json:"id"`
+	LikeCount    int       `json:"likeCount"`
+	ShareCount   int       `json:"shareCount"`
+	UpdatedAt    time.Time `json:"updatedAt"`
+	UserID       int       `json:"userID"`
+	Username     *string   `json:"username,omitempty"`
+}
+
+// Share defines model for Share.
+type Share struct {
+	CreatedAt time.Time `json:"createdAt"`
+	Id        int       `json:"id"`
+	PostID    int       `json:"postID"`
+	UserID    int       `json:"userID"`
+}
+
+// UpdatePost defines model for UpdatePost.
+type UpdatePost struct {
+	Content *string `json:"content,omitempty"`
+}
+
+// UpdateUser defines model for UpdateUser.
+type UpdateUser struct {
+	Bio     *string `json:"bio,omitempty"`
+	IsAdmin *bool   `json:"isAdmin,omitempty"`
+}
+
+// User defines model for User.
+type User struct {
+	Bio            string    `json:"bio"`
+	CreatedAt      time.Time `json:"createdAt"`
+	FollowersCount int       `json:"followersCount"`
+	FollowingCount int       `json:"followingCount"`
+	Id             int       `json:"id"`
+	IsAdmin        bool      `json:"isAdmin"`
+	Origin         string    `json:"origin"`
+	UpdatedAt      time.Time `json:"updatedAt"`
+	Username       string    `json:"username"`
+}
+
+// WebFingerLink defines model for WebFingerLink.
+type WebFingerLink struct {
+	Href string `json:"href"`
+	Rel  string `json:"rel"`
+	Type string `json:"type"`
+}
+
+// WebFingerResponse defines model for WebFingerResponse.
+type WebFingerResponse struct {
+	Links   []WebFingerLink `json:"links"`
+	Subject string          `json:"subject"`
+}
+
+// GetWellKnownWebfingerParams defines parameters for GetWellKnownWebfinger.
+type GetWellKnownWebfingerParams struct {
+	Resource string `form:"resource" json:"resource"`
+}
+
+// GetApiAccountsLookupParams defines parameters for GetApiAccountsLookup.
+type GetApiAccountsLookupParams struct {
+	Acct string `form:"acct" json:"acct"`
+}
+
+// PostApiPostsJSONRequestBody defines body for PostApiPosts for application/json ContentType.
+type PostApiPostsJSONRequestBody = NewPost
+
+// PutApiPostsIdJSONRequestBody defines body for PutApiPostsId for application/json ContentType.
+type PutApiPostsIdJSONRequestBody = UpdatePost
+
+// PostApiPostsIdCommentsJSONRequestBody defines body for PostApiPostsIdComments for application/json ContentType.
+type PostApiPostsIdCommentsJSONRequestBody = NewComment
+
+// PostApiPostsIdLikesJSONRequestBody defines body for PostApiPostsIdLikes for application/json ContentType.
+type PostApiPostsIdLikesJSONRequestBody = NewLike
+
+// PostApiPostsIdSharesJSONRequestBody defines body for PostApiPostsIdShares for application/json ContentType.
+type PostApiPostsIdSharesJSONRequestBody = NewShare
+
+// PostApiUsersJSONRequestBody defines body for PostApiUsers for application/json ContentType.
+type PostApiUsersJSONRequestBody = NewUser
+
+// PutApiUsersIdJSONRequestBody defines body for PutApiUsersId for application/json ContentType.
+type PutApiUsersIdJSONRequestBody = UpdateUser
+
+// PostAuthLoginJSONRequestBody defines body for PostAuthLogin for application/json ContentType.
+type PostAuthLoginJSONRequestBody = AuthForm
+
+// PostAuthRegisterJSONRequestBody defines body for PostAuthRegister for application/json ContentType.
+type PostAuthRegisterJSONRequestBody = AuthForm
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -30,12 +195,6 @@ type ServerInterface interface {
 	// Follow a user
 	// (POST /api/accounts/{id}/follow)
 	PostApiAccountsIdFollow(w http.ResponseWriter, r *http.Request, id int)
-	// Login a user
-	// (POST /api/auth/login)
-	PostApiAuthLogin(w http.ResponseWriter, r *http.Request)
-	// Register a user
-	// (POST /api/auth/register)
-	PostApiAuthRegister(w http.ResponseWriter, r *http.Request)
 	// Get all posts
 	// (GET /api/posts)
 	GetApiPosts(w http.ResponseWriter, r *http.Request)
@@ -90,6 +249,12 @@ type ServerInterface interface {
 	// Get posts of user with ID
 	// (GET /api/users/{id}/posts)
 	GetApiUsersIdPosts(w http.ResponseWriter, r *http.Request, id int)
+	// Login the user
+	// (POST /auth/login)
+	PostAuthLogin(w http.ResponseWriter, r *http.Request)
+	// Register the user
+	// (POST /auth/register)
+	PostAuthRegister(w http.ResponseWriter, r *http.Request)
 }
 
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
@@ -111,18 +276,6 @@ func (_ Unimplemented) GetApiAccountsLookup(w http.ResponseWriter, r *http.Reque
 // Follow a user
 // (POST /api/accounts/{id}/follow)
 func (_ Unimplemented) PostApiAccountsIdFollow(w http.ResponseWriter, r *http.Request, id int) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
-// Login a user
-// (POST /api/auth/login)
-func (_ Unimplemented) PostApiAuthLogin(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
-// Register a user
-// (POST /api/auth/register)
-func (_ Unimplemented) PostApiAuthRegister(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -234,6 +387,18 @@ func (_ Unimplemented) GetApiUsersIdPosts(w http.ResponseWriter, r *http.Request
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// Login the user
+// (POST /auth/login)
+func (_ Unimplemented) PostAuthLogin(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Register the user
+// (POST /auth/register)
+func (_ Unimplemented) PostAuthRegister(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // ServerInterfaceWrapper converts contexts to parameters.
 type ServerInterfaceWrapper struct {
 	Handler            ServerInterface
@@ -333,34 +498,6 @@ func (siw *ServerInterfaceWrapper) PostApiAccountsIdFollow(w http.ResponseWriter
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.PostApiAccountsIdFollow(w, r, id)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r)
-}
-
-// PostApiAuthLogin operation middleware
-func (siw *ServerInterfaceWrapper) PostApiAuthLogin(w http.ResponseWriter, r *http.Request) {
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.PostApiAuthLogin(w, r)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r)
-}
-
-// PostApiAuthRegister operation middleware
-func (siw *ServerInterfaceWrapper) PostApiAuthRegister(w http.ResponseWriter, r *http.Request) {
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.PostApiAuthRegister(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -805,6 +942,34 @@ func (siw *ServerInterfaceWrapper) GetApiUsersIdPosts(w http.ResponseWriter, r *
 	handler.ServeHTTP(w, r)
 }
 
+// PostAuthLogin operation middleware
+func (siw *ServerInterfaceWrapper) PostAuthLogin(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PostAuthLogin(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PostAuthRegister operation middleware
+func (siw *ServerInterfaceWrapper) PostAuthRegister(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PostAuthRegister(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 type UnescapedCookieParamError struct {
 	ParamName string
 	Err       error
@@ -928,12 +1093,6 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Post(options.BaseURL+"/api/accounts/{id}/follow", wrapper.PostApiAccountsIdFollow)
 	})
 	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/api/auth/login", wrapper.PostApiAuthLogin)
-	})
-	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/api/auth/register", wrapper.PostApiAuthRegister)
-	})
-	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/posts", wrapper.GetApiPosts)
 	})
 	r.Group(func(r chi.Router) {
@@ -987,6 +1146,12 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/users/{id}/posts", wrapper.GetApiUsersIdPosts)
 	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/auth/login", wrapper.PostAuthLogin)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/auth/register", wrapper.PostAuthRegister)
+	})
 
 	return r
 }
@@ -994,30 +1159,30 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/+xZW4/bNhP9KwK/D+hDlWjT9slvzgZbuFkki2yDfQiCgCuNZa5pkuGlhrHwfy9I6mpd",
-	"LHstpy76Zpsjas6Zw+HM+BnFfCU4A6YVmjwjFS9ghd1HbPTi2y1PCbPfhOQCpCbg1gRWas1lYj/rjQA0",
-	"QUpLwlK0DZFRIBleQcviNkQSvhsiIUGTL6VlWO74Ncwf4o9PEGu74xwSkFgTzr5N45gbppsu4TjWre4k",
-	"RAmKNx/aPQoRqaIgTEMK0sGQ9IXwSILCKkbnYt0h/5o9mB/g8YawFOQtYcsm8oWEeaunEtoR+B/2eW+f",
-	"zmxD/46hbn4CJThT0HSVErZ0H4iGlfvwf+c8+l9U6jDKRBh1UlBgQFhKvLHflfEu7YWVG4aZM22gBFda",
-	"fbvmqxW0Se2zSLCGZOqW5lyusEYTZH97pYkLaoPymDOd7dVck3Dodl2aFVgC07N3Hatcda5ZmbavtYk6",
-	"26l4rARY8aGKLKyQ1s34LVm2iOaU/IzJQOFmN8APsO5UVZ9ETuJ3d9B6HW4Pyige9fpxx9WBrA324zBC",
-	"7hdY/nhGuuhw6rrO78imK2fKRJQsoccLZTnsWTeHp9hujo+6s3eyWomn5nxYZ7ye8syAlNchpn9RzvOJ",
-	"/9DTu23Zz77WncDPCuQPL0q9Nx5du0OPhLdXnGqarHxZna09ck4Bsz7Yh73iCP3MOaV8DVL1HEtvQ1ja",
-	"Y9Olwx7UIeKSpLW1SuSOSwXHleiWz8Kb0ucGOw0qhp98m/0gNpLozb0tdH0g3wKWIKdGL1xY3bebHOwf",
-	"D3/atOOs0SSzLYEvtBZoazcmbM7zc4VdNWwbIFCxJMLW0fZhLtPgowA2vZsFSkBM5iR2RbbdkGgKudH0",
-	"boZC9BdI5Z+8en31+o0LlgCGBUET9Kv7yR4UvXAwotdroPTVkvE1i9bwOHdFu11JwQXQite9bZagCfod",
-	"9ANQ+t6aPxTWrobEK9AgFZp8eUZWGei7AblBIfKBRRIUNzK2QSsDqqWBjCjcFvyv1tg3J87dX66udtIQ",
-	"FoJmfERPMvn5SXFWNsbHdCxFN+QiVA/Gx/deD2a1wnLjCQmKJ91ahAWJsO96VUQ5XxrRx+dUkKxHVrfe",
-	"eBCdWW86GpXH0pj3+y3k3XDDkkAvILAHeIdIiz0wIsDlYp3JZ5JsI3+I8+qtyae9tSqEzpIb/0A7pfYU",
-	"lIy61LKXz/LC7SB0F7NLQ0mgTByDUnND6aaWU5w71Wzy5avdumTGb9EkxuhFRItxTy8dRi/8YMgDBKXf",
-	"8mRzsvBXJk/besK2JG6H8HRfoSdQJGWQBIQ1NJIS1k6EhJQond24+7j4lBtfFB1G7NCRw2gw4uq4PTnn",
-	"ztm8MCcMmgpV2p/GHGhghsWUBh5UVqV2hreEdfq41jvbvaFlhtIqkGtXbwTYIdkJlstuXgYUNDThvXO/",
-	"5wBnyZky2m9NaXpP2hJagdSbZEiDx00we2cDt0+NZ0N1dWJJlHoYouUdVoRpU7M5CytjnZFKC3lsBszG",
-	"j22lgl/qOUhR1uMPyoGz5Dq3/ieq74AUm08qj86yjtCfVJDTVxHp3px7DhpHTOkFdwOz+tDirZb0c2Jb",
-	"NUvJEgYK9taZXrha3Zj6WKlmQvWcDdTnyKyNKE5P1ajKpP4VTVm62elAXd572wsXpp/wvlCZGW0DpTk2",
-	"cSNqM2NrVHGq7B2ZOt18dW+j99lZjYO+PtgeVOK8aZY4HmRriVPgrzd27r3DewVHwaX0ChbboF7hvKiu",
-	"TiyaUjGDKrI6Kz29wuisjHWKKn/IjNkrdB2kqPijYM8dlxF8U5hf7DVXFeKRt1xBWsDnxUQ3WBO9cErt",
-	"pJmw9BCarfl/NEMymOUhk7+M4XxSdtG12oumim4LS+0Ordvt3wEAAP//jch62WYpAAA=",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

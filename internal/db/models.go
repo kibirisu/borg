@@ -24,14 +24,13 @@ type Account struct {
 	Url          string
 }
 
-type Comment struct {
+type Favourite struct {
 	ID        int32
-	PostID    int32
-	UserID    int32
-	Content   string
-	ParentID  sql.NullInt32
-	CreatedAt sql.NullTime
-	UpdatedAt sql.NullTime
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	Uri       string
+	AccountID int32
+	StatusID  int32
 }
 
 type Follow struct {
@@ -43,64 +42,20 @@ type Follow struct {
 	TargetAccountID int32
 }
 
-type Follower struct {
-	ID          int32
-	FollowerID  int32
-	FollowingID int32
-	CreatedAt   sql.NullTime
-}
-
-type Like struct {
-	ID        int32
-	PostID    int32
-	UserID    int32
-	CreatedAt sql.NullTime
-}
-
-type Post struct {
-	ID           int32
-	UserID       int32
-	Content      string
-	LikeCount    sql.NullInt32
-	ShareCount   sql.NullInt32
-	CommentCount sql.NullInt32
-	CreatedAt    sql.NullTime
-	UpdatedAt    sql.NullTime
-}
-
-type Share struct {
-	ID        int32
-	PostID    int32
-	UserID    int32
-	CreatedAt sql.NullTime
-}
-
 type Status struct {
-	ID         int32
-	CreatedAt  time.Time
-	UpdatedAt  time.Time
-	Uri        string
-	Url        string
-	Local      sql.NullBool
-	Content    string
-	AccountID  int32
-	AccountUri string
+	ID          int32
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	Uri         string
+	Url         string
+	Local       sql.NullBool
+	Content     string
+	AccountID   int32
+	InReplyToID sql.NullInt32
+	ReblogOfID  sql.NullInt32
 }
 
 type User struct {
-	ID             int32
-	Username       string
-	PasswordHash   string
-	Bio            sql.NullString
-	FollowersCount sql.NullInt32
-	FollowingCount sql.NullInt32
-	IsAdmin        sql.NullBool
-	CreatedAt      sql.NullTime
-	UpdatedAt      sql.NullTime
-	Origin         sql.NullString
-}
-
-type UsersNew struct {
 	ID           int32
 	AccountID    int32
 	PasswordHash string

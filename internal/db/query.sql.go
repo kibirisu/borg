@@ -10,120 +10,40 @@ import (
 	"database/sql"
 )
 
-const addComment = `-- name: AddComment :exec
-INSERT INTO comments (post_id, user_id, content, parent_id) VALUES ($1, $2, $3, $4)
+const authData = `-- name: AuthData :one
+SELECT a.id, u.password_hash FROM accounts a JOIN users u ON a.id = u.account_id WHERE a.username = $1
 `
 
-type AddCommentParams struct {
-	PostID   int32
-	UserID   int32
-	Content  string
-	ParentID sql.NullInt32
+type AuthDataRow struct {
+	ID           int32
+	PasswordHash string
 }
 
-func (q *Queries) AddComment(ctx context.Context, arg AddCommentParams) error {
-	_, err := q.db.ExecContext(ctx, addComment,
-		arg.PostID,
-		arg.UserID,
-		arg.Content,
-		arg.ParentID,
-	)
-	return err
-}
-
-const addLike = `-- name: AddLike :exec
-INSERT INTO likes (post_id, user_id) VALUES ($1, $2)
-`
-
-type AddLikeParams struct {
-	PostID int32
-	UserID int32
-}
-
-func (q *Queries) AddLike(ctx context.Context, arg AddLikeParams) error {
-	_, err := q.db.ExecContext(ctx, addLike, arg.PostID, arg.UserID)
-	return err
-}
-
-const addPost = `-- name: AddPost :exec
-INSERT INTO posts (user_id, content) VALUES ($1, $2)
-`
-
-type AddPostParams struct {
-	UserID  int32
-	Content string
-}
-
-func (q *Queries) AddPost(ctx context.Context, arg AddPostParams) error {
-	_, err := q.db.ExecContext(ctx, addPost, arg.UserID, arg.Content)
-	return err
-}
-
-const addShare = `-- name: AddShare :exec
-INSERT INTO shares (post_id, user_id) VALUES ($1, $2)
-`
-
-type AddShareParams struct {
-	PostID int32
-	UserID int32
-}
-
-func (q *Queries) AddShare(ctx context.Context, arg AddShareParams) error {
-	_, err := q.db.ExecContext(ctx, addShare, arg.PostID, arg.UserID)
-	return err
-}
-
-const addUser = `-- name: AddUser :exec
-INSERT INTO users (
-  username,
-  password_hash,
-  bio,
-  followers_count,
-  following_count,
-  is_admin,
-  origin
-) VALUES ($1, $2, $3, $4, $5, $6, $7)
-`
-
-type AddUserParams struct {
-	Username       string
-	PasswordHash   string
-	Bio            sql.NullString
-	FollowersCount sql.NullInt32
-	FollowingCount sql.NullInt32
-	IsAdmin        sql.NullBool
-	Origin         sql.NullString
-}
-
-func (q *Queries) AddUser(ctx context.Context, arg AddUserParams) error {
-	_, err := q.db.ExecContext(ctx, addUser,
-		arg.Username,
-		arg.PasswordHash,
-		arg.Bio,
-		arg.FollowersCount,
-		arg.FollowingCount,
-		arg.IsAdmin,
-		arg.Origin,
-	)
-	return err
+func (q *Queries) AuthData(ctx context.Context, username string) (AuthDataRow, error) {
+	row := q.db.QueryRowContext(ctx, authData, username)
+	var i AuthDataRow
+	err := row.Scan(&i.ID, &i.PasswordHash)
+	return i, err
 }
 
 const createActor = `-- name: CreateActor :one
 INSERT INTO accounts (
-    username, uri, display_name, domain, inbox_uri, outbox_uri, url
+    username, uri, display_name, domain, inbox_uri, outbox_uri, url, followers_uri, following_uri
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7
+    $1, $2, $3, $4, $5, $6, $7, $8, $9
 ) RETURNING id, created_at, updated_at, username, uri, display_name, domain, inbox_uri, outbox_uri, followers_uri, following_uri, url
 `
 
 type CreateActorParams struct {
-	Username    string
-	Uri         string
-	DisplayName sql.NullString
-	Domain      sql.NullString
-	InboxUri    string
-	OutboxUri   string
-	Url         string
+	Username     string
+	Uri          string
+	DisplayName  sql.NullString
+	Domain       sql.NullString
+	InboxUri     string
+	OutboxUri    string
+	Url          string
+	FollowersUri string
+	FollowingUri string
 }
 
 func (q *Queries) CreateActor(ctx context.Context, arg CreateActorParams) (Account, error) {
@@ -135,6 +55,8 @@ func (q *Queries) CreateActor(ctx context.Context, arg CreateActorParams) (Accou
 		arg.InboxUri,
 		arg.OutboxUri,
 		arg.Url,
+		arg.FollowersUri,
+		arg.FollowingUri,
 	)
 	var i Account
 	err := row.Scan(
@@ -154,48 +76,74 @@ func (q *Queries) CreateActor(ctx context.Context, arg CreateActorParams) (Accou
 	return i, err
 }
 
-const deleteComment = `-- name: DeleteComment :exec
-DELETE FROM comments WHERE id = $1
+const createFollow = `-- name: CreateFollow :exec
+INSERT INTO follows (
+    uri, account_id, target_account_id
+) VALUES (
+    $1, $2, $3
+) ON CONFLICT (account_id, target_account_id) 
+DO UPDATE SET 
+    uri = EXCLUDED.uri,
+    updated_at = CURRENT_TIMESTAMP
 `
 
-func (q *Queries) DeleteComment(ctx context.Context, id int32) error {
-	_, err := q.db.ExecContext(ctx, deleteComment, id)
+type CreateFollowParams struct {
+	Uri             string
+	AccountID       int32
+	TargetAccountID int32
+}
+
+func (q *Queries) CreateFollow(ctx context.Context, arg CreateFollowParams) error {
+	_, err := q.db.ExecContext(ctx, createFollow, arg.Uri, arg.AccountID, arg.TargetAccountID)
 	return err
 }
 
-const deleteLike = `-- name: DeleteLike :exec
-DELETE FROM likes WHERE id = $1
+const createStatus = `-- name: CreateStatus :exec
+INSERT INTO statuses (
+    uri, url, local, content, account_id, in_reply_to_id, reblog_of_id
+) VALUES (
+    $1, $2, $3, $4, $5, $6, $7
+)
 `
 
-func (q *Queries) DeleteLike(ctx context.Context, id int32) error {
-	_, err := q.db.ExecContext(ctx, deleteLike, id)
+type CreateStatusParams struct {
+	Uri         string
+	Url         string
+	Local       sql.NullBool
+	Content     string
+	AccountID   int32
+	InReplyToID sql.NullInt32
+	ReblogOfID  sql.NullInt32
+}
+
+func (q *Queries) CreateStatus(ctx context.Context, arg CreateStatusParams) error {
+	_, err := q.db.ExecContext(ctx, createStatus,
+		arg.Uri,
+		arg.Url,
+		arg.Local,
+		arg.Content,
+		arg.AccountID,
+		arg.InReplyToID,
+		arg.ReblogOfID,
+	)
 	return err
 }
 
-const deletePost = `-- name: DeletePost :exec
-DELETE FROM posts WHERE id = $1
+const createUser = `-- name: CreateUser :exec
+INSERT INTO users (
+    account_id, password_hash
+) VALUES (
+    $1, $2
+)
 `
 
-func (q *Queries) DeletePost(ctx context.Context, id int32) error {
-	_, err := q.db.ExecContext(ctx, deletePost, id)
-	return err
+type CreateUserParams struct {
+	AccountID    int32
+	PasswordHash string
 }
 
-const deleteShare = `-- name: DeleteShare :exec
-DELETE FROM shares WHERE id = $1
-`
-
-func (q *Queries) DeleteShare(ctx context.Context, id int32) error {
-	_, err := q.db.ExecContext(ctx, deleteShare, id)
-	return err
-}
-
-const deleteUser = `-- name: DeleteUser :exec
-DELETE FROM users WHERE id = $1
-`
-
-func (q *Queries) DeleteUser(ctx context.Context, id int32) error {
-	_, err := q.db.ExecContext(ctx, deleteUser, id)
+func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) error {
+	_, err := q.db.ExecContext(ctx, createUser, arg.AccountID, arg.PasswordHash)
 	return err
 }
 
@@ -250,582 +198,4 @@ func (q *Queries) GetActor(ctx context.Context, username string) (Account, error
 		&i.Url,
 	)
 	return i, err
-}
-
-const getAllPosts = `-- name: GetAllPosts :many
-SELECT p.id, p.user_id, p.content, p.like_count, p.share_count, p.comment_count, p.created_at, p.updated_at, u.username FROM posts p JOIN users u ON p.user_id = u.id ORDER BY p.created_at DESC
-`
-
-type GetAllPostsRow struct {
-	ID           int32
-	UserID       int32
-	Content      string
-	LikeCount    sql.NullInt32
-	ShareCount   sql.NullInt32
-	CommentCount sql.NullInt32
-	CreatedAt    sql.NullTime
-	UpdatedAt    sql.NullTime
-	Username     string
-}
-
-func (q *Queries) GetAllPosts(ctx context.Context) ([]GetAllPostsRow, error) {
-	rows, err := q.db.QueryContext(ctx, getAllPosts)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []GetAllPostsRow
-	for rows.Next() {
-		var i GetAllPostsRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.UserID,
-			&i.Content,
-			&i.LikeCount,
-			&i.ShareCount,
-			&i.CommentCount,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-			&i.Username,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const getAllUsers = `-- name: GetAllUsers :many
-SELECT id, username, password_hash, bio, followers_count, following_count, is_admin, created_at, updated_at, origin FROM users
-`
-
-func (q *Queries) GetAllUsers(ctx context.Context) ([]User, error) {
-	rows, err := q.db.QueryContext(ctx, getAllUsers)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []User
-	for rows.Next() {
-		var i User
-		if err := rows.Scan(
-			&i.ID,
-			&i.Username,
-			&i.PasswordHash,
-			&i.Bio,
-			&i.FollowersCount,
-			&i.FollowingCount,
-			&i.IsAdmin,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-			&i.Origin,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const getFollowedUsers = `-- name: GetFollowedUsers :many
-SELECT u.id, u.username, u.password_hash, u.bio, u.followers_count, u.following_count, u.is_admin, u.created_at, u.updated_at, u.origin FROM users u JOIN followers f ON u.id = f.following_id WHERE f.follower_id = $1
-`
-
-func (q *Queries) GetFollowedUsers(ctx context.Context, followerID int32) ([]User, error) {
-	rows, err := q.db.QueryContext(ctx, getFollowedUsers, followerID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []User
-	for rows.Next() {
-		var i User
-		if err := rows.Scan(
-			&i.ID,
-			&i.Username,
-			&i.PasswordHash,
-			&i.Bio,
-			&i.FollowersCount,
-			&i.FollowingCount,
-			&i.IsAdmin,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-			&i.Origin,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const getFollowingUsers = `-- name: GetFollowingUsers :many
-SELECT u.id, u.username, u.password_hash, u.bio, u.followers_count, u.following_count, u.is_admin, u.created_at, u.updated_at, u.origin FROM users u JOIN followers f ON u.id = f.follower_id WHERE f.following_id = $1
-`
-
-func (q *Queries) GetFollowingUsers(ctx context.Context, followingID int32) ([]User, error) {
-	rows, err := q.db.QueryContext(ctx, getFollowingUsers, followingID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []User
-	for rows.Next() {
-		var i User
-		if err := rows.Scan(
-			&i.ID,
-			&i.Username,
-			&i.PasswordHash,
-			&i.Bio,
-			&i.FollowersCount,
-			&i.FollowingCount,
-			&i.IsAdmin,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-			&i.Origin,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const getLikeByID = `-- name: GetLikeByID :one
-SELECT id, post_id, user_id, created_at FROM likes WHERE id = $1
-`
-
-func (q *Queries) GetLikeByID(ctx context.Context, id int32) (Like, error) {
-	row := q.db.QueryRowContext(ctx, getLikeByID, id)
-	var i Like
-	err := row.Scan(
-		&i.ID,
-		&i.PostID,
-		&i.UserID,
-		&i.CreatedAt,
-	)
-	return i, err
-}
-
-const getLikesByPostID = `-- name: GetLikesByPostID :many
-SELECT id, post_id, user_id, created_at FROM likes WHERE post_id = $1
-`
-
-func (q *Queries) GetLikesByPostID(ctx context.Context, postID int32) ([]Like, error) {
-	rows, err := q.db.QueryContext(ctx, getLikesByPostID, postID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Like
-	for rows.Next() {
-		var i Like
-		if err := rows.Scan(
-			&i.ID,
-			&i.PostID,
-			&i.UserID,
-			&i.CreatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const getLikesByUserID = `-- name: GetLikesByUserID :many
-SELECT id, post_id, user_id, created_at FROM likes WHERE user_id = $1
-`
-
-func (q *Queries) GetLikesByUserID(ctx context.Context, userID int32) ([]Like, error) {
-	rows, err := q.db.QueryContext(ctx, getLikesByUserID, userID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Like
-	for rows.Next() {
-		var i Like
-		if err := rows.Scan(
-			&i.ID,
-			&i.PostID,
-			&i.UserID,
-			&i.CreatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const getPost = `-- name: GetPost :one
-SELECT id, user_id, content, like_count, share_count, comment_count, created_at, updated_at FROM posts WHERE id = $1
-`
-
-func (q *Queries) GetPost(ctx context.Context, id int32) (Post, error) {
-	row := q.db.QueryRowContext(ctx, getPost, id)
-	var i Post
-	err := row.Scan(
-		&i.ID,
-		&i.UserID,
-		&i.Content,
-		&i.LikeCount,
-		&i.ShareCount,
-		&i.CommentCount,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
-}
-
-const getPostComments = `-- name: GetPostComments :many
-SELECT c.id, c.post_id, c.user_id, c.content, c.parent_id, c.created_at, c.updated_at FROM comments c JOIN posts p ON c.post_id = p.id WHERE p.id = $1
-`
-
-func (q *Queries) GetPostComments(ctx context.Context, id int32) ([]Comment, error) {
-	rows, err := q.db.QueryContext(ctx, getPostComments, id)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Comment
-	for rows.Next() {
-		var i Comment
-		if err := rows.Scan(
-			&i.ID,
-			&i.PostID,
-			&i.UserID,
-			&i.Content,
-			&i.ParentID,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const getPostsByOrigin = `-- name: GetPostsByOrigin :many
-SELECT p.id, p.user_id, p.content, p.like_count, p.share_count, p.comment_count, p.created_at, p.updated_at FROM posts p JOIN users u ON p.user_id = u.id WHERE u.origin = $1
-`
-
-// queries that are needed for frontend
-func (q *Queries) GetPostsByOrigin(ctx context.Context, origin sql.NullString) ([]Post, error) {
-	rows, err := q.db.QueryContext(ctx, getPostsByOrigin, origin)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Post
-	for rows.Next() {
-		var i Post
-		if err := rows.Scan(
-			&i.ID,
-			&i.UserID,
-			&i.Content,
-			&i.LikeCount,
-			&i.ShareCount,
-			&i.CommentCount,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const getPostsByUserID = `-- name: GetPostsByUserID :many
-SELECT id, user_id, content, like_count, share_count, comment_count, created_at, updated_at FROM posts WHERE user_id = $1
-`
-
-func (q *Queries) GetPostsByUserID(ctx context.Context, userID int32) ([]Post, error) {
-	rows, err := q.db.QueryContext(ctx, getPostsByUserID, userID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Post
-	for rows.Next() {
-		var i Post
-		if err := rows.Scan(
-			&i.ID,
-			&i.UserID,
-			&i.Content,
-			&i.LikeCount,
-			&i.ShareCount,
-			&i.CommentCount,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const getShareByID = `-- name: GetShareByID :one
-SELECT id, post_id, user_id, created_at FROM shares WHERE id = $1
-`
-
-func (q *Queries) GetShareByID(ctx context.Context, id int32) (Share, error) {
-	row := q.db.QueryRowContext(ctx, getShareByID, id)
-	var i Share
-	err := row.Scan(
-		&i.ID,
-		&i.PostID,
-		&i.UserID,
-		&i.CreatedAt,
-	)
-	return i, err
-}
-
-const getShareByUserID = `-- name: GetShareByUserID :many
-SELECT id, post_id, user_id, created_at FROM shares WHERE user_id = $1
-`
-
-func (q *Queries) GetShareByUserID(ctx context.Context, userID int32) ([]Share, error) {
-	rows, err := q.db.QueryContext(ctx, getShareByUserID, userID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Share
-	for rows.Next() {
-		var i Share
-		if err := rows.Scan(
-			&i.ID,
-			&i.PostID,
-			&i.UserID,
-			&i.CreatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const getSharesByPostID = `-- name: GetSharesByPostID :many
-SELECT id, post_id, user_id, created_at FROM shares WHERE post_id = $1
-`
-
-func (q *Queries) GetSharesByPostID(ctx context.Context, postID int32) ([]Share, error) {
-	rows, err := q.db.QueryContext(ctx, getSharesByPostID, postID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Share
-	for rows.Next() {
-		var i Share
-		if err := rows.Scan(
-			&i.ID,
-			&i.PostID,
-			&i.UserID,
-			&i.CreatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const getUser = `-- name: GetUser :one
-SELECT id, username, password_hash, bio, followers_count, following_count, is_admin, created_at, updated_at, origin FROM users WHERE id = $1
-`
-
-func (q *Queries) GetUser(ctx context.Context, id int32) (User, error) {
-	row := q.db.QueryRowContext(ctx, getUser, id)
-	var i User
-	err := row.Scan(
-		&i.ID,
-		&i.Username,
-		&i.PasswordHash,
-		&i.Bio,
-		&i.FollowersCount,
-		&i.FollowingCount,
-		&i.IsAdmin,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.Origin,
-	)
-	return i, err
-}
-
-const getUserByUsername = `-- name: GetUserByUsername :one
-SELECT id, username, password_hash, bio, followers_count, following_count, is_admin, created_at, updated_at, origin FROM users WHERE username = $1
-`
-
-func (q *Queries) GetUserByUsername(ctx context.Context, username string) (User, error) {
-	row := q.db.QueryRowContext(ctx, getUserByUsername, username)
-	var i User
-	err := row.Scan(
-		&i.ID,
-		&i.Username,
-		&i.PasswordHash,
-		&i.Bio,
-		&i.FollowersCount,
-		&i.FollowingCount,
-		&i.IsAdmin,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.Origin,
-	)
-	return i, err
-}
-
-const getUserComments = `-- name: GetUserComments :many
-SELECT c.id, c.post_id, c.user_id, c.content, c.parent_id, c.created_at, c.updated_at FROM comments c JOIN users u ON c.user_id = u.id WHERE u.id = $1
-`
-
-func (q *Queries) GetUserComments(ctx context.Context, id int32) ([]Comment, error) {
-	rows, err := q.db.QueryContext(ctx, getUserComments, id)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Comment
-	for rows.Next() {
-		var i Comment
-		if err := rows.Scan(
-			&i.ID,
-			&i.PostID,
-			&i.UserID,
-			&i.Content,
-			&i.ParentID,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const updatePost = `-- name: UpdatePost :exec
-UPDATE posts SET content = $2, like_count = $3, share_count = $4, comment_count = $5 WHERE id = $1
-`
-
-type UpdatePostParams struct {
-	ID           int32
-	Content      string
-	LikeCount    sql.NullInt32
-	ShareCount   sql.NullInt32
-	CommentCount sql.NullInt32
-}
-
-func (q *Queries) UpdatePost(ctx context.Context, arg UpdatePostParams) error {
-	_, err := q.db.ExecContext(ctx, updatePost,
-		arg.ID,
-		arg.Content,
-		arg.LikeCount,
-		arg.ShareCount,
-		arg.CommentCount,
-	)
-	return err
-}
-
-const updateUser = `-- name: UpdateUser :exec
-UPDATE users SET password_hash = $2, bio = $3, followers_count = $4, following_count = $5, is_admin = $6 WHERE id = $1
-`
-
-type UpdateUserParams struct {
-	ID             int32
-	PasswordHash   string
-	Bio            sql.NullString
-	FollowersCount sql.NullInt32
-	FollowingCount sql.NullInt32
-	IsAdmin        sql.NullBool
-}
-
-func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) error {
-	_, err := q.db.ExecContext(ctx, updateUser,
-		arg.ID,
-		arg.PasswordHash,
-		arg.Bio,
-		arg.FollowersCount,
-		arg.FollowingCount,
-		arg.IsAdmin,
-	)
-	return err
 }

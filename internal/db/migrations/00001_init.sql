@@ -1,8 +1,3 @@
--- TO THE READERS OF THIS:
--- THIS MIGRATION I INTEND TO BE FUTURE MIGRATION No.1
--- i add it this way to preserve backward compability
-
--- in implementations i looked up more fields are nullable
 -- +goose Up
 CREATE TABLE accounts (
     id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
@@ -29,7 +24,8 @@ CREATE TABLE statuses (
     local BOOLEAN DEFAULT FALSE,
     content TEXT NOT NULL,
     account_id INTEGER NOT NULL REFERENCES accounts (id),
-    account_uri TEXT NOT NULL REFERENCES accounts (uri)
+    in_reply_to_id INTEGER REFERENCES statuses,
+    reblog_of_id INTEGER REFERENCES statuses
 );
 
 CREATE TABLE follows (
@@ -43,7 +39,17 @@ CREATE TABLE follows (
     CHECK (account_id != target_account_id)
 );
 
-CREATE TABLE users_new ( -- <---- "users", NOT "users_new"
+CREATE TABLE favourites (
+    id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    uri TEXT UNIQUE NOT NULL,
+    account_id INTEGER NOT NULL REFERENCES accounts (id),
+    status_id INTEGER NOT NULL REFERENCES statuses (id),
+    UNIQUE (account_id, status_id)
+);
+
+CREATE TABLE users (
     id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     account_id INTEGER NOT NULL UNIQUE REFERENCES accounts (id),
     password_hash TEXT NOT NULL
@@ -53,4 +59,5 @@ CREATE TABLE users_new ( -- <---- "users", NOT "users_new"
 DROP TABLE accounts;
 DROP TABLE statuses;
 DROP TABLE follows;
-DROP TABLE users_new;
+DROP TABLE favourites;
+DROP TABLE users;
