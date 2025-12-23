@@ -2,6 +2,14 @@ package domain
 
 import "time"
 
+type ActivityType string
+
+const (
+	ActivityTypeAccept ActivityType = "Accept"
+	ActivityTypeCreate ActivityType = "Create"
+	ActivityTypeFollow ActivityType = "Follow"
+)
+
 type Object struct {
 	Context any    `json:"@context"`
 	Type    string `json:"type"`
@@ -9,7 +17,7 @@ type Object struct {
 }
 
 type Actor struct {
-	Object
+	Base              Object `json:",inline"`
 	PreferredUsername string `json:"preferredUsername"`
 	Inbox             string `json:"inbox"`
 	Outbox            string `json:"outbox"`
@@ -18,29 +26,31 @@ type Actor struct {
 }
 
 type Activity struct {
-	Object
-	Actor Actor `json:"actor"`
+	Base   Object         `json:",inline"`
+	Actor  Actor          `json:"actor"`
+	Object ActivityObject `json:"object"`
 }
 
-type Create struct {
-	Activity
-	Object Note `json:"object"`
+type ActivityObject struct {
+	Type   ActivityType
+	Note   *Note
+	Actor  *Actor
+	Follow *Activity
 }
 
-type Follow struct {
-	Activity
-	Object Actor `json:"object"`
-}
-
-type Accept struct {
-	Activity
-	Object Follow `json:"object"`
+type NoteProperties struct {
+	Published    time.Time `json:"published"`
+	AttributedTo string    `json:"attributedTo"`
+	To           []string  `json:"to"`
+	CC           []string  `json:"cc"`
+	Content      string    `json:"content"`
 }
 
 type Note struct {
-	Object
-	Published    time.Time `json:"published"`
-	AttributedTo string    `json:"attributedTo"`
-	Content      string    `json:"content"`
-	To           []string  `json:"to"`
+	Base       Object         `json:",inline"`
+	Properties NoteProperties `json:",inline"`
+	InReplyTo  struct {
+		Base       Object         `json:",inline"`
+		Properties NoteProperties `json:",inline"`
+	} `json:"inReplyTo"`
 }
