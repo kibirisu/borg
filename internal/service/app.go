@@ -17,10 +17,11 @@ import (
 type AppService interface {
 	Register(context.Context, api.AuthForm) error
 	Login(context.Context, api.AuthForm) (string, error)
+	GetAccountFollowers(context.Context, int) ([]db.Account, error)
 	GetLocalAccount(context.Context, string) (*db.Account, error)
 	AddRemoteAccount(ctx context.Context, remote *db.CreateActorParams) (*db.Account, error)
 	CreateFollow(ctx context.Context, follow *db.CreateFollowParams) error
-	AddNote(context.Context, db.CreateStatusParams) error
+	AddNote(context.Context, db.CreateStatusParams) (db.Status, error)
 	GetAccount(context.Context, db.GetAccountParams) (*db.Account, error)
 }
 
@@ -104,7 +105,7 @@ func (s *appService) CreateFollow(ctx context.Context, follow *db.CreateFollowPa
 }
 
 // AddNote implements AppService.
-func (s *appService) AddNote(ctx context.Context, note db.CreateStatusParams) error {
+func (s *appService) AddNote(ctx context.Context, note db.CreateStatusParams) (db.Status, error) {
 	return s.store.Statuses().Create(ctx, note)
 }
 
@@ -115,4 +116,11 @@ func (s *appService) GetAccount(
 ) (*db.Account, error) {
 	res, err := s.store.Accounts().Get(ctx, account)
 	return &res, err
+}
+
+// GetAccountFollowers implements AppService.
+func (s *appService) GetAccountFollowers(
+	ctx context.Context, accountID int,
+) ([]db.Account, error) {
+	return s.store.Accounts().GetFollowers(ctx, accountID);
 }

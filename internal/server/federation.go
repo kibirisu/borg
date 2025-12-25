@@ -80,7 +80,7 @@ func (s *Server) handleInbox(w http.ResponseWriter, r *http.Request) {
 			util.WriteError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-		if err = s.service.App.AddNote(r.Context(), db.CreateStatusParams{
+		if _, err = s.service.App.AddNote(r.Context(), db.CreateStatusParams{
 			Uri:         note.ID,
 			Url:         "TODO",
 			Local:       sql.NullBool{Bool: false, Valid: true},
