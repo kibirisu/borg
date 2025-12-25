@@ -143,8 +143,28 @@ func (s *Server) GetApiAccountsLookup(
 
 // PostApiAccountsIdFollow implements api.ServerInterface.
 func (s *Server) PostApiAccountsIdFollow(w http.ResponseWriter, r *http.Request, id int) {
-	// we were requested to create new follow relation
-	// we should extract user data from auth token (auth middleware not fully operational yet)
+	container, ok := r.Context().Value("token").(*tokenContainer)
+    
+    if !ok || container == nil || container.id == nil {
+        util.WriteError(w, http.StatusUnauthorized, "User not authenticated")
+        return
+    }
+    currentUserID := *container.id
+	if currentUserID == id {
+		http.Error(w, "Tried to follow oneself", http.StatusBadRequest)
+		return
+	}
+	follower, err := s.service.App.GetAccountById(r.Context(), currentUserID)
+	followee, err := s.service.App.GetAccountById(r.Context(), id)
+	follow, err := s.service.App.FollowAccount(r.Context(), currentUserID, id)
+	if err != nil {
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+	APfollow := mapper.DBToFollow(follow, &follower, &followee)
+	log.Println(followee.InboxUri)
+	util.DeliverToEndpoint(followee.InboxUri, APfollow)
+	util.WriteJSON(w, http.StatusCreated, nil);
 }
 
 // DeleteApiUsersId implements api.ServerInterface.
