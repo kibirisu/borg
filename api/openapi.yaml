@@ -138,6 +138,20 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/NewPost"
+   /api/timelines/home:
+    get:
+      summary: Get all posts of the following users
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Post"
+      security:
+        - BearerAuth: []
   /api/posts/{id}:
     get:
       summary: Get a post by ID
@@ -354,7 +368,20 @@ paths:
           description: Followed successfully
       security:
         - BearerAuth: []
-
+  /api/accounts/{id}/unfollow:
+    post:
+      summary: Unfollow a user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Unfollowed successfully
+      security:
+        - BearerAuth: []  
 components:
   securitySchemes:
     BearerAuth:
