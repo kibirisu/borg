@@ -75,7 +75,7 @@ func (s *appService) Login(ctx context.Context, form api.AuthForm) (string, erro
 	if err != nil {
 		return "", err
 	}
-	if err = bcrypt.CompareHashAndPassword([]byte(form.Password), []byte(auth.PasswordHash)); err != nil {
+	if err = bcrypt.CompareHashAndPassword([]byte(auth.PasswordHash), []byte(form.Password)); err != nil {
 		return "", err
 	}
 	token, err := issueToken(auth.ID, form.Username, s.conf.ListenHost, s.conf.JWTSecret)
