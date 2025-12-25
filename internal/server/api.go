@@ -3,7 +3,6 @@ package server
 import (
 	"log"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/kibirisu/borg/internal/api"
@@ -56,27 +55,32 @@ func (s *Server) GetApiAccountsLookup(
 	// // we must check if account is local or from other instance
 	// // if from other instance we do webfinger lookup
 	acct := params.Acct
-	arr := strings.Split(acct, "@")
-	username := arr[0]
-	addr := arr[1]
-	//
-	if addr == s.conf.ListenHost {
-		account, err := s.service.App.GetLocalAccount(r.Context(), username)
+	handle, err := util.ParseHandle(acct, s.conf.ListenHost)
+	if err != nil {
+		util.WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if handle.Local {
+		account, err := s.service.App.GetLocalAccount(r.Context(), handle.Username)
 		if err != nil {
 			log.Println(err)
 			util.WriteError(w, http.StatusNotFound, err.Error())
 			return
 		}
 		util.WriteJSON(w, http.StatusOK, mapper.AccountToAPI(account))
-	} else if addr != "" {
+		return
+	}
+
+	if handle.Domain != "" {
 		// actor, err := s.ds.Raw().GetAccount(r.Context(), db.GetAccountParams{username, sql.NullString{domain, true}})
-		account, err := s.service.App.GetLocalAccount(r.Context(), username)
+		account, err := s.service.App.GetLocalAccount(r.Context(), handle.Username)
 		if err != nil {
 			// we should do webfinger lookup at this point
 			// code bellow will be move to worker
 
 			client := http.Client{Timeout: 2 * time.Second}
-			req, err := http.NewRequest("GET", "http://"+addr+"/.well-known/webfinger", nil)
+			req, err := http.NewRequest("GET", "http://"+handle.Domain+"/.well-known/webfinger", nil)
 			q := req.URL.Query()
 			q.Set("resource", acct)
 			req.URL.RawQuery = q.Encode()
@@ -126,7 +130,7 @@ func (s *Server) GetApiAccountsLookup(
 			// we fetched remote actor
 			// we must store it in database and return account in response
 			_ = resp.Body.Close()
-			row, err := s.service.Federation.CreateActor(r.Context(), *mapper.ActorToDB(&actor, addr))
+			row, err := s.service.Federation.CreateActor(r.Context(), *mapper.ActorToDB(&actor, handle.Domain))
 			if err != nil {
 				log.Println(err)
 				util.WriteError(w, http.StatusInternalServerError, err.Error())
@@ -134,8 +138,10 @@ func (s *Server) GetApiAccountsLookup(
 			}
 			log.Println(row)
 			util.WriteJSON(w, http.StatusOK, mapper.AccountToAPI(row))
+			return
 		}
 		util.WriteJSON(w, http.StatusOK, mapper.AccountToAPI(account))
+		return
 	} else {
 		w.WriteHeader(http.StatusBadRequest)
 	}
