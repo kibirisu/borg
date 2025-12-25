@@ -31,9 +31,15 @@ DO UPDATE SET
     uri = EXCLUDED.uri,
     updated_at = CURRENT_TIMESTAMP;
 
--- name: CreateStatus :exec
+-- name: CreateStatus :one
 INSERT INTO statuses (
     uri, url, local, content, account_id, in_reply_to_id, reblog_of_id
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7
-);
+)
+RETURNING *;
+
+-- name: GetAccountFollowers :many
+SELECT a.* FROM accounts a
+JOIN follows f ON a.id = f.account_id
+WHERE f.target_account_id = $1;
