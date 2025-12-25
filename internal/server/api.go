@@ -209,7 +209,28 @@ func (s *Server) PostApiPostsIdShares(w http.ResponseWriter, r *http.Request, id
 
 // PostApiPosts implements api.ServerInterface.
 func (s *Server) PostApiPosts(w http.ResponseWriter, r *http.Request) {
-	panic("unimplemented")
+    container, ok := r.Context().Value("token").(*tokenContainer)
+    if !ok || container == nil || container.id == nil {
+        util.WriteError(w, http.StatusUnauthorized, "User not authenticated")
+        return
+    }
+    currentUserID := *container.id
+    poster, err := s.service.App.GetAccountById(r.Context(), currentUserID)
+    var newPost api.NewPost
+    if err := util.ReadJSON(r, &newPost); err != nil {
+        http.Error(w, "Invalid request payload", http.StatusBadRequest)
+        return 
+    }
+    var newDBPost = mapper.NewPostToDB(&newPost, true)
+    status, err := s.service.App.AddNote(r.Context(), *newDBPost)
+    if err != nil {
+        http.Error(w, "Internal server error", http.StatusInternalServerError)
+        return
+    }
+    util.DeliverToFollowers(s.service.App, w, r, newPost.UserID, func(recipientURI string) any {
+        return mapper.PostToCreateNote(&status, &poster, []string{recipientURI})
+    })
+    util.WriteJSON(w, http.StatusCreated, nil);
 }
 
 // PutApiPostsId implements api.ServerInterface.
