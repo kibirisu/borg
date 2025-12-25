@@ -27,9 +27,9 @@ export default function ExplorePage() {
   const handleSearch = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmed = searchTerm.trim();
-    const handlePattern = /^[A-Za-z0-9._-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+    const handlePattern = /^@[A-Za-z0-9._-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
     if (!handlePattern.test(trimmed)) {
-      setSearchError("Format must be user@instance.com");
+      setSearchError("Format must be @user@instance.com");
       return;
     }
     setSearchError("");
@@ -99,7 +99,7 @@ export default function ExplorePage() {
               <input
                 id="explore-search"
                 type="search"
-                placeholder="Search"
+                placeholder="@user@instance.com"
                 className="block w-full rounded-xl border border-gray-200 bg-gray-50 p-3 pl-9 text-sm text-gray-900 placeholder:text-gray-500 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 focus:outline-none"
                 value={searchTerm}
                 onChange={onSearchChange}
