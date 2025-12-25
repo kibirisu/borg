@@ -1,22 +1,27 @@
+//go:build goexperiment.jsonv2
+
 package domain
 
 import (
+	"bytes"
 	"encoding/json/jsontext"
 	"encoding/json/v2"
+	"errors"
+	"io"
 	"time"
 )
 
 type ActivityType string
 
 const (
-	ActivityTypeAccept ActivityType = "Accept"
-	ActivityTypeCreate ActivityType = "Create"
+	ActivityTypePerson ActivityType = "Person"
+	ActivityTypeNote   ActivityType = "Note"
 	ActivityTypeFollow ActivityType = "Follow"
 	ActivityTypeUnimpl ActivityType = "Unimpl"
 )
 
 type Object struct {
-	Context any    `json:"@context"`
+	Context any    `json:"@context,omitempty"`
 	Type    string `json:"type"`
 	ID      string `json:"id"`
 }
@@ -31,9 +36,9 @@ type Actor struct {
 }
 
 type Activity struct {
-	Base   Object         `json:",inline"`
+	Object `json:",inline"`
 	Actor  Actor          `json:"actor"`
-	Object ActivityObject `json:"object"`
+	Target ActivityObject `json:"object"`
 }
 
 type ActivityObject struct {
@@ -62,36 +67,72 @@ var _ json.UnmarshalerFrom = (*ActivityObject)(nil)
 
 // UnmarshalJSONFrom implements json.UnmarshalerFrom.
 func (o *ActivityObject) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
-	for {
-		tok, err := dec.ReadToken()
-		if err != nil {
+	val, err := dec.ReadValue()
+	if err != nil {
+		return err
+	}
+	if val.Kind() == '"' {
+		// TODO: handle AP Link type
+		return nil
+	}
+	objType, err := scanForType(val)
+	if err != nil {
+		return err
+	}
+	switch objType {
+	// case Ac
+	case ActivityTypePerson:
+		var person Actor
+		if err := json.Unmarshal(val, &person); err != nil {
 			return err
 		}
-		if tok.Kind() == '"' && tok.String() == "type" {
-			t, err := dec.ReadToken()
-			if err != nil {
-				return err
-			}
-			// WARNING: works when assuming "string" type
-			o.Type = ActivityType(t.String())
-			break
-		}
-	}
-	// TODO: decode object
-	switch o.Type {
-	case ActivityTypeAccept:
-		var follow Activity
-		o.Object = &follow
-	case ActivityTypeCreate:
+		o.Object = &person
+	case ActivityTypeNote:
 		var note Note
+		if err := json.Unmarshal(val, &note); err != nil {
+			return err
+		}
 		o.Object = &note
-		_ = note
 	case ActivityTypeFollow:
-		var actor Actor
-		o.Object = &actor
-		_ = actor
+		var follow Activity
+		if err := json.Unmarshal(val, &follow); err != nil {
+			return err
+		}
+		o.Object = &follow
 	default:
 		o.Type = ActivityTypeUnimpl
 	}
+	o.Type = objType
 	return nil
+}
+
+func scanForType(val jsontext.Value) (ActivityType, error) {
+	dec := jsontext.NewDecoder(bytes.NewReader(val))
+	if dec.PeekKind() != '{' {
+		return "", errors.New("expected JSON object")
+	}
+	if _, err := dec.ReadToken(); err != nil {
+		return "", err
+	}
+	for {
+		tok, err := dec.ReadToken()
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			return "", err
+		}
+		// TODO: check if object and discard it
+		if tok.Kind() == '"' && tok.String() == "type" {
+			typeToken, err := dec.ReadToken()
+			if err != nil {
+				return "", err
+			}
+			if typeToken.Kind() == '"' {
+				return ActivityType(typeToken.String()), nil
+			}
+			return "", errors.New("expected JSON string")
+		}
+	}
+	return ActivityTypeUnimpl, nil
 }
