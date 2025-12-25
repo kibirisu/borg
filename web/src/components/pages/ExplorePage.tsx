@@ -1,8 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useContext, useState } from "react";
 import { useLoaderData } from "react-router";
 import type { AppClient } from "../../lib/client";
 import ClientContext from "../../lib/client";
+import type { components } from "../../lib/api/v1";
 import { PostItem, type PostPresentable } from "../common/PostItem";
 import PostComposerOverlay from "../common/PostComposerOverlay";
 import Sidebar from "../common/Sidebar";
@@ -21,10 +22,34 @@ export default function ExplorePage() {
   const { data, isPending } = useQuery(opts);
   const [searchTerm, setSearchTerm] = useState("");
   const [searchError, setSearchError] = useState("");
+  const [searchResult, setSearchResult] =
+    useState<components["schemas"]["Account"] | null>(null);
   const [isComposerOpen, setIsComposerOpen] = useState(false);
   const [selectedPost, setSelectedPost] = useState<PostPresentable | null>(null);
+ 
+  const lookupMutation = useMutation({
+  mutationFn: async (acct: string) => {
+    if (!client) {
+      throw new Error("Search client is not ready yet.");
+    }
 
-  const handleSearch = (event: React.FormEvent<HTMLFormElement>) => {
+    const response = await client.fetchClient.GET("/api/accounts/lookup", {
+      params: { query: { acct } },
+    });
+
+    if (response.error) {
+      throw new Error( "Error during fetching client.");
+    }
+
+    if (!response.data) {
+      throw new Error("No user found for this handle.");
+    }
+
+    return response.data;
+  },
+});
+
+  const handleSearch = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmed = searchTerm.trim();
     const handlePattern = /^@[A-Za-z0-9._-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
@@ -32,10 +57,20 @@ export default function ExplorePage() {
       setSearchError("Format must be @user@instance.com");
       return;
     }
+    if (!client) {
+      setSearchError("Search client is not ready yet.");
+      return;
+    }
     setSearchError("");
-    // TODO: replace with actual search logic once API endpoint is ready
-    console.info("Searching for handle:", trimmed);
-    console.log("Search input value:", trimmed);
+    setSearchResult(null);
+    try {
+      const result = await lookupMutation.mutateAsync(trimmed);
+      setSearchResult(result);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Unable to perform search.";
+      setSearchError(message);
+    }
   };
 
   const handlePostSelect = (post: PostPresentable) => {
@@ -107,7 +142,12 @@ export default function ExplorePage() {
             </div>
             <button
               type="submit"
-              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-sm focus:outline-none focus:ring-4 focus:ring-indigo-300 hover:bg-indigo-700"
+              disabled={lookupMutation.isPending}
+              className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white shadow-sm focus:outline-none focus:ring-4 focus:ring-indigo-300 ${
+                lookupMutation.isPending
+                  ? "bg-indigo-300 cursor-not-allowed"
+                  : "bg-indigo-600 hover:bg-indigo-700"
+              }`}
             >
               <svg
                 className="h-5 w-5"
@@ -128,6 +168,44 @@ export default function ExplorePage() {
           </form>
           {searchError && (
             <p className="text-center text-sm text-red-600">{searchError}</p>
+          )}
+          {searchResult && (
+            <div className="max-w-md mx-auto bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+              <p className="text-sm font-medium text-gray-500">Search result</p>
+              <p className="text-lg font-semibold text-gray-900">
+                {searchResult.displayName || searchResult.username}
+              </p>
+              <p className="text-sm text-gray-500">
+                {searchResult.acct || `@${searchResult.username}`}
+              </p>
+              <a
+                href={searchResult.url}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-3 inline-flex items-center text-sm text-indigo-600 hover:text-indigo-800"
+              >
+                View profile
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4 ml-1"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={1.5}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M13.5 4.5H20m0 0v6.5m0-6.5L10.5 14"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M18 13.5V20H4v-14h6.5"
+                  />
+                </svg>
+              </a>
+            </div>
           )}
           <section className="bg-white rounded-2xl border border-gray-200 p-4 space-y-4 min-h-[400px]">
             {isPending && (

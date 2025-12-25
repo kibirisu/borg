@@ -7,9 +7,9 @@ import (
 )
 
 type HandleInfo struct {
-	Username string
-	Domain   string
-	Local    bool
+	Username string // user part
+	Domain   string // server part, e.g. borg.local
+	Local    bool   // true if domain matches local host
 }
 
 func ParseHandle(raw string, localHost string) (*HandleInfo, error) {

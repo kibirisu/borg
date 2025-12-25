@@ -35,7 +35,6 @@ func New(conf *config.Config) *http.Server {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Group(server.federationRoutes())
-	r.Group(server.staticRoutes())
 
 	h := api.HandlerWithOptions(
 		server,
@@ -44,6 +43,7 @@ func New(conf *config.Config) *http.Server {
 			Middlewares: []api.MiddlewareFunc{preAuthMiddleware, server.createAuthMiddleware()},
 		},
 	)
+	r.Group(server.staticRoutes())
 
 	s := &http.Server{
 		Handler:           h,
