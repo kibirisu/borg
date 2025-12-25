@@ -145,7 +145,7 @@ export default function Sidebar({ onPostClick }: SidebarProps) {
 
   return (
     <aside className="w-64 h-screen bg-white border-r px-4 py-6">
-      <h1 className="text-xl font-bold mb-8">Borg</h1>
+      <h1 className="text-xl font-bold mb-8 text-indigo-600">Borg</h1>
 
       <nav className="space-y-2">
         {items.map((item) => {
