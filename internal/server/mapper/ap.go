@@ -3,6 +3,7 @@ package mapper
 import (
 	"database/sql"
 	"encoding/json"
+	"strconv"
 
 	"github.com/kibirisu/borg/internal/db"
 	"github.com/kibirisu/borg/internal/domain"
@@ -53,17 +54,29 @@ func ToCreate(data []byte) (*domain.Create, error) {
 	return &f, err
 }
 
-func PostToNote(post *db.Status, senderURI string, receiverURIs []string) *domain.Note {
+func PostToCreateNote(post *db.Status, poster *db.Account, receiverURIs []string) *domain.Create {
 	if len(receiverURIs) == 0 {
 		receiverURIs = []string{"https://www.w3.org/ns/activitystreams#Public"}
 	}
 
-	return &domain.Note{
+	note := domain.Note{
 		ID:           post.Uri,
 		Type:         "Note",
 		Published:    post.CreatedAt,
-		AttributedTo: senderURI,
+		AttributedTo: poster.Uri,
 		Content:      post.Content,
 		To:           receiverURIs,
 	}
+	noteBytes, err := json.Marshal(note)
+	if err != nil {
+		return nil
+	}
+
+	activity := domain.Create{
+		ID:     poster.Uri + "/posts/" + strconv.Itoa(int(post.ID)),
+		Type:   "Create",
+		Actor:  json.RawMessage(poster.Uri),
+		Object: json.RawMessage(noteBytes),
+	}
+	return &activity;
 }
