@@ -76,6 +76,9 @@ func DeliverToFollowers(app service.AppService,
         return
     }
 	for _, follower := range followers {
+		if !follower.Domain.Valid {
+			continue
+		}
 		payload := build(follower.Uri)
 		DeliverToEndpoint(follower.InboxUri, payload)
 	}

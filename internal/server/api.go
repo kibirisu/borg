@@ -163,7 +163,9 @@ func (s *Server) PostApiAccountsIdFollow(w http.ResponseWriter, r *http.Request,
 	}
 	APfollow := mapper.DBToFollow(follow, &follower, &followee)
 	log.Println(followee.InboxUri)
-	util.DeliverToEndpoint(followee.InboxUri, APfollow)
+	if follower.Domain != followee.Domain {
+		util.DeliverToEndpoint(followee.InboxUri, APfollow)
+	}
 	util.WriteJSON(w, http.StatusCreated, nil);
 }
 
