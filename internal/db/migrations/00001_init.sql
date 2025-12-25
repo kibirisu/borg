@@ -56,8 +56,8 @@ CREATE TABLE users (
 );
 
 -- +goose Down
-DROP TABLE accounts;
-DROP TABLE statuses;
 DROP TABLE follows;
 DROP TABLE favourites;
 DROP TABLE users;
+DROP TABLE statuses;
+DROP TABLE accounts;
