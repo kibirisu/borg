@@ -41,6 +41,16 @@ func ActorToAccountCreate(account *domain.Actor, domain string) *db.CreateActorP
 		Url:          "", // TODO
 	}
 }
+func DBToFollow(follow *db.Follow, follower *db.Account, followee *db.Account) *domain.Follow {
+	followerURI, _ := json.Marshal(follower.Uri)
+	followedURI, _ := json.Marshal(followee.Uri)
+	return &domain.Follow{
+		ID: follow.Uri,
+		Type: "Follow",
+		Actor:  json.RawMessage(followerURI),
+		Object: json.RawMessage(followedURI),
+	};
+}
 
 func ToFollow(data []byte) (*domain.Follow, error) {
 	var f domain.Follow
