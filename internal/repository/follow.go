@@ -7,7 +7,7 @@ import (
 )
 
 type FollowRepository interface {
-	Create(context.Context, db.CreateFollowParams) error
+	Create(context.Context, db.CreateFollowParams) (*db.Follow, error)
 }
 
 type followRepository struct {
@@ -17,6 +17,10 @@ type followRepository struct {
 var _ FollowRepository = (*followRepository)(nil)
 
 // Create implements FollowRepository.
-func (r *followRepository) Create(ctx context.Context, follow db.CreateFollowParams) error {
-	return r.q.CreateFollow(ctx, follow)
+func (r *followRepository) Create(ctx context.Context, followCreate db.CreateFollowParams) (*db.Follow, error) {
+	follow, err := r.q.CreateFollow(ctx, followCreate)
+	if err != nil {
+		return nil, err
+	}
+	return &follow, err
 }
