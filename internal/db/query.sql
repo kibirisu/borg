@@ -21,7 +21,10 @@ INSERT INTO users (
 -- name: GetAccount :one
 SELECT * FROM accounts WHERE username = $1 AND domain = $2;
 
--- name: CreateFollow :exec
+-- name: GetAccountById :one
+SELECT * FROM accounts WHERE id = $1;
+
+-- name: CreateFollow :one
 INSERT INTO follows (
     uri, account_id, target_account_id
 ) VALUES (
@@ -29,7 +32,8 @@ INSERT INTO follows (
 ) ON CONFLICT (account_id, target_account_id) 
 DO UPDATE SET 
     uri = EXCLUDED.uri,
-    updated_at = CURRENT_TIMESTAMP;
+    updated_at = CURRENT_TIMESTAMP
+RETURNING *;
 
 -- name: CreateStatus :one
 INSERT INTO statuses (

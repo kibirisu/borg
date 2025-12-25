@@ -194,7 +194,7 @@ func (s *Server) handleFollow(
 		AccountID:       followerAccount.ID,
 		TargetAccountID: localAccount.ID,
 	}
-	err = s.service.App.CreateFollow(r.Context(), &createFollow)
+	_, err = s.service.App.CreateFollow(r.Context(), &createFollow)
 	if err != nil {
 		util.WriteError(w, http.StatusInternalServerError, "Error when adding follow: "+err.Error())
 		return

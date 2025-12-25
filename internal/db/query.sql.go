@@ -76,7 +76,7 @@ func (q *Queries) CreateActor(ctx context.Context, arg CreateActorParams) (Accou
 	return i, err
 }
 
-const createFollow = `-- name: CreateFollow :exec
+const createFollow = `-- name: CreateFollow :one
 INSERT INTO follows (
     uri, account_id, target_account_id
 ) VALUES (
@@ -85,6 +85,7 @@ INSERT INTO follows (
 DO UPDATE SET 
     uri = EXCLUDED.uri,
     updated_at = CURRENT_TIMESTAMP
+RETURNING id, created_at, updated_at, uri, account_id, target_account_id
 `
 
 type CreateFollowParams struct {
@@ -93,9 +94,18 @@ type CreateFollowParams struct {
 	TargetAccountID int32
 }
 
-func (q *Queries) CreateFollow(ctx context.Context, arg CreateFollowParams) error {
-	_, err := q.db.ExecContext(ctx, createFollow, arg.Uri, arg.AccountID, arg.TargetAccountID)
-	return err
+func (q *Queries) CreateFollow(ctx context.Context, arg CreateFollowParams) (Follow, error) {
+	row := q.db.QueryRowContext(ctx, createFollow, arg.Uri, arg.AccountID, arg.TargetAccountID)
+	var i Follow
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Uri,
+		&i.AccountID,
+		&i.TargetAccountID,
+	)
+	return i, err
 }
 
 const createStatus = `-- name: CreateStatus :one
@@ -172,6 +182,30 @@ type GetAccountParams struct {
 
 func (q *Queries) GetAccount(ctx context.Context, arg GetAccountParams) (Account, error) {
 	row := q.db.QueryRowContext(ctx, getAccount, arg.Username, arg.Domain)
+	var i Account
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Username,
+		&i.Uri,
+		&i.DisplayName,
+		&i.Domain,
+		&i.InboxUri,
+		&i.OutboxUri,
+		&i.FollowersUri,
+		&i.FollowingUri,
+		&i.Url,
+	)
+	return i, err
+}
+
+const getAccountById = `-- name: GetAccountById :one
+SELECT id, created_at, updated_at, username, uri, display_name, domain, inbox_uri, outbox_uri, followers_uri, following_uri, url FROM accounts WHERE id = $1
+`
+
+func (q *Queries) GetAccountById(ctx context.Context, id int32) (Account, error) {
+	row := q.db.QueryRowContext(ctx, getAccountById, id)
 	var i Account
 	err := row.Scan(
 		&i.ID,
