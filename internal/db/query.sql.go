@@ -98,12 +98,13 @@ func (q *Queries) CreateFollow(ctx context.Context, arg CreateFollowParams) erro
 	return err
 }
 
-const createStatus = `-- name: CreateStatus :exec
+const createStatus = `-- name: CreateStatus :one
 INSERT INTO statuses (
     uri, url, local, content, account_id, in_reply_to_id, reblog_of_id
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7
 )
+RETURNING id, created_at, updated_at, uri, url, local, content, account_id, in_reply_to_id, reblog_of_id
 `
 
 type CreateStatusParams struct {
@@ -116,8 +117,8 @@ type CreateStatusParams struct {
 	ReblogOfID  sql.NullInt32
 }
 
-func (q *Queries) CreateStatus(ctx context.Context, arg CreateStatusParams) error {
-	_, err := q.db.ExecContext(ctx, createStatus,
+func (q *Queries) CreateStatus(ctx context.Context, arg CreateStatusParams) (Status, error) {
+	row := q.db.QueryRowContext(ctx, createStatus,
 		arg.Uri,
 		arg.Url,
 		arg.Local,
@@ -126,7 +127,20 @@ func (q *Queries) CreateStatus(ctx context.Context, arg CreateStatusParams) erro
 		arg.InReplyToID,
 		arg.ReblogOfID,
 	)
-	return err
+	var i Status
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Uri,
+		&i.Url,
+		&i.Local,
+		&i.Content,
+		&i.AccountID,
+		&i.InReplyToID,
+		&i.ReblogOfID,
+	)
+	return i, err
 }
 
 const createUser = `-- name: CreateUser :exec
@@ -174,6 +188,48 @@ func (q *Queries) GetAccount(ctx context.Context, arg GetAccountParams) (Account
 		&i.Url,
 	)
 	return i, err
+}
+
+const getAccountFollowers = `-- name: GetAccountFollowers :many
+SELECT a.id, a.created_at, a.updated_at, a.username, a.uri, a.display_name, a.domain, a.inbox_uri, a.outbox_uri, a.followers_uri, a.following_uri, a.url FROM accounts a
+JOIN follows f ON a.id = f.account_id
+WHERE f.target_account_id = $1
+`
+
+func (q *Queries) GetAccountFollowers(ctx context.Context, targetAccountID int32) ([]Account, error) {
+	rows, err := q.db.QueryContext(ctx, getAccountFollowers, targetAccountID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Account
+	for rows.Next() {
+		var i Account
+		if err := rows.Scan(
+			&i.ID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Username,
+			&i.Uri,
+			&i.DisplayName,
+			&i.Domain,
+			&i.InboxUri,
+			&i.OutboxUri,
+			&i.FollowersUri,
+			&i.FollowingUri,
+			&i.Url,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getActor = `-- name: GetActor :one
