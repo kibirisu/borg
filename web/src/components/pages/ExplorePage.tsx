@@ -3,7 +3,8 @@ import { useContext, useState } from "react";
 import { useLoaderData } from "react-router";
 import type { AppClient } from "../../lib/client";
 import ClientContext from "../../lib/client";
-import { PostItem } from "../common/PostItem";
+import { PostItem, type PostPresentable } from "../common/PostItem";
+import PostComposerOverlay from "../common/PostComposerOverlay";
 import Sidebar from "../common/Sidebar";
 
 export const loader = (client: AppClient) => async () => {
@@ -20,6 +21,8 @@ export default function ExplorePage() {
   const { data, isPending } = useQuery(opts);
   const [searchTerm, setSearchTerm] = useState("");
   const [searchError, setSearchError] = useState("");
+  const [isComposerOpen, setIsComposerOpen] = useState(false);
+  const [selectedPost, setSelectedPost] = useState<PostPresentable | null>(null);
 
   const handleSearch = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -33,6 +36,21 @@ export default function ExplorePage() {
     // TODO: replace with actual search logic once API endpoint is ready
     console.info("Searching for handle:", trimmed);
     console.log("Search input value:", trimmed);
+  };
+
+  const handlePostSelect = (post: PostPresentable) => {
+    setSelectedPost(post);
+    setIsComposerOpen(true);
+  };
+
+  const openComposerForNewPost = () => {
+    setSelectedPost(null);
+    setIsComposerOpen(true);
+  };
+
+  const closeComposer = () => {
+    setIsComposerOpen(false);
+    setSelectedPost(null);
   };
 
   const onSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -117,7 +135,12 @@ export default function ExplorePage() {
             )}
             {!isPending &&
               data?.map((post) => (
-                <PostItem key={post.id} post={{ data: post }} client={client!} />
+                <PostItem
+                  key={post.id}
+                  post={{ data: post }}
+                  client={client!}
+                  onSelect={handlePostSelect}
+                />
               ))}
             {!isPending && !data?.length && (
               <p className="text-center text-gray-500">
@@ -126,8 +149,13 @@ export default function ExplorePage() {
             )}
           </section>
         </main>
-        <Sidebar />
+        <Sidebar onPostClick={openComposerForNewPost} />
       </div>
+      <PostComposerOverlay
+        isOpen={isComposerOpen}
+        onClose={closeComposer}
+        replyTo={selectedPost}
+      />
     </div>
   );
 }

@@ -16,9 +16,10 @@ export type PostPresentable = PostData | CommentData;
 interface PostProps {
   post: PostPresentable;
   client: AppClient;
+  onSelect?: (post: PostPresentable) => void;
 }
 
-export const PostItem = ({ post, client }: PostProps) => {
+export const PostItem = ({ post, client, onSelect }: PostProps) => {
   const { mutateAsync: like } = client.$api.useMutation(
     "post",
     "/api/posts/{id}/likes",
@@ -85,8 +86,17 @@ export const PostItem = ({ post, client }: PostProps) => {
     });
   };
 
+  const handleSelect = () => {
+    if (onSelect) {
+      onSelect(post);
+    }
+  };
+
   return (
-    <div className="border-b border-gray-200 p-4 hover:bg-gray-50 transition-colors">
+    <div
+      className="border-b border-gray-200 p-4 hover:bg-gray-50 transition-colors cursor-pointer"
+      onClick={handleSelect}
+    >
       <div className="flex space-x-3">
         <div className="flex-1">
           {"username" in post.data && (
@@ -94,6 +104,7 @@ export const PostItem = ({ post, client }: PostProps) => {
               <Link
                 to={`/profile/${post.data.userID}`}
                 className="hover:underline font-semibold text-gray-900"
+                onClick={(event) => event.stopPropagation()}
               >
                 {post.data.username}
               </Link>
@@ -106,7 +117,10 @@ export const PostItem = ({ post, client }: PostProps) => {
 
           <div className="flex justify-between mt-3 text-gray-500 text-sm max-w-md">
             {"commentCount" in post.data && (
-              <Link to={`/post/${post.data.id}`}>
+              <Link
+                to={`/post/${post.data.id}`}
+                onClick={(event) => event.stopPropagation()}
+              >
                 <button
                   type="button"
                   className="flex items-center space-x-1 hover:text-blue-500 transition"
@@ -117,7 +131,10 @@ export const PostItem = ({ post, client }: PostProps) => {
               </Link>
             )}
             {"shareCount" in post.data && (
-              <form action={shareAction}>
+              <form
+                action={shareAction}
+                onClick={(event) => event.stopPropagation()}
+              >
                 <button
                   type="submit"
                   className="flex items-center space-x-1 hover:text-green-500 transition"
@@ -127,7 +144,10 @@ export const PostItem = ({ post, client }: PostProps) => {
               </form>
             )}
             {"likeCount" in post.data && (
-              <form action={likeAction}>
+              <form
+                action={likeAction}
+                onClick={(event) => event.stopPropagation()}
+              >
                 <button
                   type="submit"
                   className="flex items-center space-x-1 hover:text-pink-500 transition"
@@ -141,6 +161,7 @@ export const PostItem = ({ post, client }: PostProps) => {
               <button
                 type="button"
                 className="flex items-center space-x-1 hover:text-gray-700 transition"
+                onClick={(event) => event.stopPropagation()}
               >
                 <Share2 size={16} />
               </button>

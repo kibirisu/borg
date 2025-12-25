@@ -133,7 +133,11 @@ const items: SidebarItem[] = [
   },
 ];
 
-export default function Sidebar() {
+interface SidebarProps {
+  onPostClick?: () => void;
+}
+
+export default function Sidebar({ onPostClick }: SidebarProps) {
   const appState = useContext(AppContext);
   const profileTarget = appState?.userId
     ? `/profile/${appState.userId}`
@@ -168,7 +172,11 @@ export default function Sidebar() {
         })}
       </nav>
 
-      <button className="mt-8 w-full bg-indigo-500 text-white py-2 rounded-full font-semibold">
+      <button
+        type="button"
+        className="mt-8 w-full bg-indigo-500 text-white py-2 rounded-full font-semibold"
+        onClick={onPostClick}
+      >
         Post
       </button>
     </aside>
