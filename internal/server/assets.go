@@ -8,7 +8,6 @@ import (
 
 func (s *Server) staticRoutes() func(chi.Router) {
 	return func(r chi.Router) {
-		r.Use(preAuthMiddleware)
 		r.Get("/*", s.serveFile("index.html"))
 		r.Get("/static/*", s.handleAssets)
 		r.Get("/api/doc", s.serveFile("docs.html"))
