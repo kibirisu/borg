@@ -118,18 +118,6 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/User"
-  /api/posts:
-    get:
-      summary: Get all posts
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Post"
     post:
       summary: Create a post
       requestBody:
@@ -165,7 +153,7 @@ paths:
         "200":
           description: OK
           content:
-            application/json:
+            application/json: 
               schema:
                 $ref: "#/components/schemas/Post"
     delete:
