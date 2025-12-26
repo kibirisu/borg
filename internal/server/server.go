@@ -34,7 +34,6 @@ func New(conf *config.Config) *http.Server {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
-	r.Use(preAuthMiddleware)
 	r.Group(server.federationRoutes())
 	r.Group(server.staticRoutes())
 
