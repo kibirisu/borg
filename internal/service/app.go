@@ -17,10 +17,13 @@ import (
 type AppService interface {
 	Register(context.Context, api.AuthForm) error
 	Login(context.Context, api.AuthForm) (string, error)
+	GetAccountFollowers(context.Context, int) ([]db.Account, error)
 	GetLocalAccount(context.Context, string) (*db.Account, error)
 	AddRemoteAccount(ctx context.Context, remote *db.CreateActorParams) (*db.Account, error)
-	CreateFollow(ctx context.Context, follow *db.CreateFollowParams) error
-	AddNote(context.Context, db.CreateStatusParams) error
+	CreateFollow(ctx context.Context, follow *db.CreateFollowParams) (*db.Follow, error) 
+	AddNote(context.Context, db.CreateStatusParams) (db.Status, error)
+	FollowAccount(context.Context, int, int) (*db.Follow, error)
+	GetAccountById(context.Context, int) (db.Account, error)
 	GetAccount(context.Context, db.GetAccountParams) (*db.Account, error)
 }
 
@@ -72,7 +75,7 @@ func (s *appService) Login(ctx context.Context, form api.AuthForm) (string, erro
 	if err != nil {
 		return "", err
 	}
-	if err = bcrypt.CompareHashAndPassword([]byte(form.Password), []byte(auth.PasswordHash)); err != nil {
+	if err = bcrypt.CompareHashAndPassword([]byte(auth.PasswordHash), []byte(form.Password)); err != nil {
 		return "", err
 	}
 	token, err := issueToken(auth.ID, form.Username, s.conf.ListenHost, s.conf.JWTSecret)
@@ -99,12 +102,12 @@ func (s *appService) AddRemoteAccount(
 	return &acc, err
 }
 
-func (s *appService) CreateFollow(ctx context.Context, follow *db.CreateFollowParams) error {
+func (s *appService) CreateFollow(ctx context.Context, follow *db.CreateFollowParams) (*db.Follow, error) {
 	return s.store.Follows().Create(ctx, *follow)
 }
 
 // AddNote implements AppService.
-func (s *appService) AddNote(ctx context.Context, note db.CreateStatusParams) error {
+func (s *appService) AddNote(ctx context.Context, note db.CreateStatusParams) (db.Status, error) {
 	return s.store.Statuses().Create(ctx, note)
 }
 
@@ -115,4 +118,27 @@ func (s *appService) GetAccount(
 ) (*db.Account, error) {
 	res, err := s.store.Accounts().Get(ctx, account)
 	return &res, err
+}
+// GetAccountById implements AppService.
+func (s *appService) GetAccountById(
+	ctx context.Context, accountID int,
+) (db.Account, error) {
+	return s.store.Accounts().GetById(ctx, accountID);
+}
+
+// GetAccountFollowers implements AppService.
+func (s *appService) GetAccountFollowers(
+	ctx context.Context, accountID int,
+) ([]db.Account, error) {
+	return s.store.Accounts().GetFollowers(ctx, accountID);
+}
+
+// FollowAccount implements AppService.
+func (s *appService) FollowAccount(ctx context.Context, follower int, followee int) (*db.Follow, error) {
+	createParams := db.CreateFollowParams {
+		Uri: "", //TODO
+		AccountID: int32(follower),
+		TargetAccountID: int32(followee),
+	}
+	return s.store.Follows().Create(ctx, createParams);
 }

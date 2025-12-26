@@ -34,13 +34,14 @@ func New(conf *config.Config) *http.Server {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+	r.Use(preAuthMiddleware)
 	r.Group(server.federationRoutes())
 
 	h := api.HandlerWithOptions(
 		server,
 		api.ChiServerOptions{
 			BaseRouter:  r,
-			Middlewares: []api.MiddlewareFunc{preAuthMiddleware, server.createAuthMiddleware()},
+			Middlewares: []api.MiddlewareFunc{server.createAuthMiddleware()},
 		},
 	)
 	r.Group(server.staticRoutes())

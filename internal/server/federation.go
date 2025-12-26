@@ -80,7 +80,7 @@ func (s *Server) handleInbox(w http.ResponseWriter, r *http.Request) {
 			util.WriteError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-		if err = s.service.App.AddNote(r.Context(), db.CreateStatusParams{
+		if _, err = s.service.App.AddNote(r.Context(), db.CreateStatusParams{
 			Uri:         note.ID,
 			Url:         "TODO",
 			Local:       sql.NullBool{Bool: false, Valid: true},
@@ -194,7 +194,7 @@ func (s *Server) handleFollow(
 		AccountID:       followerAccount.ID,
 		TargetAccountID: localAccount.ID,
 	}
-	err = s.service.App.CreateFollow(r.Context(), &createFollow)
+	_, err = s.service.App.CreateFollow(r.Context(), &createFollow)
 	if err != nil {
 		util.WriteError(w, http.StatusInternalServerError, "Error when adding follow: "+err.Error())
 		return

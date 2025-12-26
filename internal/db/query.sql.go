@@ -76,7 +76,7 @@ func (q *Queries) CreateActor(ctx context.Context, arg CreateActorParams) (Accou
 	return i, err
 }
 
-const createFollow = `-- name: CreateFollow :exec
+const createFollow = `-- name: CreateFollow :one
 INSERT INTO follows (
     uri, account_id, target_account_id
 ) VALUES (
@@ -85,6 +85,7 @@ INSERT INTO follows (
 DO UPDATE SET 
     uri = EXCLUDED.uri,
     updated_at = CURRENT_TIMESTAMP
+RETURNING id, created_at, updated_at, uri, account_id, target_account_id
 `
 
 type CreateFollowParams struct {
@@ -93,17 +94,27 @@ type CreateFollowParams struct {
 	TargetAccountID int32
 }
 
-func (q *Queries) CreateFollow(ctx context.Context, arg CreateFollowParams) error {
-	_, err := q.db.ExecContext(ctx, createFollow, arg.Uri, arg.AccountID, arg.TargetAccountID)
-	return err
+func (q *Queries) CreateFollow(ctx context.Context, arg CreateFollowParams) (Follow, error) {
+	row := q.db.QueryRowContext(ctx, createFollow, arg.Uri, arg.AccountID, arg.TargetAccountID)
+	var i Follow
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Uri,
+		&i.AccountID,
+		&i.TargetAccountID,
+	)
+	return i, err
 }
 
-const createStatus = `-- name: CreateStatus :exec
+const createStatus = `-- name: CreateStatus :one
 INSERT INTO statuses (
     uri, url, local, content, account_id, in_reply_to_id, reblog_of_id
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7
 )
+RETURNING id, created_at, updated_at, uri, url, local, content, account_id, in_reply_to_id, reblog_of_id
 `
 
 type CreateStatusParams struct {
@@ -116,8 +127,8 @@ type CreateStatusParams struct {
 	ReblogOfID  sql.NullInt32
 }
 
-func (q *Queries) CreateStatus(ctx context.Context, arg CreateStatusParams) error {
-	_, err := q.db.ExecContext(ctx, createStatus,
+func (q *Queries) CreateStatus(ctx context.Context, arg CreateStatusParams) (Status, error) {
+	row := q.db.QueryRowContext(ctx, createStatus,
 		arg.Uri,
 		arg.Url,
 		arg.Local,
@@ -126,7 +137,20 @@ func (q *Queries) CreateStatus(ctx context.Context, arg CreateStatusParams) erro
 		arg.InReplyToID,
 		arg.ReblogOfID,
 	)
-	return err
+	var i Status
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Uri,
+		&i.Url,
+		&i.Local,
+		&i.Content,
+		&i.AccountID,
+		&i.InReplyToID,
+		&i.ReblogOfID,
+	)
+	return i, err
 }
 
 const createUser = `-- name: CreateUser :exec
@@ -174,6 +198,72 @@ func (q *Queries) GetAccount(ctx context.Context, arg GetAccountParams) (Account
 		&i.Url,
 	)
 	return i, err
+}
+
+const getAccountById = `-- name: GetAccountById :one
+SELECT id, created_at, updated_at, username, uri, display_name, domain, inbox_uri, outbox_uri, followers_uri, following_uri, url FROM accounts WHERE id = $1
+`
+
+func (q *Queries) GetAccountById(ctx context.Context, id int32) (Account, error) {
+	row := q.db.QueryRowContext(ctx, getAccountById, id)
+	var i Account
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Username,
+		&i.Uri,
+		&i.DisplayName,
+		&i.Domain,
+		&i.InboxUri,
+		&i.OutboxUri,
+		&i.FollowersUri,
+		&i.FollowingUri,
+		&i.Url,
+	)
+	return i, err
+}
+
+const getAccountFollowers = `-- name: GetAccountFollowers :many
+SELECT a.id, a.created_at, a.updated_at, a.username, a.uri, a.display_name, a.domain, a.inbox_uri, a.outbox_uri, a.followers_uri, a.following_uri, a.url FROM accounts a
+JOIN follows f ON a.id = f.account_id
+WHERE f.target_account_id = $1
+`
+
+func (q *Queries) GetAccountFollowers(ctx context.Context, targetAccountID int32) ([]Account, error) {
+	rows, err := q.db.QueryContext(ctx, getAccountFollowers, targetAccountID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Account
+	for rows.Next() {
+		var i Account
+		if err := rows.Scan(
+			&i.ID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Username,
+			&i.Uri,
+			&i.DisplayName,
+			&i.Domain,
+			&i.InboxUri,
+			&i.OutboxUri,
+			&i.FollowersUri,
+			&i.FollowingUri,
+			&i.Url,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getActor = `-- name: GetActor :one
