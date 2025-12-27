@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"net/http"
 
 	"golang.org/x/crypto/bcrypt"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/kibirisu/borg/internal/config"
 	"github.com/kibirisu/borg/internal/db"
 	repo "github.com/kibirisu/borg/internal/repository"
+	"github.com/kibirisu/borg/internal/util"
 )
 
 type AppService interface {
@@ -25,6 +27,8 @@ type AppService interface {
 	FollowAccount(context.Context, int, int) (*db.Follow, error)
 	GetAccountById(context.Context, int) (db.Account, error)
 	GetAccount(context.Context, db.GetAccountParams) (*db.Account, error)
+	// EW, idk if this should stay here
+	DeliverToFollowers(http.ResponseWriter, *http.Request, int, func(recipientURI string) any)
 }
 
 type appService struct {
@@ -141,4 +145,21 @@ func (s *appService) FollowAccount(ctx context.Context, follower int, followee i
 		TargetAccountID: int32(followee),
 	}
 	return s.store.Follows().Create(ctx, createParams);
+}
+func (s *appService) DeliverToFollowers(
+	w http.ResponseWriter, r *http.Request, userID int,
+	build func(recipientURI string) any,
+) {
+	followers, err := s.GetAccountFollowers(r.Context(), userID);
+    if err != nil {
+        http.Error(w, "Internal server error", http.StatusInternalServerError)
+        return
+    }
+	for _, follower := range followers {
+		if !follower.Domain.Valid {
+			continue
+		}
+		payload := build(follower.Uri)
+		util.DeliverToEndpoint(follower.InboxUri, payload)
+	}
 }

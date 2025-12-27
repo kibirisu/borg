@@ -6,8 +6,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"time"
-
-	"github.com/kibirisu/borg/internal/service"
 )
 
 func WriteJSON(w http.ResponseWriter, status int, data any) {
@@ -66,21 +64,4 @@ func DeliverToEndpoint(endpoint string, payload any) {
 	}()
 }
 
-func DeliverToFollowers(app service.AppService,
-	w http.ResponseWriter, r *http.Request, userID int,
-	build func(recipientURI string) any,
-) {
-	followers, err := app.GetAccountFollowers(r.Context(), userID);
-    if err != nil {
-        http.Error(w, "Internal server error", http.StatusInternalServerError)
-        return
-    }
-	for _, follower := range followers {
-		if !follower.Domain.Valid {
-			continue
-		}
-		payload := build(follower.Uri)
-		DeliverToEndpoint(follower.InboxUri, payload)
-	}
-}
 
