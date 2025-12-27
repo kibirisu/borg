@@ -249,7 +249,7 @@ func (s *Server) PostApiPosts(w http.ResponseWriter, r *http.Request) {
         http.Error(w, "Internal server error", http.StatusInternalServerError)
         return
     }
-    util.DeliverToFollowers(s.service.App, w, r, newPost.UserID, func(recipientURI string) any {
+    s.service.App.DeliverToFollowers(w, r, newPost.UserID, func(recipientURI string) any {
         return mapper.PostToCreateNote(&status, &poster, []string{recipientURI})
     })
     util.WriteJSON(w, http.StatusCreated, nil);

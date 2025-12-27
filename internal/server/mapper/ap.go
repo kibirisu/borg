@@ -81,11 +81,15 @@ func PostToCreateNote(post *db.Status, poster *db.Account, receiverURIs []string
 	if err != nil {
 		return nil
 	}
+	actorBytes, err := json.Marshal(poster.Uri)
+	if err != nil {
+		return nil
+	}
 
 	activity := domain.Create{
 		ID:     poster.Uri + "/posts/" + strconv.Itoa(int(post.ID)),
 		Type:   "Create",
-		Actor:  json.RawMessage(poster.Uri),
+		Actor:  json.RawMessage(actorBytes),
 		Object: json.RawMessage(noteBytes),
 	}
 	return &activity;
