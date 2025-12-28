@@ -27,6 +27,7 @@ import SharedPage, {
   loader as sharedLoader,
 } from "../components/pages/SharedPage";
 import Root from "../components/Root";
+import ErrorPage from "../components/common/ErrorPage";
 import ClientContext, { type AppClient } from "../lib/client";
 import { Home } from "lucide-react";
 import { SignIn } from "../components/auth/SignIn";
@@ -51,6 +52,7 @@ function router(client: AppClient) {
         path: "/",
         Component: Root,
         action: addPostAction(client),
+        errorElement: <ErrorPage />,
         loader: ({ context }) => {
           context.get(routerContext); // we collect object from context like this
           return null;
@@ -74,24 +76,24 @@ function router(client: AppClient) {
             path: "explore",
             Component: ExplorePage,
             loader: exploreLoader(client),
-            errorElement: "error",
+            errorElement: <ErrorPage />,
           },
           {
             path: "likes",
             Component: LikesPage,
             loader: likesLoader(client),
-            errorElement: "error",
+            errorElement: <ErrorPage />,
           },
           {
             path: "shared",
             Component: SharedPage,
             loader: sharedLoader(client),
-            errorElement: "error",
+            errorElement: <ErrorPage />,
           },
           {
             path: "",
             Component: MainFeed,
-            errorElement: "error",
+            errorElement: <ErrorPage />,
             children: [
               {
                 index: true,
@@ -105,7 +107,7 @@ function router(client: AppClient) {
             path: "profile/:handle",
             Component: ProfilePage,
             loader: profileLoader(client),
-            errorElement: "error",
+            errorElement: <ErrorPage />,
             children: [
               {
                 index: true,
@@ -119,7 +121,7 @@ function router(client: AppClient) {
             Component: CommentView,
             loader: masterPostLoader(client),
             action: addCommentAction(client),
-            errorElement: "error",
+            errorElement: <ErrorPage />,
             children: [
               {
                 index: true,

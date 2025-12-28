@@ -31,15 +31,18 @@ export function signInAction(client: AppClient) {
     const safePassword = password!;
 
     const mutation = async () => {
-      return client.fetchClient.POST("/api/auth/login", {
+      return client.fetchClient.POST("/auth/login", {
         body: { username: safeUsername, password: safePassword },
       });
     };
 
     try {
-      await mutation();
-    } catch {
-      return redirect("/?alert=user-missing");
+      const res = await mutation();
+      if (res.error) {
+        return { form: "User not found or password is incorrect" };
+      }
+    } catch (_) {
+      return { form: "User not found or password is incorrect" };
     }
 
     return redirect("/explore");

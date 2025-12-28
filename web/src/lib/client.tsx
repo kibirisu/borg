@@ -34,7 +34,7 @@ const createMiddleware = (
     },
 
     async onResponse({ response, schemaPath }) {
-      if (schemaPath === "/api/auth/login") {
+      if (schemaPath === "/auth/login") {
         const bearer = response.headers.get("Authorization");
         if (bearer) {
           const raw = stripPrefix(bearer);

@@ -41,7 +41,7 @@ export function signUpAction(client: AppClient) {
     const safePassword = password!;
 
     const mutation = async () => {
-      return client.fetchClient.POST("/api/auth/register", {
+      return client.fetchClient.POST("/auth/register", {
         body: { username: safeUsername, password: safePassword },
       });
     };
