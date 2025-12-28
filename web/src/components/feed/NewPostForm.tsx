@@ -18,15 +18,14 @@ export const action =
       content,
     };
 
-    const mutationOpts = client.$api.queryOptions("post", "/api/posts", {
-      body: newPostData,
-    });
-
-    await client.queryClient.ensureQueryData(mutationOpts);
-    const listOpts = client.$api.queryOptions("get", "/api/posts", {});
-    client.queryClient.invalidateQueries({
-      queryKey: listOpts.queryKey,
-    });
+    // const mutationOpts = client.$api.queryOptions("post", "/api/posts", {
+    //   body: newPostData,
+    // });
+    // await client.queryClient.ensureQueryData(mutationOpts);
+    // const listOpts = client.$api.queryOptions("get", "/api/posts", {});
+    // client.queryClient.invalidateQueries({
+    //   queryKey: listOpts.queryKey,
+    // });
 
     return null;
   };

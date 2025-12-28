@@ -38,11 +38,11 @@ export const SignIn = () => {
         <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
           {errors?.form ? (
             <div
-              className="flex items-start sm:items-center p-4 mb-4 text-sm text-fg-danger-strong rounded-base bg-danger-soft"
+              className="flex items-start sm:items-center p-4 mb-4 text-sm text-red-800 rounded-xl bg-red-50 border border-red-200"
               role="alert"
             >
               <svg
-                className="w-4 h-4 me-2 shrink-0 mt-0.5 sm:mt-0"
+                className="w-4 h-4 me-2 shrink-0 mt-0.5 sm:mt-0 text-red-600"
                 aria-hidden="true"
                 xmlns="http://www.w3.org/2000/svg"
                 width="24"
@@ -59,7 +59,7 @@ export const SignIn = () => {
                 />
               </svg>
               <p>
-                <span className="font-medium me-1">Login failed.</span>
+                <span className="font-semibold me-1">Login failed.</span>
                 {errors.form}
               </p>
             </div>

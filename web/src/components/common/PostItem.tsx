@@ -20,70 +20,12 @@ interface PostProps {
 }
 
 export const PostItem = ({ post, client, onSelect }: PostProps) => {
-  const { mutateAsync: like } = client.$api.useMutation(
-    "post",
-    "/api/posts/{id}/likes",
-    {
-      onSuccess: () => {
-        client.queryClient.invalidateQueries({
-          queryKey: ["get", "/api/posts", {}],
-        });
-        client.queryClient.invalidateQueries({
-          queryKey: [
-            "get",
-            "/api/posts/{id}",
-            { params: { path: { id: post.data.id } } },
-          ],
-        });
-      },
-    },
-  );
-
   const likeAction = async () => {
-    const newCommentOps: components["schemas"]["NewLike"] = {
-      postID: post.data.id,
-      userID: 1, //TODO: API needs refactor, the user data will be passed with JWT
-    };
-
-    await like({
-      params: {
-        path: { id: post.data.id },
-      },
-      body: newCommentOps,
-    });
+    console.warn("Likes API is not available yet");
   };
 
-  const { mutateAsync: share } = client.$api.useMutation(
-    "post",
-    "/api/posts/{id}/shares",
-    {
-      onSuccess: () => {
-        client.queryClient.invalidateQueries({
-          queryKey: ["get", "/api/posts", {}],
-        });
-        client.queryClient.invalidateQueries({
-          queryKey: [
-            "get",
-            "/api/posts/{id}",
-            { params: { path: { id: post.data.id } } },
-          ],
-        });
-      },
-    },
-  );
-
   const shareAction = async () => {
-    const newCommentOps: components["schemas"]["NewShare"] = {
-      postID: post.data.id,
-      userID: 1, //TODO
-    };
-
-    await share({
-      params: {
-        path: { id: post.data.id },
-      },
-      body: newCommentOps,
-    });
+    console.warn("Shares API is not available yet");
   };
 
   const handleSelect = () => {

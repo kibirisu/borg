@@ -3,14 +3,16 @@ import { useContext, useState } from "react";
 import { useLoaderData } from "react-router";
 import type { AppClient } from "../../lib/client";
 import ClientContext from "../../lib/client";
+import type { components } from "../../lib/api/v1";
 import { PostItem, type PostPresentable } from "../common/PostItem";
 import PostComposerOverlay from "../common/PostComposerOverlay";
 import Sidebar from "../common/Sidebar";
 
 export const loader = (client: AppClient) => async () => {
-  const opts = client.$api.queryOptions("get", "/api/posts", {});
-  await client.queryClient.ensureQueryData(opts);
-  return { opts };
+  // const opts = client.$api.queryOptions("get", "/api/posts", {});
+  // await client.queryClient.ensureQueryData(opts);
+  // return { opts };
+  return { opts: undefined };
 };
 
 export default function LikesPage() {
@@ -18,7 +20,10 @@ export default function LikesPage() {
   const { opts } = useLoaderData() as Awaited<
     ReturnType<ReturnType<typeof loader>>
   >;
-  const { data, isPending } = useQuery(opts);
+  const queryArgs = opts
+    ? { ...opts }
+    : { queryKey: [], queryFn: async () => [], enabled: false };
+  const { data, isPending } = useQuery(queryArgs);
   const [isComposerOpen, setIsComposerOpen] = useState(false);
   const [selectedPost, setSelectedPost] = useState<PostPresentable | null>(null);
 
@@ -49,11 +54,11 @@ export default function LikesPage() {
             </p>
           </section>
           <section className="bg-white rounded-2xl border border-gray-200 p-4 space-y-4 min-h-[400px]">
-            {isPending && (
+            {isPending && opts && (
               <p className="text-center text-gray-500">Loading…</p>
             )}
-            {!isPending &&
-              data?.map((post) => (
+            {!isPending && opts &&
+              data?.map((post: components["schemas"]["Post"]) => (
                 <PostItem
                   key={post.id}
                   post={{ data: post }}
@@ -61,9 +66,14 @@ export default function LikesPage() {
                   onSelect={handlePostSelect}
                 />
               ))}
-            {!isPending && !data?.length && (
+            {!isPending && opts && !data?.length && (
               <p className="text-center text-gray-500">
                 Nothing liked yet.
+              </p>
+            )}
+            {!opts && (
+              <p className="text-center text-gray-500">
+                Likes feed is not available yet.
               </p>
             )}
           </section>

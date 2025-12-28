@@ -38,12 +38,15 @@ func (s *Server) PostAuthRegister(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		util.WriteError(w, http.StatusBadRequest, err.Error())
 	}
+	log.Printf("auth register: incoming request username=%s", form.Username)
 
 	if err := s.service.App.Register(r.Context(), form); err != nil {
 		log.Println(err)
 		util.WriteError(w, http.StatusInternalServerError, err.Error())
+		return
 	}
 
+	log.Printf("auth register: user %s created successfully", form.Username)
 	w.WriteHeader(http.StatusCreated)
 }
 

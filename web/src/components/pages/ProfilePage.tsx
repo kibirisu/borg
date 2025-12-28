@@ -1,34 +1,43 @@
-import { useSuspenseQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useContext, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { type LoaderFunctionArgs, Outlet, useLoaderData } from "react-router";
 import type { AppClient } from "../../lib/client";
+import AppContext from "../../lib/state";
 import Sidebar from "../common/Sidebar";
 
 export const loader =
   (client: AppClient) =>
   async ({ params }: LoaderFunctionArgs) => {
-    const userId = parseInt(String(params.handle), 10);
-    if (Number.isNaN(userId)) {
-      throw new Response("User handle should be a numeric id", {
-        status: 400,
-      });
-    }
-    const queryParams = { params: { path: { id: userId } } };
-    const userOpts = client.$api.queryOptions(
-      "get",
-      "/api/users/{id}",
-      queryParams,
-    );
-    await client.queryClient.ensureQueryData(userOpts);
-    return { userOpts };
+    // Backend profile endpoints are unimplemented; pass handle for display only.
+    return { handle: params.handle };
   };
 
 export default function ProfilePage() {
-  const { userOpts } = useLoaderData() as Awaited<
+  const { handle } = useLoaderData() as Awaited<
     ReturnType<ReturnType<typeof loader>>
   >;
-  const { data: userData } = useSuspenseQuery(userOpts);
+  const appState = useContext(AppContext);
+  const tokenUsername = appState?.username ?? "";
+  const tokenUserId = appState?.userId ?? null;
+  const derivedUsername = useMemo(() => {
+    if (tokenUsername) {
+      return tokenUsername;
+    }
+    return handle ? String(handle) : "";
+  }, [handle, tokenUsername]);
+  const derivedBio =
+    tokenUserId !== null
+      ? `u r logged in `
+      : "Profile data is unavailable until the API endpoint is implemented.";
   const [isFollowed, setIsFollowed] = useState(false);
+
+  const { data: profileData } = useQuery({
+    queryKey: ["profile", handle ?? derivedUsername],
+    queryFn: async () => ({
+      username: derivedUsername,
+      bio: derivedBio,
+    }),
+  });
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -39,27 +48,21 @@ export default function ProfilePage() {
               <div className="avatar placeholder">
                 <div className="bg-neutral text-neutral-content w-20 rounded-full">
                   <span className="text-3xl">
-                    {getUserInitials(userData.username)}
+                    {getUserInitials(profileData?.username ?? "")}
                   </span>
                 </div>
               </div>
               <div className="flex-1">
-                <p className="text-gray-500">@{userData.username}</p>
+                <p className="text-gray-500">@{profileData?.username}</p>
                 <p className="text-2xl font-semibold text-gray-800">
-                  {userData.bio || "Без опису"}
+                  {profileData?.bio}
                 </p>
                 <div className="mt-4 flex items-center gap-8 text-sm text-gray-600">
                   <span>
-                    Followers:{" "}
-                    <strong className="text-gray-900">
-                      {userData.followersCount}
-                    </strong>
+                    Followers: <strong className="text-gray-900">—</strong>
                   </span>
                   <span>
-                    Following:{" "}
-                    <strong className="text-gray-900">
-                      {userData.followingCount}
-                    </strong>
+                    Following: <strong className="text-gray-900">—</strong>
                   </span>
                 </div>
               </div>
