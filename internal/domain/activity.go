@@ -18,6 +18,8 @@ const (
 	ActivityTypeFollow        ActivityType = "Follow"
 	ActivityTypeLike          ActivityType = "Like"
 	ActivityTypeUnimplemented ActivityType = "Unimplemented"
+
+	ActivityTypeNote ActivityType = "Note"
 )
 
 type URIer interface {
@@ -25,23 +27,21 @@ type URIer interface {
 }
 
 type Activity struct {
-	Context     any
-	ID          string
-	Type        string
-	Actor       ObjectOrLink[Actor]
-	Object      ObjectOrLink[Object]
-	Publication *Publication
-	Extra       map[string]any
+	Context     any                  `json:"@context"`
+	ID          string               `json:"id"`
+	Type        string               `json:"type"`
+	Publication *Publication         `json:",inline"`
+	Actor       ObjectOrLink[Actor]  `json:"actor"`
+	Object      ObjectOrLink[Object] `json:"object"`
 }
 
 type Object struct {
-	ID          string
-	Type        string
-	Actor       ObjectOrLink[Actor]
-	Object      ObjectOrLink[Object]
-	Publication *Publication
-	Note        *Note
-	Extra       map[string]any
+	ID          string                `json:"id"`
+	Type        string                `json:"type"`
+	Publication *Publication          `json:",inline"`
+	Note        *Note                 `json:",inline"`
+	Actor       *ObjectOrLink[Actor]  `json:"actor,omitempty"`
+	Object      *ObjectOrLink[Object] `json:"object,omitempty"`
 }
 
 type Actor struct {
@@ -55,16 +55,16 @@ type Actor struct {
 }
 
 type Publication struct {
-	Published    time.Time
-	AttributedTo ObjectOrLink[Actor]
-	To           []string
-	CC           []string
+	Published    time.Time            `json:"published"`
+	AttributedTo *ObjectOrLink[Actor] `json:"attributedTo,omitempty"`
+	To           []string             `json:"to"`
+	CC           []string             `json:"cc"`
 }
 
 type Note struct {
-	Content   string
-	InReplyTo ObjectOrLink[Object]
-	Replies   ObjectOrLink[Object]
+	Content   string                `json:"content"`
+	InReplyTo *ObjectOrLink[Object] `json:"inReplyTo"`
+	Replies   ObjectOrLink[Object]  `json:"replies"`
 }
 
 type ObjectOrLink[T URIer] struct {
@@ -157,14 +157,9 @@ func (a *Activity) unmarshalProperties(dec *jsontext.Decoder) error {
 				return err
 			}
 		default:
-			var extra any
-			if err = json.UnmarshalDecode(dec, &extra); err != nil {
+			if err = dec.SkipValue(); err != nil {
 				return err
 			}
-			if a.Extra == nil {
-				a.Extra = make(map[string]any)
-			}
-			a.Extra[property] = &extra
 		}
 	}
 	_, err := dec.ReadToken()
@@ -198,14 +193,15 @@ func (o *Object) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
 				return err
 			}
 			switch o.Type {
-			case string(ActivityTypeCreate):
+			case string(ActivityTypeNote):
 				o.Note = &Note{}
 				fallthrough
 			case string(ActivityTypeAnnounce):
 				o.Publication = &Publication{}
 			}
-			if o.Type == string(ActivityTypeCreate) {
-				o.Note = &Note{}
+		case "actor":
+			if err = json.UnmarshalDecode(dec, &o.Actor); err != nil {
+				return err
 			}
 		case "published":
 			if err = json.UnmarshalDecode(dec, &o.Publication.Published); err != nil {
@@ -228,9 +224,11 @@ func (o *Object) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
 				return err
 			}
 		case "inReplyTo":
-			if err = json.UnmarshalDecode(dec, &o.Note.InReplyTo); err != nil {
+			var obj ObjectOrLink[Actor]
+			if err = json.UnmarshalDecode(dec, &obj); err != nil {
 				return err
 			}
+			o.Publication.AttributedTo = &obj
 		case "replies":
 			if err = json.UnmarshalDecode(dec, &o.Note.Replies); err != nil {
 				return err
@@ -240,14 +238,9 @@ func (o *Object) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
 				return err
 			}
 		default:
-			var extra any
-			if err = json.UnmarshalDecode(dec, &extra); err != nil {
+			if err = dec.SkipValue(); err != nil {
 				return err
 			}
-			if o.Extra == nil {
-				o.Extra = make(map[string]any)
-			}
-			o.Extra[property] = &extra
 		}
 	}
 	_, err = dec.ReadToken()
@@ -264,8 +257,22 @@ func (o *ObjectOrLink[T]) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
 		if err := json.UnmarshalDecode(dec, &o.Link); err != nil {
 			return err
 		}
+	case 'n':
+		if err := dec.SkipValue(); err != nil {
+			return err
+		}
 	default:
 		return errors.New("expected JSON object or string")
 	}
 	return nil
+}
+
+func (o *ObjectOrLink[T]) MarshalJSONTo(enc *jsontext.Encoder) error {
+	if o.Object != nil {
+		return json.MarshalEncode(enc, o.Object)
+	}
+	if o.Link != nil {
+		return json.MarshalEncode(enc, o.Link)
+	}
+	return enc.WriteToken(jsontext.Null)
 }
