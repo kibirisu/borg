@@ -24,6 +24,9 @@ SELECT * FROM accounts WHERE username = $1 AND domain = $2;
 -- name: GetAccountById :one
 SELECT * FROM accounts WHERE id = $1;
 
+-- name: GetStatusById :one
+SELECT * FROM statuses WHERE id = $1;
+
 -- name: CreateFollow :one
 INSERT INTO follows (
     uri, account_id, target_account_id

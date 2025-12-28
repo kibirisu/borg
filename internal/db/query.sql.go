@@ -289,3 +289,25 @@ func (q *Queries) GetActor(ctx context.Context, username string) (Account, error
 	)
 	return i, err
 }
+
+const getStatusById = `-- name: GetStatusById :one
+SELECT id, created_at, updated_at, uri, url, local, content, account_id, in_reply_to_id, reblog_of_id FROM statuses WHERE id = $1
+`
+
+func (q *Queries) GetStatusById(ctx context.Context, id int32) (Status, error) {
+	row := q.db.QueryRowContext(ctx, getStatusById, id)
+	var i Status
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Uri,
+		&i.Url,
+		&i.Local,
+		&i.Content,
+		&i.AccountID,
+		&i.InReplyToID,
+		&i.ReblogOfID,
+	)
+	return i, err
+}
