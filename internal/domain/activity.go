@@ -3,31 +3,50 @@
 package domain
 
 import (
-	"bytes"
 	"encoding/json/jsontext"
 	"encoding/json/v2"
 	"errors"
-	"io"
 	"time"
 )
 
 type ActivityType string
 
 const (
-	ActivityTypePerson ActivityType = "Person"
-	ActivityTypeNote   ActivityType = "Note"
-	ActivityTypeFollow ActivityType = "Follow"
-	ActivityTypeUnimpl ActivityType = "Unimpl"
+	ActivityTypeAccept        ActivityType = "Accept"
+	ActivityTypeAnnounce      ActivityType = "Announce"
+	ActivityTypeCreate        ActivityType = "Create"
+	ActivityTypeFollow        ActivityType = "Follow"
+	ActivityTypeLike          ActivityType = "Like"
+	ActivityTypeUnimplemented ActivityType = "Unimplemented"
 )
 
+type URIer interface {
+	URI() string
+}
+
+type Activity struct {
+	Context     any
+	ID          string
+	Type        string
+	Actor       ObjectOrLink[Actor]
+	Object      ObjectOrLink[Object]
+	Publication Maybe[Publication]
+	Extra       map[string]any
+}
+
 type Object struct {
-	Context any    `json:"@context,omitempty"`
-	Type    string `json:"type"`
-	ID      string `json:"id"`
+	ID          string
+	Type        string
+	Actor       ObjectOrLink[Actor]
+	Object      ObjectOrLink[Object]
+	Publication Maybe[Publication]
+	Note        Maybe[Note]
+	Extra       map[string]any
 }
 
 type Actor struct {
-	Base              Object `json:",inline"`
+	ID                string `json:"id"`
+	Type              string `json:"type"`
 	PreferredUsername string `json:"preferredUsername"`
 	Inbox             string `json:"inbox"`
 	Outbox            string `json:"outbox"`
@@ -35,104 +54,222 @@ type Actor struct {
 	Followers         string `json:"followers"`
 }
 
-type Activity struct {
-	Object `json:",inline"`
-	Actor  Actor          `json:"actor"`
-	Target ActivityObject `json:"object"`
-}
-
-type ActivityObject struct {
-	Type   ActivityType
-	Object any
-}
-
-type NoteProperties struct {
-	Published    time.Time `json:"published"`
-	AttributedTo string    `json:"attributedTo"`
-	To           []string  `json:"to"`
-	CC           []string  `json:"cc"`
-	Content      string    `json:"content"`
+type Publication struct {
+	Published    time.Time
+	AttributedTo ObjectOrLink[Actor]
+	To           []string
+	CC           []string
 }
 
 type Note struct {
-	Base       Object         `json:",inline"`
-	Properties NoteProperties `json:",inline"`
-	InReplyTo  struct {
-		Base       Object         `json:",inline"`
-		Properties NoteProperties `json:",inline"`
-	} `json:"inReplyTo"`
+	Content   string
+	InReplyTo ObjectOrLink[Object]
+	Replies   ObjectOrLink[Object]
 }
 
-var _ json.UnmarshalerFrom = (*ActivityObject)(nil)
+type Maybe[T any] struct {
+	Maybe *T
+}
 
-// UnmarshalJSONFrom implements json.UnmarshalerFrom.
-func (o *ActivityObject) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
-	val, err := dec.ReadValue()
+type ObjectOrLink[T URIer] struct {
+	Object *T
+	Link   *string
+}
+
+func (o *ObjectOrLink[T]) GetURI() string {
+	if o.Object != nil {
+		return (*o.Object).URI()
+	}
+	if o.Link != nil {
+		return *o.Link
+	}
+	return ""
+}
+
+func (a Actor) URI() string {
+	return a.ID
+}
+
+func (o Object) URI() string {
+	return o.ID
+}
+
+func (a *Activity) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
+	if dec.PeekKind() != '{' {
+		return errors.New("expected JSON object")
+	}
+	_, err := dec.ReadToken()
 	if err != nil {
 		return err
 	}
-	if val.Kind() == '"' {
-		// TODO: handle AP Link type
-		return nil
-	}
-	objType, err := scanForType(val)
-	if err != nil {
+	if err = a.unmarshalProperties(dec); err != nil {
 		return err
 	}
-	switch objType {
-	// case Ac
-	case ActivityTypePerson:
-		var person Actor
-		if err := json.Unmarshal(val, &person); err != nil {
-			return err
-		}
-		o.Object = &person
-	case ActivityTypeNote:
-		var note Note
-		if err := json.Unmarshal(val, &note); err != nil {
-			return err
-		}
-		o.Object = &note
-	case ActivityTypeFollow:
-		var follow Activity
-		if err := json.Unmarshal(val, &follow); err != nil {
-			return err
-		}
-		o.Object = &follow
-	default:
-		o.Type = ActivityTypeUnimpl
-	}
-	o.Type = objType
+
 	return nil
 }
 
-func scanForType(val jsontext.Value) (ActivityType, error) {
-	dec := jsontext.NewDecoder(bytes.NewReader(val))
-	if dec.PeekKind() != '{' {
-		return "", errors.New("expected JSON object")
-	}
-	if _, err := dec.ReadToken(); err != nil {
-		return "", err
-	}
-	for {
+func (a *Activity) unmarshalProperties(dec *jsontext.Decoder) error {
+	for dec.PeekKind() != '}' {
+		if dec.PeekKind() != '"' {
+			return errors.New("expected JSON string")
+		}
 		tok, err := dec.ReadToken()
 		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			return "", err
+			return err
 		}
-		// TODO: check if object and discard it
-		if tok.Kind() == '"' && tok.String() == "type" {
-			typeToken, err := dec.ReadToken()
-			if err != nil {
-				return "", err
+		property := tok.String()
+		switch property {
+		case "@context":
+			if err = json.UnmarshalDecode(dec, &a.Context); err != nil {
+				return err
 			}
-			if typeToken.Kind() == '"' {
-				return ActivityType(typeToken.String()), nil
+		case "id":
+			if err = json.UnmarshalDecode(dec, &a.ID); err != nil {
+				return err
 			}
-			return "", errors.New("expected JSON string")
+		case "type":
+			if err = json.UnmarshalDecode(dec, &a.Type); err != nil {
+				return err
+			}
+			switch a.Type {
+			case string(ActivityTypeAnnounce), string(ActivityTypeCreate):
+				a.Publication.Maybe = &Publication{}
+			}
+		case "actor":
+			if err = json.UnmarshalDecode(dec, &a.Actor); err != nil {
+				return err
+			}
+		case "published":
+			if err = json.UnmarshalDecode(dec, &a.Publication.Maybe.Published); err != nil {
+				return err
+			}
+		case "to":
+			if err = json.UnmarshalDecode(dec, &a.Publication.Maybe.To); err != nil {
+				return err
+			}
+		case "cc":
+			if err = json.UnmarshalDecode(dec, &a.Publication.Maybe.CC); err != nil {
+				return err
+			}
+		case "attributedTo":
+			if err = json.UnmarshalDecode(dec, &a.Publication.Maybe.AttributedTo); err != nil {
+				return err
+			}
+		case "object":
+			if err = json.UnmarshalDecode(dec, &a.Object); err != nil {
+				return err
+			}
+		default:
+			var extra any
+			if err = json.UnmarshalDecode(dec, &extra); err != nil {
+				return err
+			}
+			if a.Extra == nil {
+				a.Extra = make(map[string]any)
+			}
+			a.Extra[property] = &extra
 		}
 	}
-	return ActivityTypeUnimpl, nil
+	_, err := dec.ReadToken()
+	return err
+}
+
+func (o *Object) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
+	if dec.PeekKind() != '{' {
+		return errors.New("expected JSON object")
+	}
+	_, err := dec.ReadToken()
+	if err != nil {
+		return err
+	}
+	for dec.PeekKind() != '}' {
+		if dec.PeekKind() != '"' {
+			return errors.New("expected JSON string")
+		}
+		tok, err := dec.ReadToken()
+		if err != nil {
+			return err
+		}
+		property := tok.String()
+		switch property {
+		case "id":
+			if err = json.UnmarshalDecode(dec, &o.ID); err != nil {
+				return err
+			}
+		case "type":
+			if err = json.UnmarshalDecode(dec, &o.Type); err != nil {
+				return err
+			}
+			switch o.Type {
+			case string(ActivityTypeCreate):
+				o.Note.Maybe = &Note{}
+				fallthrough
+			case string(ActivityTypeAnnounce):
+				o.Publication.Maybe = &Publication{}
+			}
+			if o.Type == string(ActivityTypeCreate) {
+				o.Note.Maybe = &Note{}
+			}
+		case "published":
+			if err = json.UnmarshalDecode(dec, &o.Publication.Maybe.Published); err != nil {
+				return err
+			}
+		case "to":
+			if err = json.UnmarshalDecode(dec, &o.Publication.Maybe.To); err != nil {
+				return err
+			}
+		case "cc":
+			if err = json.UnmarshalDecode(dec, &o.Publication.Maybe.CC); err != nil {
+				return err
+			}
+		case "attributedTo":
+			if err = json.UnmarshalDecode(dec, &o.Publication.Maybe.AttributedTo); err != nil {
+				return err
+			}
+		case "content":
+			if err = json.UnmarshalDecode(dec, &o.Note.Maybe.Content); err != nil {
+				return err
+			}
+		case "inReplyTo":
+			if err = json.UnmarshalDecode(dec, &o.Note.Maybe.InReplyTo); err != nil {
+				return err
+			}
+		case "replies":
+			if err = json.UnmarshalDecode(dec, &o.Note.Maybe.Replies); err != nil {
+				return err
+			}
+		case "object":
+			if err = json.UnmarshalDecode(dec, &o.Object); err != nil {
+				return err
+			}
+		default:
+			var extra any
+			if err = json.UnmarshalDecode(dec, &extra); err != nil {
+				return err
+			}
+			if o.Extra == nil {
+				o.Extra = make(map[string]any)
+			}
+			o.Extra[property] = &extra
+		}
+	}
+	_, err = dec.ReadToken()
+	return err
+}
+
+func (o *ObjectOrLink[T]) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
+	switch dec.PeekKind() {
+	case '{':
+		if err := json.UnmarshalDecode(dec, &o.Object); err != nil {
+			return err
+		}
+	case '"':
+		if err := json.UnmarshalDecode(dec, &o.Link); err != nil {
+			return err
+		}
+	default:
+		return errors.New("expected JSON object or string")
+	}
+	return nil
 }
