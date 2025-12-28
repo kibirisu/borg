@@ -18,8 +18,6 @@ const (
 	ActivityTypeFollow        ActivityType = "Follow"
 	ActivityTypeLike          ActivityType = "Like"
 	ActivityTypeUnimplemented ActivityType = "Unimplemented"
-
-	ActivityTypeNote ActivityType = "Note"
 )
 
 type URIer interface {
@@ -72,7 +70,7 @@ type ObjectOrLink[T URIer] struct {
 	Link   *string
 }
 
-func (o *ObjectOrLink[T]) GetURI() string {
+func (o ObjectOrLink[T]) GetURI() string {
 	if o.Object != nil {
 		return (*o.Object).URI()
 	}
@@ -88,163 +86,6 @@ func (a Actor) URI() string {
 
 func (o Object) URI() string {
 	return o.ID
-}
-
-func (a *Activity) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
-	if dec.PeekKind() != '{' {
-		return errors.New("expected JSON object")
-	}
-	_, err := dec.ReadToken()
-	if err != nil {
-		return err
-	}
-	if err = a.unmarshalProperties(dec); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (a *Activity) unmarshalProperties(dec *jsontext.Decoder) error {
-	for dec.PeekKind() != '}' {
-		if dec.PeekKind() != '"' {
-			return errors.New("expected JSON string")
-		}
-		tok, err := dec.ReadToken()
-		if err != nil {
-			return err
-		}
-		property := tok.String()
-		switch property {
-		case "@context":
-			if err = json.UnmarshalDecode(dec, &a.Context); err != nil {
-				return err
-			}
-		case "id":
-			if err = json.UnmarshalDecode(dec, &a.ID); err != nil {
-				return err
-			}
-		case "type":
-			if err = json.UnmarshalDecode(dec, &a.Type); err != nil {
-				return err
-			}
-			switch a.Type {
-			case string(ActivityTypeAnnounce), string(ActivityTypeCreate):
-				a.Publication = &Publication{}
-			}
-		case "actor":
-			if err = json.UnmarshalDecode(dec, &a.Actor); err != nil {
-				return err
-			}
-		case "published":
-			if err = json.UnmarshalDecode(dec, &a.Publication.Published); err != nil {
-				return err
-			}
-		case "to":
-			if err = json.UnmarshalDecode(dec, &a.Publication.To); err != nil {
-				return err
-			}
-		case "cc":
-			if err = json.UnmarshalDecode(dec, &a.Publication.CC); err != nil {
-				return err
-			}
-		case "attributedTo":
-			if err = json.UnmarshalDecode(dec, &a.Publication.AttributedTo); err != nil {
-				return err
-			}
-		case "object":
-			if err = json.UnmarshalDecode(dec, &a.Object); err != nil {
-				return err
-			}
-		default:
-			if err = dec.SkipValue(); err != nil {
-				return err
-			}
-		}
-	}
-	_, err := dec.ReadToken()
-	return err
-}
-
-func (o *Object) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
-	if dec.PeekKind() != '{' {
-		return errors.New("expected JSON object")
-	}
-	_, err := dec.ReadToken()
-	if err != nil {
-		return err
-	}
-	for dec.PeekKind() != '}' {
-		if dec.PeekKind() != '"' {
-			return errors.New("expected JSON string")
-		}
-		tok, err := dec.ReadToken()
-		if err != nil {
-			return err
-		}
-		property := tok.String()
-		switch property {
-		case "id":
-			if err = json.UnmarshalDecode(dec, &o.ID); err != nil {
-				return err
-			}
-		case "type":
-			if err = json.UnmarshalDecode(dec, &o.Type); err != nil {
-				return err
-			}
-			switch o.Type {
-			case string(ActivityTypeNote):
-				o.Note = &Note{}
-				fallthrough
-			case string(ActivityTypeAnnounce):
-				o.Publication = &Publication{}
-			}
-		case "actor":
-			if err = json.UnmarshalDecode(dec, &o.Actor); err != nil {
-				return err
-			}
-		case "published":
-			if err = json.UnmarshalDecode(dec, &o.Publication.Published); err != nil {
-				return err
-			}
-		case "to":
-			if err = json.UnmarshalDecode(dec, &o.Publication.To); err != nil {
-				return err
-			}
-		case "cc":
-			if err = json.UnmarshalDecode(dec, &o.Publication.CC); err != nil {
-				return err
-			}
-		case "attributedTo":
-			if err = json.UnmarshalDecode(dec, &o.Publication.AttributedTo); err != nil {
-				return err
-			}
-		case "content":
-			if err = json.UnmarshalDecode(dec, &o.Note.Content); err != nil {
-				return err
-			}
-		case "inReplyTo":
-			var obj ObjectOrLink[Actor]
-			if err = json.UnmarshalDecode(dec, &obj); err != nil {
-				return err
-			}
-			o.Publication.AttributedTo = &obj
-		case "replies":
-			if err = json.UnmarshalDecode(dec, &o.Note.Replies); err != nil {
-				return err
-			}
-		case "object":
-			if err = json.UnmarshalDecode(dec, &o.Object); err != nil {
-				return err
-			}
-		default:
-			if err = dec.SkipValue(); err != nil {
-				return err
-			}
-		}
-	}
-	_, err = dec.ReadToken()
-	return err
 }
 
 func (o *ObjectOrLink[T]) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
