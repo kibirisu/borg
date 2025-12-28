@@ -46,6 +46,16 @@ INSERT INTO statuses (
 )
 RETURNING *;
 
+-- name: CreateFavourite :one
+INSERT INTO favourites (
+    uri, 
+    account_id, 
+    status_id
+) VALUES (
+    $1, $2, $3
+)
+RETURNING *;
+
 -- name: GetAccountFollowers :many
 SELECT a.* FROM accounts a
 JOIN follows f ON a.id = f.account_id

@@ -24,6 +24,7 @@ type AppService interface {
 	AddRemoteAccount(ctx context.Context, remote *db.CreateActorParams) (*db.Account, error)
 	CreateFollow(ctx context.Context, follow *db.CreateFollowParams) (*db.Follow, error) 
 	AddNote(context.Context, db.CreateStatusParams) (db.Status, error)
+	AddFavourite(context.Context, int, int) (db.Favourite, error)
 	FollowAccount(context.Context, int, int) (*db.Follow, error)
 	GetAccountById(context.Context, int) (db.Account, error)
 	GetAccount(context.Context, db.GetAccountParams) (*db.Account, error)
@@ -129,6 +130,17 @@ func (s *appService) GetAccountById(
 	ctx context.Context, accountID int,
 ) (db.Account, error) {
 	return s.store.Accounts().GetById(ctx, accountID);
+}
+// AddFavourite implements AppService.
+func (s *appService) AddFavourite (
+	ctx context.Context, accountID int, postID int,
+) (db.Favourite, error) {
+	params := db.CreateFavouriteParams{
+		Uri: "TODO",
+		AccountID: int32(accountID),
+		StatusID: int32(postID),
+	}
+	return s.store.Favourites().Create(ctx, params)
 }
 
 // GetAccountFollowers implements AppService.

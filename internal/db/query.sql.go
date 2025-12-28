@@ -76,6 +76,37 @@ func (q *Queries) CreateActor(ctx context.Context, arg CreateActorParams) (Accou
 	return i, err
 }
 
+const createFavourite = `-- name: CreateFavourite :one
+INSERT INTO favourites (
+    uri, 
+    account_id, 
+    status_id
+) VALUES (
+    $1, $2, $3
+)
+RETURNING id, created_at, updated_at, uri, account_id, status_id
+`
+
+type CreateFavouriteParams struct {
+	Uri       string
+	AccountID int32
+	StatusID  int32
+}
+
+func (q *Queries) CreateFavourite(ctx context.Context, arg CreateFavouriteParams) (Favourite, error) {
+	row := q.db.QueryRowContext(ctx, createFavourite, arg.Uri, arg.AccountID, arg.StatusID)
+	var i Favourite
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Uri,
+		&i.AccountID,
+		&i.StatusID,
+	)
+	return i, err
+}
+
 const createFollow = `-- name: CreateFollow :one
 INSERT INTO follows (
     uri, account_id, target_account_id
