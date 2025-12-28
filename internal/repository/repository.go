@@ -12,6 +12,7 @@ type Store interface {
 	Users() UserRepository
 	Follows() FollowRepository
 	Statuses() StatusRepository
+	Favourites() FavouriteRepository
 }
 
 var _ Store = (*store)(nil)
@@ -43,4 +44,8 @@ func (s *store) Follows() FollowRepository {
 // Statuses implements Store.
 func (s *store) Statuses() StatusRepository {
 	return &statusRepository{s.q}
+}
+// Favourites implements Store.
+func (s *store) Favourites() FavouriteRepository {
+	return &favouriteRepository{s.q}
 }
