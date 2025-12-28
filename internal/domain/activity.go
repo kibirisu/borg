@@ -1,11 +1,6 @@
-//go:build goexperiment.jsonv2
-
 package domain
 
 import (
-	"encoding/json/jsontext"
-	"encoding/json/v2"
-	"errors"
 	"time"
 )
 
@@ -20,31 +15,20 @@ const (
 	ActivityTypeUnimplemented ActivityType = "Unimplemented"
 )
 
-type URIer interface {
-	URI() string
-}
-
-type Activity struct {
-	Context     any                  `json:"@context"`
-	ID          string               `json:"id"`
-	Type        string               `json:"type"`
-	Publication *Publication         `json:",inline"`
-	Actor       ObjectOrLink[Actor]  `json:"actor"`
-	Object      ObjectOrLink[Object] `json:"object"`
-}
-
 type Object struct {
-	ID          string                `json:"id"`
-	Type        string                `json:"type"`
-	Publication *Publication          `json:",inline"`
-	Note        *Note                 `json:",inline"`
-	Actor       *ObjectOrLink[Actor]  `json:"actor,omitempty"`
-	Object      *ObjectOrLink[Object] `json:"object,omitempty"`
+	Context      any             `json:"@context,omitempty"`
+	ID           string          `json:"id"`
+	Type         string          `json:"type"`
+	AttributedTo *Actor          `json:",inline"`
+	Publication  *Publication    `json:",inline"`
+	Note         *Note           `json:",inline"`
+	Collection   *Collection     `json:",inline"`
+	Page         *CollectionPage `json:",inline"`
+	Actor        *ObjectOrLink   `json:"actor,omitempty"`
+	Object       *ObjectOrLink   `json:"object,omitempty"`
 }
 
 type Actor struct {
-	ID                string `json:"id"`
-	Type              string `json:"type"`
 	PreferredUsername string `json:"preferredUsername"`
 	Inbox             string `json:"inbox"`
 	Outbox            string `json:"outbox"`
@@ -53,67 +37,24 @@ type Actor struct {
 }
 
 type Publication struct {
-	Published    time.Time            `json:"published"`
-	AttributedTo *ObjectOrLink[Actor] `json:"attributedTo,omitempty"`
-	To           []string             `json:"to"`
-	CC           []string             `json:"cc"`
+	Published    time.Time     `json:"published"`
+	AttributedTo *ObjectOrLink `json:"attributedTo,omitempty"`
+	To           []string      `json:"to"`
+	CC           []string      `json:"cc"`
 }
 
 type Note struct {
-	Content   string                `json:"content"`
-	InReplyTo *ObjectOrLink[Object] `json:"inReplyTo"`
-	Replies   ObjectOrLink[Object]  `json:"replies"`
+	Content   string        `json:"content"`
+	InReplyTo *ObjectOrLink `json:"inReplyTo"`
+	Replies   ObjectOrLink  `json:"replies"`
 }
 
-type ObjectOrLink[T URIer] struct {
-	Object *T
-	Link   *string
+type Collection struct {
+	First ObjectOrLink `json:"first"`
 }
 
-func (o ObjectOrLink[T]) GetURI() string {
-	if o.Object != nil {
-		return (*o.Object).URI()
-	}
-	if o.Link != nil {
-		return *o.Link
-	}
-	return ""
-}
-
-func (a Actor) URI() string {
-	return a.ID
-}
-
-func (o Object) URI() string {
-	return o.ID
-}
-
-func (o *ObjectOrLink[T]) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
-	switch dec.PeekKind() {
-	case '{':
-		if err := json.UnmarshalDecode(dec, &o.Object); err != nil {
-			return err
-		}
-	case '"':
-		if err := json.UnmarshalDecode(dec, &o.Link); err != nil {
-			return err
-		}
-	case 'n':
-		if err := dec.SkipValue(); err != nil {
-			return err
-		}
-	default:
-		return errors.New("expected JSON object or string")
-	}
-	return nil
-}
-
-func (o *ObjectOrLink[T]) MarshalJSONTo(enc *jsontext.Encoder) error {
-	if o.Object != nil {
-		return json.MarshalEncode(enc, o.Object)
-	}
-	if o.Link != nil {
-		return json.MarshalEncode(enc, o.Link)
-	}
-	return enc.WriteToken(jsontext.Null)
+type CollectionPage struct {
+	Next   ObjectOrLink   `json:"next"`
+	PartOf ObjectOrLink   `json:"partOf"`
+	Items  []ObjectOrLink `json:"items"`
 }
