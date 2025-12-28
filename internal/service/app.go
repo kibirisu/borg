@@ -27,6 +27,7 @@ type AppService interface {
 	FollowAccount(context.Context, int, int) (*db.Follow, error)
 	GetAccountById(context.Context, int) (db.Account, error)
 	GetAccount(context.Context, db.GetAccountParams) (*db.Account, error)
+	GetPostById(context.Context, int) (*db.Status, error)
 	// EW, idk if this should stay here
 	DeliverToFollowers(http.ResponseWriter, *http.Request, int, func(recipientURI string) any)
 }
@@ -135,6 +136,14 @@ func (s *appService) GetAccountFollowers(
 	ctx context.Context, accountID int,
 ) ([]db.Account, error) {
 	return s.store.Accounts().GetFollowers(ctx, accountID);
+}
+func (s *appService) GetPostById(ctx context.Context, id int) (*db.Status, error) {
+	status, err := s.store.Statuses().GetById(ctx, id)
+	if err != nil {
+		return nil, err
+	}else {
+		return &status, nil
+	}
 }
 
 // FollowAccount implements AppService.
