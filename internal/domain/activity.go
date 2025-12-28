@@ -30,7 +30,7 @@ type Activity struct {
 	Type        string
 	Actor       ObjectOrLink[Actor]
 	Object      ObjectOrLink[Object]
-	Publication Maybe[Publication]
+	Publication *Publication
 	Extra       map[string]any
 }
 
@@ -39,8 +39,8 @@ type Object struct {
 	Type        string
 	Actor       ObjectOrLink[Actor]
 	Object      ObjectOrLink[Object]
-	Publication Maybe[Publication]
-	Note        Maybe[Note]
+	Publication *Publication
+	Note        *Note
 	Extra       map[string]any
 }
 
@@ -65,10 +65,6 @@ type Note struct {
 	Content   string
 	InReplyTo ObjectOrLink[Object]
 	Replies   ObjectOrLink[Object]
-}
-
-type Maybe[T any] struct {
-	Maybe *T
 }
 
 type ObjectOrLink[T URIer] struct {
@@ -134,26 +130,26 @@ func (a *Activity) unmarshalProperties(dec *jsontext.Decoder) error {
 			}
 			switch a.Type {
 			case string(ActivityTypeAnnounce), string(ActivityTypeCreate):
-				a.Publication.Maybe = &Publication{}
+				a.Publication = &Publication{}
 			}
 		case "actor":
 			if err = json.UnmarshalDecode(dec, &a.Actor); err != nil {
 				return err
 			}
 		case "published":
-			if err = json.UnmarshalDecode(dec, &a.Publication.Maybe.Published); err != nil {
+			if err = json.UnmarshalDecode(dec, &a.Publication.Published); err != nil {
 				return err
 			}
 		case "to":
-			if err = json.UnmarshalDecode(dec, &a.Publication.Maybe.To); err != nil {
+			if err = json.UnmarshalDecode(dec, &a.Publication.To); err != nil {
 				return err
 			}
 		case "cc":
-			if err = json.UnmarshalDecode(dec, &a.Publication.Maybe.CC); err != nil {
+			if err = json.UnmarshalDecode(dec, &a.Publication.CC); err != nil {
 				return err
 			}
 		case "attributedTo":
-			if err = json.UnmarshalDecode(dec, &a.Publication.Maybe.AttributedTo); err != nil {
+			if err = json.UnmarshalDecode(dec, &a.Publication.AttributedTo); err != nil {
 				return err
 			}
 		case "object":
@@ -203,40 +199,40 @@ func (o *Object) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
 			}
 			switch o.Type {
 			case string(ActivityTypeCreate):
-				o.Note.Maybe = &Note{}
+				o.Note = &Note{}
 				fallthrough
 			case string(ActivityTypeAnnounce):
-				o.Publication.Maybe = &Publication{}
+				o.Publication = &Publication{}
 			}
 			if o.Type == string(ActivityTypeCreate) {
-				o.Note.Maybe = &Note{}
+				o.Note = &Note{}
 			}
 		case "published":
-			if err = json.UnmarshalDecode(dec, &o.Publication.Maybe.Published); err != nil {
+			if err = json.UnmarshalDecode(dec, &o.Publication.Published); err != nil {
 				return err
 			}
 		case "to":
-			if err = json.UnmarshalDecode(dec, &o.Publication.Maybe.To); err != nil {
+			if err = json.UnmarshalDecode(dec, &o.Publication.To); err != nil {
 				return err
 			}
 		case "cc":
-			if err = json.UnmarshalDecode(dec, &o.Publication.Maybe.CC); err != nil {
+			if err = json.UnmarshalDecode(dec, &o.Publication.CC); err != nil {
 				return err
 			}
 		case "attributedTo":
-			if err = json.UnmarshalDecode(dec, &o.Publication.Maybe.AttributedTo); err != nil {
+			if err = json.UnmarshalDecode(dec, &o.Publication.AttributedTo); err != nil {
 				return err
 			}
 		case "content":
-			if err = json.UnmarshalDecode(dec, &o.Note.Maybe.Content); err != nil {
+			if err = json.UnmarshalDecode(dec, &o.Note.Content); err != nil {
 				return err
 			}
 		case "inReplyTo":
-			if err = json.UnmarshalDecode(dec, &o.Note.Maybe.InReplyTo); err != nil {
+			if err = json.UnmarshalDecode(dec, &o.Note.InReplyTo); err != nil {
 				return err
 			}
 		case "replies":
-			if err = json.UnmarshalDecode(dec, &o.Note.Maybe.Replies); err != nil {
+			if err = json.UnmarshalDecode(dec, &o.Note.Replies); err != nil {
 				return err
 			}
 		case "object":
