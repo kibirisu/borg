@@ -30,3 +30,14 @@ func NewPostToDB(newPost *api.NewPost, isLocal bool) *db.CreateStatusParams {
 		ReblogOfID:		sql.NullInt32{},
 	}
 }
+func NewCommentToDB(comment *api.NewComment) *db.CreateStatusParams {
+	return &db.CreateStatusParams{
+		Uri: "TODO",
+		Url: "TODO",
+		Local: sql.NullBool{Bool: true, Valid: true},
+		Content:    comment.Content,
+		AccountID:  int32(comment.UserID),
+		InReplyToID: sql.NullInt32{Int32: int32(comment.PostID), Valid: true},
+		ReblogOfID:  sql.NullInt32{ Valid: false},
+	}
+}
