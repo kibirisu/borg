@@ -54,3 +54,10 @@ type Accept struct {
 	Actor   string `json:"actor"`
 	Object  any    `json:"object"`
 }
+type Like struct {
+    Context any             `json:"@context"`
+    ID      string          `json:"id"`
+    Type    string          `json:"type"`
+    Actor   json.RawMessage `json:"actor"`
+    Object  json.RawMessage `json:"object"`
+}

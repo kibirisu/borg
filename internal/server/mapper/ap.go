@@ -51,6 +51,17 @@ func DBToFollow(follow *db.Follow, follower *db.Account, followee *db.Account) *
 		Object: json.RawMessage(followedURI),
 	};
 }
+func DBToFavourite(fav *db.Favourite, liker *db.Account, post *db.Status) *domain.Like {
+    likerURI, _ := json.Marshal(liker.Uri)
+    postURI, _ := json.Marshal(post.Uri)
+    
+    return &domain.Like{
+        ID:     fav.Uri,
+        Type:   "Like",
+        Actor:  json.RawMessage(likerURI),
+        Object: json.RawMessage(postURI),
+    }
+}
 
 func ToFollow(data []byte) (*domain.Follow, error) {
 	var f domain.Follow
