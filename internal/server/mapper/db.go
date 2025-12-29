@@ -41,3 +41,15 @@ func NewCommentToDB(comment *api.NewComment) *db.CreateStatusParams {
 		ReblogOfID:  sql.NullInt32{ Valid: false},
 	}
 }
+
+func NewShareToDB(share *api.NewShare) *db.CreateStatusParams {
+	return &db.CreateStatusParams{
+		Uri: "TODO",
+		Url: "TODO",
+		Local: sql.NullBool{Bool: true, Valid: true},
+		Content:    "",
+		AccountID:  int32(share.UserID),
+		InReplyToID: sql.NullInt32{ Valid: false},
+		ReblogOfID:  sql.NullInt32{ Valid: true, Int32: int32(share.PostID)},
+	}
+}
