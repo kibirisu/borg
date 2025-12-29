@@ -6,23 +6,27 @@ import (
 	"errors"
 )
 
-type URIer interface {
-	URI() string
-}
+type Type string
+
+const (
+	ObjectType Type = "type"
+	LinkType   Type = "link"
+	NullType   Type = "null"
+)
 
 type ObjectOrLink struct {
 	Object *Object
 	Link   *string
 }
 
-func (o ObjectOrLink) GetURI() string {
+func (o ObjectOrLink) GetType() Type {
 	if o.Object != nil {
-		return o.Object.ID
+		return ObjectType
 	}
 	if o.Link != nil {
-		return *o.Link
+		return LinkType
 	}
-	return ""
+	return NullType
 }
 
 func (o *ObjectOrLink) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
