@@ -285,7 +285,40 @@ func (s *Server) GetApiPostsIdShares(w http.ResponseWriter, r *http.Request, id 
 
 // PostApiPostsIdShares implements api.ServerInterface.
 func (s *Server) PostApiPostsIdShares(w http.ResponseWriter, r *http.Request, id int) {
-	panic("unimplemented")
+    var newShare api.NewShare // Assuming this exists in your generated API code
+    if err := util.ReadJSON(r, &newShare); err != nil {
+        http.Error(w, "Invalid request payload", http.StatusBadRequest)
+        return 
+    }
+    currentUserID := newShare.UserID
+
+    sharer, err := s.service.App.GetAccountById(r.Context(), currentUserID)
+    post, err := s.service.App.GetPostById(r.Context(), id)
+    if err != nil {
+        http.Error(w, "Post not found", http.StatusNotFound)
+        return
+    }
+    status := mapper.NewShareToDB(&newShare)
+
+    share, err := s.service.App.AddNote(r.Context(), *status)
+    if err != nil {
+        http.Error(w, "Internal server error", http.StatusInternalServerError)
+        return
+    }
+
+
+    author, err := s.service.App.GetAccountById(r.Context(), int(post.AccountID))
+    if err == nil && sharer.Domain != author.Domain {
+	APAnnounce := mapper.PostToCreateNote(&share, &sharer, []string{author.Uri})
+        util.DeliverToEndpoint(author.InboxUri, APAnnounce)
+    }
+
+    s.service.App.DeliverToFollowers(w, r, currentUserID, func(recipientURI string) any {
+	APAnnounce := mapper.PostToCreateNote(&share, &sharer, []string{recipientURI})
+        return APAnnounce
+    })
+
+    util.WriteJSON(w, http.StatusCreated, nil)
 }
 
 // PostApiPosts implements api.ServerInterface.
