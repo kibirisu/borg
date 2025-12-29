@@ -1,8 +1,6 @@
 package domain
 
-import (
-	"time"
-)
+import "time"
 
 type ActivityType string
 
@@ -16,16 +14,16 @@ const (
 )
 
 type Object struct {
-	Context      any             `json:"@context,omitempty"`
-	ID           string          `json:"id"`
-	Type         string          `json:"type"`
-	AttributedTo *Actor          `json:",inline"`
-	Publication  *Publication    `json:",inline"`
-	Note         *Note           `json:",inline"`
-	Collection   *Collection     `json:",inline"`
-	Page         *CollectionPage `json:",inline"`
-	Actor        *ObjectOrLink   `json:"actor,omitempty"`
-	Object       *ObjectOrLink   `json:"object,omitempty"`
+	Context        any             `json:"@context,omitempty"`
+	ID             string          `json:"id"`
+	Type           string          `json:"type"`
+	Actor          *Actor          `json:",inline"`
+	Publication    *Publication    `json:",inline"`
+	Note           *Note           `json:",inline"`
+	Collection     *Collection     `json:",inline"`
+	CollectionPage *CollectionPage `json:",inline"`
+	ActivityActor  *ObjectOrLink   `json:"actor,omitempty"`
+	ActivityObject *ObjectOrLink   `json:"object,omitempty"`
 }
 
 type Actor struct {
