@@ -28,21 +28,14 @@ func (o ObjectOrLink) GetURI() string {
 func (o *ObjectOrLink) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
 	switch dec.PeekKind() {
 	case '{':
-		if err := json.UnmarshalDecode(dec, &o.Object); err != nil {
-			return err
-		}
+		return json.UnmarshalDecode(dec, &o.Object)
 	case '"':
-		if err := json.UnmarshalDecode(dec, &o.Link); err != nil {
-			return err
-		}
+		return json.UnmarshalDecode(dec, &o.Link)
 	case 'n':
-		if err := dec.SkipValue(); err != nil {
-			return err
-		}
+		return dec.SkipValue()
 	default:
-		return errors.New("expected JSON object or string")
+		return errors.New("expected JSON object, string or null")
 	}
-	return nil
 }
 
 func (o *ObjectOrLink) MarshalJSONTo(enc *jsontext.Encoder) error {
