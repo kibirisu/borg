@@ -206,7 +206,39 @@ func (s *Server) GetApiPostsIdComments(w http.ResponseWriter, r *http.Request, i
 
 // PostApiPostsIdComments implements api.ServerInterface.
 func (s *Server) PostApiPostsIdComments(w http.ResponseWriter, r *http.Request, id int) {
-	panic("unimplemented")
+    var comment api.NewComment
+    if err := util.ReadJSON(r, &comment); err != nil {
+        http.Error(w, "Invalid request payload", http.StatusBadRequest)
+        return 
+    }
+	currentUserID := comment.UserID
+
+    commenter, err := s.service.App.GetAccountById(r.Context(), currentUserID)
+    parentPost, err := s.service.App.GetPostById(r.Context(), id)
+    if err != nil {
+        http.Error(w, "Parent post not found", http.StatusNotFound)
+        return
+    }
+
+    dbComment := mapper.NewCommentToDB(&comment) 
+    status, err := s.service.App.AddNote(r.Context(), *dbComment)
+    if err != nil {
+        http.Error(w, "Internal server error", http.StatusInternalServerError)
+        return
+    }
+
+    parentAuthor, _ := s.service.App.GetAccountById(r.Context(), int(parentPost.AccountID))
+    
+    s.service.App.DeliverToFollowers(w, r, currentUserID, func(recipientURI string) any {
+        return mapper.PostToCreateNote(&status, &commenter, []string{recipientURI, parentAuthor.Uri})
+    })
+
+    if commenter.Domain != parentAuthor.Domain {
+        APComment := mapper.PostToCreateNote(&status, &commenter, []string{parentAuthor.Uri})
+        util.DeliverToEndpoint(parentAuthor.InboxUri, APComment)
+    }
+
+    util.WriteJSON(w, http.StatusCreated, nil)
 }
 
 // GetApiPostsIdLikes implements api.ServerInterface.
