@@ -9,12 +9,21 @@ type Pub interface {
 	SetObject()
 }
 
-type APObjectOrLink[T any] interface {
-	IsValid() bool
+type ValueType string
+
+const (
+	ObjectType ValueType = "object"
+	LinkType   ValueType = "link"
+	NullType   ValueType = "null"
+)
+
+type ObjectOrLink[T any] interface {
 	GetObject() T
 	GetURI() string
 	SetObject(T)
 	SetURI(string)
+	SetNull()
+	GetValueType() ValueType
 }
 
 var _ Pub = (*activityPub)(nil)
