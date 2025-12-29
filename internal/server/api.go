@@ -216,7 +216,34 @@ func (s *Server) GetApiPostsIdLikes(w http.ResponseWriter, r *http.Request, id i
 
 // PostApiPostsIdLikes implements api.ServerInterface.
 func (s *Server) PostApiPostsIdLikes(w http.ResponseWriter, r *http.Request, id int) {
-	panic("unimplemented")
+    var newLike api.NewLike
+    if err := util.ReadJSON(r, &newLike); err != nil {
+        http.Error(w, "Invalid request payload", http.StatusBadRequest)
+        return 
+    }
+	currentUserID := newLike.UserID
+
+    liker, err := s.service.App.GetAccountById(r.Context(), currentUserID)
+    post, err := s.service.App.GetPostById(r.Context(), id)
+    if err != nil {
+        http.Error(w, "Post not found", http.StatusNotFound)
+        return
+    }
+
+    like, err := s.service.App.AddFavourite(r.Context(), currentUserID, id)
+    if err != nil {
+        http.Error(w, "Internal server error", http.StatusInternalServerError)
+        return
+    }
+
+    APLike := mapper.DBToFavourite(&like, &liker, post)
+    
+    author, err := s.service.App.GetAccountById(r.Context(), int(post.AccountID))
+    if err == nil && liker.Domain != author.Domain {
+        util.DeliverToEndpoint(author.InboxUri, APLike)
+    }
+
+    util.WriteJSON(w, http.StatusCreated, nil)
 }
 
 // GetApiPostsIdShares implements api.ServerInterface.
