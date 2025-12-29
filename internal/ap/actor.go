@@ -1,0 +1,70 @@
+package ap
+
+import "github.com/kibirisu/borg/internal/domain"
+
+type Actorer interface {
+	ObjectOrLink[Actor]
+}
+
+type Actor struct {
+	ID                string
+	Type              string
+	PreferredUsername string
+	Inbox             string
+	Outbox            string
+	Following         string
+	Followers         string
+}
+
+type actor struct {
+	part *domain.ObjectOrLink
+}
+
+var _ Actorer = (*actor)(nil)
+
+// GetObject implements Actorer.
+func (a *actor) GetObject() Actor {
+	obj := a.part.Object
+	actor := obj.Actor
+	return Actor{
+		ID:                obj.ID,
+		Type:              obj.Type,
+		PreferredUsername: actor.PreferredUsername,
+		Inbox:             actor.Inbox,
+		Outbox:            actor.Outbox,
+		Following:         actor.Following,
+		Followers:         actor.Followers,
+	}
+}
+
+// GetURI implements Actorer.
+func (a *actor) GetURI() string {
+	return *a.part.Link
+}
+
+// GetValueType implements Actorer.
+func (a *actor) GetValueType() ValueType {
+	panic("unimplemented")
+}
+
+// SetNull implements Actorer.
+func (a *actor) SetNull() {
+	a.part.Link = nil
+	a.part.Object = nil
+}
+
+// SetObject implements Actorer.
+func (a *actor) SetObject(actor Actor) {
+	a.part.Object.Actor = &domain.Actor{
+		PreferredUsername: actor.PreferredUsername,
+		Inbox:             actor.Inbox,
+		Outbox:            actor.Outbox,
+		Following:         actor.Following,
+		Followers:         actor.Followers,
+	}
+}
+
+// SetURI implements Actorer.
+func (a *actor) SetURI(uri string) {
+	a.part.Link = &uri
+}
