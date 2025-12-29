@@ -285,7 +285,7 @@ func (s *Server) GetApiPostsIdShares(w http.ResponseWriter, r *http.Request, id 
 
 // PostApiPostsIdShares implements api.ServerInterface.
 func (s *Server) PostApiPostsIdShares(w http.ResponseWriter, r *http.Request, id int) {
-    var newShare api.NewShare // Assuming this exists in your generated API code
+    var newShare api.NewShare 
     if err := util.ReadJSON(r, &newShare); err != nil {
         http.Error(w, "Invalid request payload", http.StatusBadRequest)
         return 
