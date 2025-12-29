@@ -44,7 +44,16 @@ func (a *actor) GetURI() string {
 
 // GetValueType implements Actorer.
 func (a *actor) GetValueType() ValueType {
-	panic("unimplemented")
+	switch a.part.GetType() {
+	case domain.LinkType:
+		return LinkType
+	case domain.NullType:
+		return NullType
+	case domain.ObjectType:
+		return ObjectType
+	default:
+		panic("unexpected domain.Type")
+	}
 }
 
 // SetNull implements Actorer.
@@ -55,6 +64,8 @@ func (a *actor) SetNull() {
 
 // SetObject implements Actorer.
 func (a *actor) SetObject(actor Actor) {
+	a.part.Object.ID = actor.ID
+	a.part.Object.Type = actor.Type
 	a.part.Object.Actor = &domain.Actor{
 		PreferredUsername: actor.PreferredUsername,
 		Inbox:             actor.Inbox,
@@ -67,4 +78,9 @@ func (a *actor) SetObject(actor Actor) {
 // SetURI implements Actorer.
 func (a *actor) SetURI(uri string) {
 	a.part.Link = &uri
+}
+
+// GetRaw implements Actorer.
+func (a *actor) GetRaw() *domain.ObjectOrLink {
+	return a.part
 }

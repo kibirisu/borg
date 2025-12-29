@@ -24,6 +24,7 @@ type ObjectOrLink[T any] interface {
 	SetURI(string)
 	SetNull()
 	GetValueType() ValueType
+	GetRaw() *domain.ObjectOrLink
 }
 
 var _ Pub = (*activityPub)(nil)
