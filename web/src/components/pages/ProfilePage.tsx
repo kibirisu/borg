@@ -4,6 +4,7 @@ import { type LoaderFunctionArgs, Outlet, useLoaderData } from "react-router";
 import type { AppClient } from "../../lib/client";
 import AppContext from "../../lib/state";
 import Sidebar from "../common/Sidebar";
+import anonAvatar from "../../assets/Anonomous.jpg";
 
 export const loader =
   (client: AppClient) =>
@@ -45,11 +46,13 @@ export default function ProfilePage() {
         <main className="px-6 py-6 space-y-6">
           <section className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
             <div className="flex items-start gap-4">
-              <div className="avatar placeholder">
-                <div className="bg-neutral text-neutral-content w-20 rounded-full">
-                  <span className="text-3xl">
-                    {getUserInitials(profileData?.username ?? "")}
-                  </span>
+              <div className="avatar">
+                <div className="w-20 rounded-full overflow-hidden border border-gray-200 shadow-sm">
+                  <img
+                    src={anonAvatar}
+                    alt="User avatar"
+                    className="w-full h-full object-cover"
+                  />
                 </div>
               </div>
               <div className="flex-1">

@@ -1,6 +1,7 @@
 import { NavLink } from "react-router";
 import { useContext, type ReactNode } from "react";
 import AppContext from "../../lib/state";
+import decodeToken from "../../lib/decode";
 
 type SidebarItem = {
   label: string;
@@ -139,9 +140,10 @@ interface SidebarProps {
 
 export default function Sidebar({ onPostClick }: SidebarProps) {
   const appState = useContext(AppContext);
-  const profileTarget = appState?.userId
-    ? `/profile/${appState.userId}`
-    : "/signin";
+  const decoded = decodeToken(appState?.tokenRef?.current ?? null);
+  const userId = decoded?.userId ?? null;
+  const profileTarget = userId ? `/profile/${userId}` : "/signin";
+  const isAuthenticated = Boolean(userId);
 
   return (
     <aside className="w-64 h-screen bg-white border-r px-4 py-6">
@@ -174,10 +176,11 @@ export default function Sidebar({ onPostClick }: SidebarProps) {
 
       <button
         type="button"
-        className="mt-8 w-full bg-indigo-500 text-white py-2 rounded-full font-semibold"
+        className="mt-8 w-full bg-indigo-500 text-white py-2 rounded-full font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
         onClick={onPostClick}
+        disabled={!isAuthenticated}
       >
-        Post
+        {isAuthenticated ? "Post" : "Sign in to post"}
       </button>
     </aside>
   );
