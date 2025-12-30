@@ -37,3 +37,25 @@ INSERT INTO statuses (
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7
 );
+
+-- name: GetHomeTimeline :many
+SELECT 
+    s.id, 
+    s.created_at, 
+    s.updated_at, 
+    s.uri, 
+    s.url, 
+    s.local, 
+    s.content, 
+    s.account_id, 
+    s.in_reply_to_id, 
+    s.reblog_of_id, 
+    a.username
+FROM statuses s
+JOIN accounts a ON s.account_id = a.id
+JOIN follows f ON f.target_account_id = s.account_id
+WHERE 
+    f.account_id = $1
+    AND s.in_reply_to_id IS NULL
+    AND s.reblog_of_id IS NULL
+    ORDER BY s.created_at DESC;

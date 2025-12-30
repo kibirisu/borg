@@ -246,3 +246,46 @@ func (s *Server) GetApiUsersIdFollowing(w http.ResponseWriter, r *http.Request, 
 func (s *Server) GetApiPosts(w http.ResponseWriter, r *http.Request) {
 	panic("unimplemented")
 }
+
+// GetApiTimelinesHome implements api.ServerInterface.
+//
+//nolint:revive
+func (s *Server) GetApiTimelinesHome(w http.ResponseWriter, r *http.Request) {
+	// 1. Get user ID from context (set by auth middleware)
+	container, ok := r.Context().Value("token").(*tokenContainer)
+	if !ok || container == nil || container.id == nil {
+		util.WriteError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+	userID := *container.id
+
+	// 2. Fetch timeline posts from database
+	// We cast int to int32 because sqlc generated code usually expects int32 for IDs
+	statuses, err := s.queries.GetHomeTimeline(r.Context(), int32(userID))
+	if err != nil {
+		log.Printf("GetApiTimelinesHome: Error getting timeline: %v", err)
+		util.WriteError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// 3. Map database results to API response structure
+	posts := make([]api.Post, 0, len(statuses))
+	for _, status := range statuses {
+		username := status.Username
+		post := api.Post{
+			Id:           int(status.ID),
+			UserID:       int(status.AccountID),
+			Content:      status.Content,
+			LikeCount:    0, // TODO: Fetch like count
+			ShareCount:   0, // TODO: Fetch share count
+			CommentCount: 0, // TODO: Fetch comment count
+			CreatedAt:    status.CreatedAt,
+			UpdatedAt:    status.UpdatedAt,
+			Username:     &username,
+		}
+		posts = append(posts, post)
+	}
+
+	// 4. Return JSON response
+	util.WriteJSON(w, http.StatusOK, posts)
+}
