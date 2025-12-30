@@ -142,6 +142,7 @@ export default function Sidebar({ onPostClick }: SidebarProps) {
   const appState = useContext(AppContext);
   const decoded = decodeToken(appState?.tokenRef?.current ?? null);
   const userId = decoded?.userId ?? null;
+  console.log("[sidebar] decoded token", decoded, "profile target userId", userId);
   const profileTarget = userId ? `/profile/${userId}` : "/signin";
   const isAuthenticated = Boolean(userId);
 

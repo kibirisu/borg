@@ -2,6 +2,7 @@ import { useContext, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { type LoaderFunctionArgs, Outlet, useLoaderData } from "react-router";
 import type { AppClient } from "../../lib/client";
+import ClientContext from "../../lib/client";
 import AppContext from "../../lib/state";
 import Sidebar from "../common/Sidebar";
 import anonAvatar from "../../assets/Anonomous.jpg";
@@ -13,13 +14,18 @@ export const loader =
     return { handle: params.handle };
   };
 
-export default function ProfilePage() {
+export default function UserPage() {
   const { handle } = useLoaderData() as Awaited<
     ReturnType<ReturnType<typeof loader>>
   >;
   const appState = useContext(AppContext);
+  const client = useContext(ClientContext);
   const tokenUsername = appState?.username ?? "";
   const tokenUserId = appState?.userId ?? null;
+  console.log("[UserPage] loader handle", handle, "token user", {
+    username: tokenUsername,
+    userId: tokenUserId,
+  });
   const derivedUsername = useMemo(() => {
     if (tokenUsername) {
       return tokenUsername;
@@ -30,14 +36,32 @@ export default function ProfilePage() {
     tokenUserId !== null
       ? `u r logged in `
       : "Profile data is unavailable until the API endpoint is implemented.";
-  const [isFollowed, setIsFollowed] = useState(false);
 
   const { data: profileData } = useQuery({
-    queryKey: ["profile", handle ?? derivedUsername],
-    queryFn: async () => ({
-      username: derivedUsername,
-      bio: derivedBio,
-    }),
+    queryKey: ["profile", tokenUserId ?? handle ?? derivedUsername],
+    enabled: Boolean(client) && (tokenUserId !== null || Boolean(handle)),
+    queryFn: async () => {
+      const id =
+        tokenUserId !== null ? tokenUserId : handle ? Number(handle) : null;
+      console.log("[UserPage] fetching profile for id", id);
+      if (!id) {
+        return { username: derivedUsername, bio: derivedBio };
+      }
+      const res = await client!.fetchClient.GET("/api/users/{id}", {
+        params: { path: { id: Number(id) } },
+      });
+      if (res.error || !res.data) {
+        console.warn("[UserPage] profile fetch failed");
+        return {
+          username: derivedUsername,
+          bio: derivedBio,
+        };
+      }
+      return {
+        username: res.data.username,
+        bio: (res.data as any).bio ?? derivedBio,
+      };
+    },
   });
 
   return (
@@ -69,13 +93,6 @@ export default function ProfilePage() {
                   </span>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => setIsFollowed((prev) => !prev)}
-                className={`btn rounded-[12px] ${isFollowed ? "btn-outline btn-secondary" : "btn-primary"}`}
-              >
-                {isFollowed ? "Unfollow" : "Follow"}
-              </button>
             </div>
           </section>
             {/* POSTS */}
@@ -87,9 +104,4 @@ export default function ProfilePage() {
       </div>
     </div>
   );
-}
-
-function getUserInitials(username: string): string {
-  if (!username) return "";
-  return username.replace(/^@/, "").slice(0, 2).toUpperCase();
 }

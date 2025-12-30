@@ -16,9 +16,8 @@ import MainFeed, {
   loader as mainFeedLoader,
 } from "../components/feed/MainFeed";
 import { action as addPostAction } from "../components/feed/NewPostForm";
-import ProfilePage, {
-  loader as profileLoader,
-} from "../components/pages/ProfilePage";
+import UserPage, { loader as userPageLoader } from "../components/pages/UserPage";
+import OtherUserPage from "../components/pages/OtherUserPage";
 import ExplorePage, {
   loader as exploreLoader,
 } from "../components/pages/ExplorePage";
@@ -29,11 +28,13 @@ import SharedPage, {
 import Root from "../components/Root";
 import ErrorPage from "../components/common/ErrorPage";
 import ClientContext, { type AppClient } from "../lib/client";
+import AppContext from "../lib/state";
 import { Home } from "lucide-react";
 import { SignIn } from "../components/auth/SignIn";
 import { SignUp } from "../components/auth/SignUp";
 import { signInAction } from "../components/auth/signInAction";
 import { signUpAction } from "../components/auth/signUpAction";
+import { useParams, useLoaderData } from "react-router";
 
 const RouterProvider = () => {
   const client = useContext(ClientContext);
@@ -105,8 +106,8 @@ function router(client: AppClient) {
           },
           {
             path: "profile/:handle",
-            Component: ProfilePage,
-            loader: profileLoader(client),
+            Component: ProfileChooser,
+            loader: userPageLoader(client),
             errorElement: <ErrorPage />,
             children: [
               {
@@ -141,5 +142,21 @@ function router(client: AppClient) {
         return context;
       },
     },
+  );
+}
+
+function ProfileChooser() {
+  const { handle } = useParams();
+  const appState = useContext(AppContext);
+  const tokenUserId = appState?.userId;
+  console.log("[ProfileChooser] handle param", handle, "tokenUserId", tokenUserId);
+  const matchOwnProfile =
+    tokenUserId !== null && handle === String(tokenUserId);
+  const data = useLoaderData();
+  // Provide loader data to the chosen component via context.
+  return matchOwnProfile ? (
+    <UserPage />
+  ) : (
+    <OtherUserPage />
   );
 }
