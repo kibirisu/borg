@@ -1,14 +1,14 @@
 package ap
 
 type Activiter interface {
-	Objecter[Activity]
+	Objecter[Activity[any]]
 }
 
-type Activity struct {
+type Activity[T any] struct {
 	ID     string
 	Type   string
 	Actor  Actorer
-	Object Objecter[any]
+	Object Objecter[T]
 }
 
 type activity struct {
@@ -19,8 +19,8 @@ var _ Activiter = (*activity)(nil)
 
 // GetObject implements Activiter.
 // Subtle: this method shadows the method (object).GetObject of activity.object.
-func (a *activity) GetObject() Activity {
-	return Activity{
+func (a *activity) GetObject() Activity[any] {
+	return Activity[any]{
 		ID:     a.raw.Object.ID,
 		Type:   a.raw.Object.Type,
 		Actor:  &actor{object{a.raw.Object.ActivityActor}},
@@ -30,7 +30,9 @@ func (a *activity) GetObject() Activity {
 
 // SetObject implements Activiter.
 // Subtle: this method shadows the method (object).SetObject of activity.object.
-func (a *activity) SetObject(activity Activity) {
+func (a *activity) SetObject(activity Activity[any]) {
+	a.raw.Object.ID = activity.ID
+	a.raw.Object.Type = activity.Type
 	a.raw.Object.ActivityActor = activity.Actor.GetRaw()
 	a.raw.Object.ActivityObject = activity.Object.GetRaw()
 }

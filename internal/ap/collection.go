@@ -6,22 +6,30 @@ type Collectioner interface {
 	Objecter[Collection]
 }
 
-type CollectionPager interface {
-	Objecter[CollectionPage]
+type CollectionPager[T any] interface {
+	Objecter[CollectionPage[T]]
+}
+
+type NoteCollectionPager interface {
+	CollectionPager[Noter]
+}
+
+type ActorCollectionPager interface {
+	CollectionPager[Actorer]
 }
 
 type Collection struct {
 	ID    string
 	Type  string
-	First CollectionPager
+	First CollectionPager[any]
 }
 
-type CollectionPage struct {
+type CollectionPage[T any] struct {
 	ID     string
 	Type   string
-	Next   CollectionPager
+	Next   CollectionPager[T]
 	PartOf Collectioner
-	Items  []Noter
+	Items  []Objecter[T]
 }
 
 type collection struct {
@@ -32,9 +40,19 @@ type collectionPage struct {
 	object
 }
 
+type actorCollectionPage struct {
+	collectionPage
+}
+
+type noteCollectionPage struct {
+	collectionPage
+}
+
 var (
-	_ Collectioner    = (*collection)(nil)
-	_ CollectionPager = (*collectionPage)(nil)
+	_ Collectioner         = (*collection)(nil)
+	_ CollectionPager[any] = (*collectionPage)(nil)
+	_ ActorCollectionPager = (*actorCollectionPage)(nil)
+	_ NoteCollectionPager  = (*noteCollectionPage)(nil)
 )
 
 // GetObject implements Collectioner.
@@ -58,13 +76,13 @@ func (c *collection) SetObject(collection Collection) {
 
 // GetObject implements CollectionPager.
 // Subtle: this method shadows the method (object).GetObject of collectionPage.object.
-func (c *collectionPage) GetObject() CollectionPage {
+func (c *collectionPage) GetObject() CollectionPage[any] {
 	obj := c.raw.Object
-	items := []Noter{}
+	items := []Objecter[any]{}
 	for _, item := range c.raw.Object.CollectionPage.Items {
-		items = append(items, &note{object{&item}})
+		items = append(items, &object{&item})
 	}
-	return CollectionPage{
+	return CollectionPage[any]{
 		ID:     obj.ID,
 		Type:   obj.Type,
 		Next:   &collectionPage{object{&obj.CollectionPage.Next}},
@@ -75,7 +93,7 @@ func (c *collectionPage) GetObject() CollectionPage {
 
 // SetObject implements CollectionPager.
 // Subtle: this method shadows the method (object).SetObject of collectionPage.object.
-func (c *collectionPage) SetObject(page CollectionPage) {
+func (c *collectionPage) SetObject(page CollectionPage[any]) {
 	items := []domain.ObjectOrLink{}
 	for _, item := range page.Items {
 		items = append(items, *item.GetRaw())
@@ -85,4 +103,28 @@ func (c *collectionPage) SetObject(page CollectionPage) {
 	c.raw.Object.CollectionPage.Next = *page.Next.GetRaw()
 	c.raw.Object.CollectionPage.PartOf = *page.PartOf.GetRaw()
 	c.raw.Object.CollectionPage.Items = items
+}
+
+// GetObject implements ActorCollectionPager.
+// Subtle: this method shadows the method (collectionPage).GetObject of actorCollectionPage.collectionPage.
+func (a *actorCollectionPage) GetObject() CollectionPage[Actorer] {
+	panic("unimplemented")
+}
+
+// SetObject implements ActorCollectionPager.
+// Subtle: this method shadows the method (collectionPage).SetObject of actorCollectionPage.collectionPage.
+func (a *actorCollectionPage) SetObject(CollectionPage[Actorer]) {
+	panic("unimplemented")
+}
+
+// GetObject implements NoteCollectionPager.
+// Subtle: this method shadows the method (object).GetObject of noteCollectionPage.object.
+func (n *noteCollectionPage) GetObject() CollectionPage[Noter] {
+	panic("unimplemented")
+}
+
+// SetObject implements NoteCollectionPager.
+// Subtle: this method shadows the method (object).SetObject of noteCollectionPage.object.
+func (n *noteCollectionPage) SetObject(CollectionPage[Noter]) {
+	panic("unimplemented")
 }
