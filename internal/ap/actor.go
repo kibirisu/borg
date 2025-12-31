@@ -41,13 +41,17 @@ func (a *actor) GetObject() Actor {
 // SetObject implements Actorer.
 // Subtle: this method shadows the method (object).SetObject of actor.object.
 func (a *actor) SetObject(actor Actor) {
-	a.raw.Object.ID = actor.ID
-	a.raw.Object.Type = actor.Type
-	a.raw.Object.Actor = &domain.Actor{
-		PreferredUsername: actor.PreferredUsername,
-		Inbox:             actor.Inbox,
-		Outbox:            actor.Outbox,
-		Following:         actor.Following,
-		Followers:         actor.Followers,
+	a.raw = &domain.ObjectOrLink{
+		Object: &domain.Object{
+			ID:   actor.ID,
+			Type: actor.Type,
+			Actor: &domain.Actor{
+				PreferredUsername: actor.PreferredUsername,
+				Inbox:             actor.Inbox,
+				Outbox:            actor.Outbox,
+				Following:         actor.Following,
+				Followers:         actor.Followers,
+			},
+		},
 	}
 }

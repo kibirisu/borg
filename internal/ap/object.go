@@ -58,11 +58,18 @@ func (o *object) SetNull() {
 
 // SetObject implements Objecter.
 func (o *object) SetObject(object any) {
-	o.raw.Object.ID = object.(Object).ID
-	o.raw.Object.Type = object.(Object).Type
+	obj := object.(Object)
+	o.raw = &domain.ObjectOrLink{
+		Object: &domain.Object{
+			ID:   obj.ID,
+			Type: obj.Type,
+		},
+	}
 }
 
 // SetURI implements Objecter.
 func (o *object) SetURI(uri string) {
-	o.raw.Link = &uri
+	o.raw = &domain.ObjectOrLink{
+		Link: &uri,
+	}
 }
