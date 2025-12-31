@@ -28,6 +28,11 @@ type note struct {
 
 var _ Noter = (*note)(nil)
 
+func NewNote(from *domain.ObjectOrLink) Noter {
+	note := note{object{from}}
+	return &note
+}
+
 // GetObject implements Noter.
 // Subtle: this method shadows the method (object).GetObject of note.object.
 func (n *note) GetObject() Note {

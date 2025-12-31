@@ -22,6 +22,11 @@ type actor struct {
 
 var _ Actorer = (*actor)(nil)
 
+func NewActor(from *domain.ObjectOrLink) Actorer {
+	actor := actor{object{from}}
+	return &actor
+}
+
 // GetObject implements Actorer.
 // Subtle: this method shadows the method (object).GetObject of actor.object.
 func (a *actor) GetObject() Actor {
