@@ -19,7 +19,7 @@ type Note struct {
 	AttributedTo Actorer
 	To           []string
 	CC           []string
-	Replies      Collectioner
+	Replies      NoteCollectioner
 }
 
 type note struct {
@@ -41,7 +41,7 @@ func (n *note) GetObject() Note {
 		AttributedTo: &actor{object{obj.Publication.AttributedTo}},
 		To:           obj.Publication.To,
 		CC:           obj.Publication.CC,
-		Replies:      nil, // TODO
+		Replies:      &noteCollection{collection{object{&obj.Note.Replies}}},
 	}
 }
 
