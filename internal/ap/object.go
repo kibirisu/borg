@@ -52,8 +52,7 @@ func (o *object) GetValueType() ValueType {
 
 // SetNull implements Objecter.
 func (o *object) SetNull() {
-	o.raw.Link = nil
-	o.raw.Object = nil
+	o.raw = &domain.ObjectOrLink{}
 }
 
 // SetObject implements Objecter.

@@ -19,6 +19,11 @@ type activity struct {
 
 var _ Activiter = (*activity)(nil)
 
+func NewActivity(from *domain.ObjectOrLink) Activiter {
+	activity := activity{object{from}}
+	return &activity
+}
+
 // GetObject implements Activiter.
 // Subtle: this method shadows the method (object).GetObject of activity.object.
 func (a *activity) GetObject() Activity[any] {
