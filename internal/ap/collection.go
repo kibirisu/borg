@@ -101,25 +101,49 @@ func (c *collection) SetObject(collection Collection[any]) {
 // GetObject implements ActorCollectioner.
 // Subtle: this method shadows the method (collection).GetObject of actorCollection.collection.
 func (a *actorCollection) GetObject() Collection[Actor] {
-	panic("unimplemented")
+	return Collection[Actor]{
+		ID:    a.raw.Object.ID,
+		Type:  a.raw.Object.Type,
+		First: &actorCollectionPage{collectionPage{object{&a.raw.Object.Collection.First}}},
+	}
 }
 
 // SetObject implements ActorCollectioner.
 // Subtle: this method shadows the method (collection).SetObject of actorCollection.collection.
-func (a *actorCollection) SetObject(Collection[Actor]) {
-	panic("unimplemented")
+func (a *actorCollection) SetObject(collection Collection[Actor]) {
+	a.raw = &domain.ObjectOrLink{
+		Object: &domain.Object{
+			ID:   collection.ID,
+			Type: collection.Type,
+			Collection: &domain.Collection{
+				First: *collection.First.GetRaw(),
+			},
+		},
+	}
 }
 
 // GetObject implements NoteCollectioner.
 // Subtle: this method shadows the method (collection).GetObject of noteCollection.collection.
 func (n *noteCollection) GetObject() Collection[Note] {
-	panic("unimplemented")
+	return Collection[Note]{
+		ID:    n.raw.Object.ID,
+		Type:  n.raw.Object.Type,
+		First: &noteCollectionPage{collectionPage{object{&n.raw.Object.Collection.First}}},
+	}
 }
 
 // SetObject implements NoteCollectioner.
 // Subtle: this method shadows the method (collection).SetObject of noteCollection.collection.
-func (n *noteCollection) SetObject(Collection[Note]) {
-	panic("unimplemented")
+func (n *noteCollection) SetObject(collection Collection[Note]) {
+	n.raw = &domain.ObjectOrLink{
+		Object: &domain.Object{
+			ID:   collection.ID,
+			Type: collection.Type,
+			Collection: &domain.Collection{
+				First: *collection.First.GetRaw(),
+			},
+		},
+	}
 }
 
 // GetObject implements CollectionPager.
@@ -178,18 +202,57 @@ func (a *actorCollectionPage) GetObject() CollectionPage[Actor] {
 
 // SetObject implements ActorCollectionPager.
 // Subtle: this method shadows the method (collectionPage).SetObject of actorCollectionPage.collectionPage.
-func (a *actorCollectionPage) SetObject(CollectionPage[Actor]) {
-	panic("unimplemented")
+func (a *actorCollectionPage) SetObject(page CollectionPage[Actor]) {
+	items := []domain.ObjectOrLink{}
+	for _, item := range page.Items {
+		items = append(items, *item.GetRaw())
+	}
+	a.raw = &domain.ObjectOrLink{
+		Object: &domain.Object{
+			ID:   page.ID,
+			Type: page.Type,
+			CollectionPage: &domain.CollectionPage{
+				Next:   *page.Next.GetRaw(),
+				PartOf: *page.PartOf.GetRaw(),
+				Items:  items,
+			},
+		},
+	}
 }
 
 // GetObject implements NoteCollectionPager.
 // Subtle: this method shadows the method (object).GetObject of noteCollectionPage.object.
 func (n *noteCollectionPage) GetObject() CollectionPage[Note] {
-	panic("unimplemented")
+	obj := n.raw.Object
+	items := []Objecter[Note]{}
+	for _, item := range n.raw.Object.CollectionPage.Items {
+		items = append(items, &note{object: object{&item}})
+	}
+	return CollectionPage[Note]{
+		ID:     obj.ID,
+		Type:   obj.Type,
+		Next:   &noteCollectionPage{collectionPage{object{&obj.CollectionPage.Next}}},
+		PartOf: &noteCollection{collection{object{&obj.CollectionPage.PartOf}}},
+		Items:  items,
+	}
 }
 
 // SetObject implements NoteCollectionPager.
 // Subtle: this method shadows the method (object).SetObject of noteCollectionPage.object.
-func (n *noteCollectionPage) SetObject(CollectionPage[Note]) {
-	panic("unimplemented")
+func (n *noteCollectionPage) SetObject(page CollectionPage[Note]) {
+	items := []domain.ObjectOrLink{}
+	for _, item := range page.Items {
+		items = append(items, *item.GetRaw())
+	}
+	n.raw = &domain.ObjectOrLink{
+		Object: &domain.Object{
+			ID:   page.ID,
+			Type: page.Type,
+			CollectionPage: &domain.CollectionPage{
+				Next:   *page.Next.GetRaw(),
+				PartOf: *page.PartOf.GetRaw(),
+				Items:  items,
+			},
+		},
+	}
 }
