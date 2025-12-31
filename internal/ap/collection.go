@@ -69,9 +69,15 @@ func (c *collection) GetObject() Collection {
 // SetObject implements Collectioner.
 // Subtle: this method shadows the method (object).SetObject of collection.object.
 func (c *collection) SetObject(collection Collection) {
-	c.raw.Object.ID = collection.ID
-	c.raw.Object.Type = collection.Type
-	c.raw.Object.Collection.First = *collection.First.GetRaw()
+	c.raw = &domain.ObjectOrLink{
+		Object: &domain.Object{
+			ID:   collection.ID,
+			Type: collection.Type,
+			Collection: &domain.Collection{
+				First: *collection.First.GetRaw(),
+			},
+		},
+	}
 }
 
 // GetObject implements CollectionPager.
@@ -98,11 +104,17 @@ func (c *collectionPage) SetObject(page CollectionPage[any]) {
 	for _, item := range page.Items {
 		items = append(items, *item.GetRaw())
 	}
-	c.raw.Object.ID = page.ID
-	c.raw.Object.Type = page.Type
-	c.raw.Object.CollectionPage.Next = *page.Next.GetRaw()
-	c.raw.Object.CollectionPage.PartOf = *page.PartOf.GetRaw()
-	c.raw.Object.CollectionPage.Items = items
+	c.raw = &domain.ObjectOrLink{
+		Object: &domain.Object{
+			ID:   page.ID,
+			Type: page.Type,
+			CollectionPage: &domain.CollectionPage{
+				Next:   *page.Next.GetRaw(),
+				PartOf: *page.PartOf.GetRaw(),
+				Items:  items,
+			},
+		},
+	}
 }
 
 // GetObject implements ActorCollectionPager.

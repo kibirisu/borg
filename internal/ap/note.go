@@ -1,6 +1,10 @@
 package ap
 
-import "time"
+import (
+	"time"
+
+	"github.com/kibirisu/borg/internal/domain"
+)
 
 type Noter interface {
 	Objecter[Note]
@@ -44,13 +48,21 @@ func (n *note) GetObject() Note {
 // SetObject implements Noter.
 // Subtle: this method shadows the method (object).SetObject of note.object.
 func (n *note) SetObject(note Note) {
-	obj := n.raw.Object
-	obj.ID = note.ID
-	obj.Type = note.Type
-	obj.Publication.AttributedTo = note.AttributedTo.GetRaw()
-	obj.Publication.CC = note.CC
-	obj.Publication.Published = note.Published
-	obj.Note.Content = note.Content
-	obj.Note.InReplyTo = note.InReplyTo.GetRaw()
-	obj.Note.Replies = *note.Replies.GetRaw()
+	n.raw = &domain.ObjectOrLink{
+		Object: &domain.Object{
+			ID:   note.ID,
+			Type: note.Type,
+			Publication: &domain.Publication{
+				Published:    note.Published,
+				AttributedTo: note.AttributedTo.GetRaw(),
+				To:           note.To,
+				CC:           note.CC,
+			},
+			Note: &domain.Note{
+				Content:   note.Content,
+				InReplyTo: note.InReplyTo.GetRaw(),
+				Replies:   *note.Replies.GetRaw(),
+			},
+		},
+	}
 }

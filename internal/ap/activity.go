@@ -1,5 +1,7 @@
 package ap
 
+import "github.com/kibirisu/borg/internal/domain"
+
 type Activiter interface {
 	Objecter[Activity[any]]
 }
@@ -31,8 +33,12 @@ func (a *activity) GetObject() Activity[any] {
 // SetObject implements Activiter.
 // Subtle: this method shadows the method (object).SetObject of activity.object.
 func (a *activity) SetObject(activity Activity[any]) {
-	a.raw.Object.ID = activity.ID
-	a.raw.Object.Type = activity.Type
-	a.raw.Object.ActivityActor = activity.Actor.GetRaw()
-	a.raw.Object.ActivityObject = activity.Object.GetRaw()
+	a.raw = &domain.ObjectOrLink{
+		Object: &domain.Object{
+			ID:             activity.ID,
+			Type:           activity.Type,
+			ActivityActor:  activity.Actor.GetRaw(),
+			ActivityObject: activity.Object.GetRaw(),
+		},
+	}
 }
