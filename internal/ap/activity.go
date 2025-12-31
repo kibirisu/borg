@@ -2,8 +2,8 @@ package ap
 
 import "github.com/kibirisu/borg/internal/domain"
 
-type Activiter interface {
-	Objecter[Activity[any]]
+type Activiter[T any] interface {
+	Objecter[Activity[T]]
 }
 
 type Activity[T any] struct {
@@ -17,9 +17,9 @@ type activity struct {
 	object
 }
 
-var _ Activiter = (*activity)(nil)
+var _ Activiter[any] = (*activity)(nil)
 
-func NewActivity(from *domain.ObjectOrLink) Activiter {
+func NewActivity(from *domain.ObjectOrLink) Activiter[any] {
 	activity := activity{object{from}}
 	return &activity
 }
