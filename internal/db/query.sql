@@ -54,9 +54,8 @@ SELECT
 FROM statuses s
 JOIN accounts a ON s.account_id = a.id
 JOIN follows f ON f.target_account_id = s.account_id
-JOIN users u ON u.account_id = f.account_id
 WHERE 
-    u.id = $1
+    f.account_id = $1
     AND s.in_reply_to_id IS NULL
     AND s.reblog_of_id IS NULL
-ORDER BY s.created_at DESC;
+    ORDER BY s.created_at DESC;
