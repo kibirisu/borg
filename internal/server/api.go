@@ -230,11 +230,11 @@ func (s *Server) PostApiPostsIdComments(w http.ResponseWriter, r *http.Request, 
     parentAuthor, _ := s.service.App.GetAccountById(r.Context(), int(parentPost.AccountID))
     
     s.service.App.DeliverToFollowers(w, r, currentUserID, func(recipientURI string) any {
-        return mapper.PostToCreateNote(&status, &commenter, []string{recipientURI, parentAuthor.Uri})
+        return mapper.PostToCreateNote(&status, &commenter, parentAuthor.FollowersUri)
     })
 
     if commenter.Domain != parentAuthor.Domain {
-        APComment := mapper.PostToCreateNote(&status, &commenter, []string{parentAuthor.Uri})
+        APComment := mapper.PostToCreateNote(&status, &commenter, parentAuthor.Uri)
         util.DeliverToEndpoint(parentAuthor.InboxUri, APComment)
     }
 
@@ -309,12 +309,12 @@ func (s *Server) PostApiPostsIdShares(w http.ResponseWriter, r *http.Request, id
 
     author, err := s.service.App.GetAccountById(r.Context(), int(post.AccountID))
     if err == nil && sharer.Domain != author.Domain {
-	APAnnounce := mapper.PostToCreateNote(&share, &sharer, []string{author.Uri})
+	APAnnounce := mapper.PostToCreateNote(&share, &sharer, author.Uri)
         util.DeliverToEndpoint(author.InboxUri, APAnnounce)
     }
 
     s.service.App.DeliverToFollowers(w, r, currentUserID, func(recipientURI string) any {
-	APAnnounce := mapper.PostToCreateNote(&share, &sharer, []string{recipientURI})
+	APAnnounce := mapper.PostToCreateNote(&share, &sharer, author.FollowersUri)
         return APAnnounce
     })
 
@@ -342,7 +342,7 @@ func (s *Server) PostApiPosts(w http.ResponseWriter, r *http.Request) {
         return
     }
     s.service.App.DeliverToFollowers(w, r, newPost.UserID, func(recipientURI string) any {
-        return mapper.PostToCreateNote(&status, &poster, []string{recipientURI})
+        return mapper.PostToCreateNote(&status, &poster, poster.FollowersUri)
     })
     util.WriteJSON(w, http.StatusCreated, nil);
 }
