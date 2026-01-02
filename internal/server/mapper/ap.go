@@ -75,10 +75,7 @@ func ToCreate(data []byte) (*domain.Create, error) {
 	return &f, err
 }
 
-func PostToCreateNote(post *db.Status, poster *db.Account, receiverURIs []string) *domain.Create {
-	if len(receiverURIs) == 0 {
-		receiverURIs = []string{"https://www.w3.org/ns/activitystreams#Public"}
-	}
+func PostToCreateNote(post *db.Status, poster *db.Account, followersUri string) *domain.Create {
 
 	note := domain.Note{
 		ID:           post.Uri,
@@ -86,7 +83,7 @@ func PostToCreateNote(post *db.Status, poster *db.Account, receiverURIs []string
 		Published:    post.CreatedAt,
 		AttributedTo: poster.Uri,
 		Content:      post.Content,
-		To:           receiverURIs,
+		To:           []string{followersUri},
 	}
 	noteBytes, err := json.Marshal(note)
 	if err != nil {
