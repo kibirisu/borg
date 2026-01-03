@@ -3,13 +3,14 @@ package service
 import (
 	"context"
 
+	"github.com/kibirisu/borg/internal/ap"
 	"github.com/kibirisu/borg/internal/db"
 	"github.com/kibirisu/borg/internal/domain"
 	repo "github.com/kibirisu/borg/internal/repository"
 )
 
 type FederationService interface {
-	GetLocalActor(context.Context, string) (*domain.Actor, error)
+	GetLocalActor(context.Context, string) (*domain.Object, error)
 	CreateActor(context.Context, db.CreateActorParams) (*db.Account, error)
 }
 
@@ -28,14 +29,13 @@ var _ FederationService = (*federationService)(nil)
 func (s *federationService) GetLocalActor(
 	ctx context.Context,
 	username string,
-) (*domain.Actor, error) {
+) (*domain.Object, error) {
 	account, err := s.store.Accounts().GetLocalByUsername(ctx, username)
 	if err != nil {
 		return nil, err
 	}
-	// we probably would implement mapper functions
-	actor := domain.Actor{
-		Context:           "https://www.w3.org/ns/activitystreams",
+	actor := ap.NewActor(nil)
+	actor.SetObject(ap.Actor{
 		ID:                account.Uri,
 		Type:              "Person",
 		PreferredUsername: account.Username,
@@ -43,8 +43,8 @@ func (s *federationService) GetLocalActor(
 		Outbox:            account.OutboxUri,
 		Following:         account.FollowingUri,
 		Followers:         account.FollowersUri,
-	}
-	return &actor, nil
+	})
+	return actor.GetRaw().Object, nil
 }
 
 // CreateActor implements FederationService.

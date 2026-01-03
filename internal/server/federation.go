@@ -30,12 +30,13 @@ func (s *Server) federationRoutes() func(chi.Router) {
 
 func (s *Server) handleGetActor(w http.ResponseWriter, r *http.Request) {
 	user := chi.URLParam(r, "username")
-	account, err := s.service.App.GetLocalAccount(r.Context(), user)
+	// account, err := s.service.App.GetLocalAccount(r.Context(), user)
+	actor, err := s.service.Federation.GetLocalActor(r.Context(), user)
 	if err != nil {
 		util.WriteError(w, http.StatusNotFound, "user not found")
 		return
 	}
-	util.WriteActivityJSON(w, http.StatusOK, mapper.AccountToActor(account))
+	util.WriteActivityJSON(w, http.StatusOK, actor)
 }
 
 func (s *Server) handleInbox(w http.ResponseWriter, r *http.Request) {
@@ -51,8 +52,9 @@ func (s *Server) handleInbox(w http.ResponseWriter, r *http.Request) {
 	if act.GetValueType() != ap.ObjectType {
 		return
 	}
+	obj := act.GetObject()
 
-	switch act.GetObject().Type {
+	switch obj.Type {
 	case "Follow":
 		var followReq domain.Follow
 		if err = json.Unmarshal(bodyBytes, &followReq); err != nil {
@@ -62,7 +64,7 @@ func (s *Server) handleInbox(w http.ResponseWriter, r *http.Request) {
 
 		s.handleFollow(w, r, username, followReq)
 	case "Create":
-		var note domain.Note
+		note := act.GetObject().Object.GetRaw()
 		if err = json.Unmarshal(bodyBytes, &note); err != nil {
 			util.WriteError(w, http.StatusBadRequest, err.Error())
 			return
