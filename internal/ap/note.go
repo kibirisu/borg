@@ -53,7 +53,7 @@ func (n *note) GetObject() Note {
 // SetObject implements Noter.
 // Subtle: this method shadows the method (object).SetObject of note.object.
 func (n *note) SetObject(note Note) {
-	n.raw = &domain.ObjectOrLink{
+	*n.raw = domain.ObjectOrLink{
 		Object: &domain.Object{
 			ID:   note.ID,
 			Type: note.Type,

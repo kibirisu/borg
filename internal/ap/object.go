@@ -52,13 +52,13 @@ func (o *object) GetValueType() ValueType {
 
 // SetNull implements Objecter.
 func (o *object) SetNull() {
-	o.raw = &domain.ObjectOrLink{}
+	*o.raw = domain.ObjectOrLink{}
 }
 
 // SetObject implements Objecter.
 func (o *object) SetObject(object any) {
 	obj := object.(Object)
-	o.raw = &domain.ObjectOrLink{
+	*o.raw = domain.ObjectOrLink{
 		Object: &domain.Object{
 			ID:   obj.ID,
 			Type: obj.Type,
@@ -68,7 +68,7 @@ func (o *object) SetObject(object any) {
 
 // SetURI implements Objecter.
 func (o *object) SetURI(uri string) {
-	o.raw = &domain.ObjectOrLink{
+	*o.raw = domain.ObjectOrLink{
 		Link: &uri,
 	}
 }
