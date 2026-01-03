@@ -176,7 +176,15 @@ func (s *Server) DeleteApiUsersId(w http.ResponseWriter, r *http.Request, id int
 
 // GetApiUsersId implements api.ServerInterface.
 func (s *Server) GetApiUsersId(w http.ResponseWriter, r *http.Request, id int) {
-	panic("unimplemented")
+    user, err := s.service.App.GetAccountById(r.Context(), id)
+
+    if err != nil {
+        http.Error(w, "Database error", http.StatusInternalServerError)
+        return
+    }
+    w.Header().Set("Content-Type", "application/json")
+    w.WriteHeader(http.StatusOK)
+	util.WriteJSON(w, http.StatusOK, *mapper.AccountToAPI(&user))
 }
 
 // PostApiUsers implements api.ServerInterface.
