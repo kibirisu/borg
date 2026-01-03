@@ -14,3 +14,16 @@ func AccountToAPI(account *db.Account) *api.Account {
 		Username:    account.Username,
 	}
 }
+func PostToAPI(post *db.Status) *api.Post {
+	return &api.Post{
+		CommentCount: -1,
+		Content: post.Content,
+		CreatedAt: post.CreatedAt,
+		Id: int(post.ID),
+		LikeCount: -1,
+		ShareCount: -1,
+		UpdatedAt: post.UpdatedAt,
+		UserID: int(post.AccountID),
+		Username: nil,
+	}
+}
