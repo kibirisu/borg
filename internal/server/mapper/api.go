@@ -40,3 +40,11 @@ func PostToAPIWithMetadata(post *db.GetStatusByIdWithMetadataRow) *api.Post {
 		Username: &post.OwnerUsername,
 	}
 }
+func LikeToAPI(like *db.Favourite) *api.Like {
+	return &api.Like{
+		CreatedAt: like.CreatedAt,
+		Id: int(like.ID),
+		PostID: int(like.StatusID),
+		UserID: int(like.AccountID),
+	}
+}

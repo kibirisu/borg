@@ -259,7 +259,20 @@ func (s *Server) PostApiPostsIdComments(w http.ResponseWriter, r *http.Request, 
 
 // GetApiPostsIdLikes implements api.ServerInterface.
 func (s *Server) GetApiPostsIdLikes(w http.ResponseWriter, r *http.Request, id int) {
-	panic("unimplemented")
+    likes, err := s.service.App.GetPostLikes(r.Context(), id)
+
+    if err != nil {
+        http.Error(w, "Database error", http.StatusInternalServerError)
+        return
+    }
+	apiLikes := make([]api.Like, 0, len(likes))
+    
+    for _, like := range likes {
+        converted := mapper.LikeToAPI(&like)
+		apiLikes = append(apiLikes, *converted)
+    }
+
+	util.WriteJSON(w, http.StatusOK, apiLikes);
 }
 
 // PostApiPostsIdLikes implements api.ServerInterface.
