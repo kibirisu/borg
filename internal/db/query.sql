@@ -39,6 +39,11 @@ FROM statuses s
 JOIN accounts a ON s.account_id = a.id
 WHERE s.id = $1;
 
+-- name: GetStatusFavourites :many
+SELECT *
+FROM favourites
+WHERE status_id = $1;
+
 -- name: CreateFollow :one
 INSERT INTO follows (
     uri, account_id, target_account_id

@@ -397,3 +397,39 @@ func (q *Queries) GetStatusByIdWithMetadata(ctx context.Context, id int32) (GetS
 	)
 	return i, err
 }
+
+const getStatusFavourites = `-- name: GetStatusFavourites :many
+SELECT id, created_at, updated_at, uri, account_id, status_id
+FROM favourites
+WHERE status_id = $1
+`
+
+func (q *Queries) GetStatusFavourites(ctx context.Context, statusID int32) ([]Favourite, error) {
+	rows, err := q.db.QueryContext(ctx, getStatusFavourites, statusID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Favourite
+	for rows.Next() {
+		var i Favourite
+		if err := rows.Scan(
+			&i.ID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Uri,
+			&i.AccountID,
+			&i.StatusID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
