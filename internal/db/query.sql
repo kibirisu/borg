@@ -29,9 +29,8 @@ SELECT * FROM statuses WHERE id = $1;
 
 -- name: GetStatusByIdWithMetadata :one
 SELECT 
-    s.*,
-    a.username AS owner_username,
-    a.domain AS owner_domain,
+    sqlc.embed(s),
+    sqlc.embed(a),
     (SELECT COUNT(*) FROM favourites f WHERE f.status_id = s.id) AS like_count,
     (SELECT COUNT(*) FROM statuses r WHERE r.in_reply_to_id = s.id) AS comment_count,
     (SELECT COUNT(*) FROM statuses b WHERE b.reblog_of_id = s.id) AS share_count
@@ -48,6 +47,17 @@ WHERE status_id = $1;
 SELECT *
 FROM statuses 
 WHERE reblog_of_id = $1;
+
+-- name: GetStatusesByAccountId :many
+SELECT 
+    sqlc.embed(s),
+    sqlc.embed(a),
+    (SELECT COUNT(*) FROM favourites f WHERE f.status_id = s.id) AS like_count,
+    (SELECT COUNT(*) FROM statuses r WHERE r.in_reply_to_id = s.id) AS comment_count,
+    (SELECT COUNT(*) FROM statuses b WHERE b.reblog_of_id = s.id) AS share_count
+FROM statuses s
+JOIN accounts a ON s.account_id = a.id
+WHERE s.account_id = $1;
 
 -- name: CreateFollow :one
 INSERT INTO follows (
@@ -82,3 +92,4 @@ RETURNING *;
 SELECT a.* FROM accounts a
 JOIN follows f ON a.id = f.account_id
 WHERE f.target_account_id = $1;
+

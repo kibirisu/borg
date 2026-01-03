@@ -8,7 +8,6 @@ package db
 import (
 	"context"
 	"database/sql"
-	"time"
 )
 
 const authData = `-- name: AuthData :one
@@ -347,8 +346,7 @@ func (q *Queries) GetStatusById(ctx context.Context, id int32) (Status, error) {
 const getStatusByIdWithMetadata = `-- name: GetStatusByIdWithMetadata :one
 SELECT 
     s.id, s.created_at, s.updated_at, s.uri, s.url, s.local, s.content, s.account_id, s.in_reply_to_id, s.reblog_of_id,
-    a.username AS owner_username,
-    a.domain AS owner_domain,
+    a.id, a.created_at, a.updated_at, a.username, a.uri, a.display_name, a.domain, a.inbox_uri, a.outbox_uri, a.followers_uri, a.following_uri, a.url,
     (SELECT COUNT(*) FROM favourites f WHERE f.status_id = s.id) AS like_count,
     (SELECT COUNT(*) FROM statuses r WHERE r.in_reply_to_id = s.id) AS comment_count,
     (SELECT COUNT(*) FROM statuses b WHERE b.reblog_of_id = s.id) AS share_count
@@ -358,39 +356,39 @@ WHERE s.id = $1
 `
 
 type GetStatusByIdWithMetadataRow struct {
-	ID            int32
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
-	Uri           string
-	Url           string
-	Local         sql.NullBool
-	Content       string
-	AccountID     int32
-	InReplyToID   sql.NullInt32
-	ReblogOfID    sql.NullInt32
-	OwnerUsername string
-	OwnerDomain   sql.NullString
-	LikeCount     int64
-	CommentCount  int64
-	ShareCount    int64
+	Status       Status
+	Account      Account
+	LikeCount    int64
+	CommentCount int64
+	ShareCount   int64
 }
 
 func (q *Queries) GetStatusByIdWithMetadata(ctx context.Context, id int32) (GetStatusByIdWithMetadataRow, error) {
 	row := q.db.QueryRowContext(ctx, getStatusByIdWithMetadata, id)
 	var i GetStatusByIdWithMetadataRow
 	err := row.Scan(
-		&i.ID,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.Uri,
-		&i.Url,
-		&i.Local,
-		&i.Content,
-		&i.AccountID,
-		&i.InReplyToID,
-		&i.ReblogOfID,
-		&i.OwnerUsername,
-		&i.OwnerDomain,
+		&i.Status.ID,
+		&i.Status.CreatedAt,
+		&i.Status.UpdatedAt,
+		&i.Status.Uri,
+		&i.Status.Url,
+		&i.Status.Local,
+		&i.Status.Content,
+		&i.Status.AccountID,
+		&i.Status.InReplyToID,
+		&i.Status.ReblogOfID,
+		&i.Account.ID,
+		&i.Account.CreatedAt,
+		&i.Account.UpdatedAt,
+		&i.Account.Username,
+		&i.Account.Uri,
+		&i.Account.DisplayName,
+		&i.Account.Domain,
+		&i.Account.InboxUri,
+		&i.Account.OutboxUri,
+		&i.Account.FollowersUri,
+		&i.Account.FollowingUri,
+		&i.Account.Url,
 		&i.LikeCount,
 		&i.CommentCount,
 		&i.ShareCount,
@@ -460,6 +458,75 @@ func (q *Queries) GetStatusShares(ctx context.Context, reblogOfID sql.NullInt32)
 			&i.AccountID,
 			&i.InReplyToID,
 			&i.ReblogOfID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getStatusesByAccountId = `-- name: GetStatusesByAccountId :many
+SELECT 
+    s.id, s.created_at, s.updated_at, s.uri, s.url, s.local, s.content, s.account_id, s.in_reply_to_id, s.reblog_of_id,
+    a.id, a.created_at, a.updated_at, a.username, a.uri, a.display_name, a.domain, a.inbox_uri, a.outbox_uri, a.followers_uri, a.following_uri, a.url,
+    (SELECT COUNT(*) FROM favourites f WHERE f.status_id = s.id) AS like_count,
+    (SELECT COUNT(*) FROM statuses r WHERE r.in_reply_to_id = s.id) AS comment_count,
+    (SELECT COUNT(*) FROM statuses b WHERE b.reblog_of_id = s.id) AS share_count
+FROM statuses s
+JOIN accounts a ON s.account_id = a.id
+WHERE s.account_id = $1
+`
+
+type GetStatusesByAccountIdRow struct {
+	Status       Status
+	Account      Account
+	LikeCount    int64
+	CommentCount int64
+	ShareCount   int64
+}
+
+func (q *Queries) GetStatusesByAccountId(ctx context.Context, accountID int32) ([]GetStatusesByAccountIdRow, error) {
+	rows, err := q.db.QueryContext(ctx, getStatusesByAccountId, accountID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetStatusesByAccountIdRow
+	for rows.Next() {
+		var i GetStatusesByAccountIdRow
+		if err := rows.Scan(
+			&i.Status.ID,
+			&i.Status.CreatedAt,
+			&i.Status.UpdatedAt,
+			&i.Status.Uri,
+			&i.Status.Url,
+			&i.Status.Local,
+			&i.Status.Content,
+			&i.Status.AccountID,
+			&i.Status.InReplyToID,
+			&i.Status.ReblogOfID,
+			&i.Account.ID,
+			&i.Account.CreatedAt,
+			&i.Account.UpdatedAt,
+			&i.Account.Username,
+			&i.Account.Uri,
+			&i.Account.DisplayName,
+			&i.Account.Domain,
+			&i.Account.InboxUri,
+			&i.Account.OutboxUri,
+			&i.Account.FollowersUri,
+			&i.Account.FollowingUri,
+			&i.Account.Url,
+			&i.LikeCount,
+			&i.CommentCount,
+			&i.ShareCount,
 		); err != nil {
 			return nil, err
 		}
