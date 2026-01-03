@@ -400,7 +400,24 @@ func (s *Server) PutApiPostsId(w http.ResponseWriter, r *http.Request, id int) {
 
 // GetApiUsersIdPosts implements api.ServerInterface.
 func (s *Server) GetApiUsersIdPosts(w http.ResponseWriter, r *http.Request, id int) {
-	panic("unimplemented")
+    posts, err := s.service.App.GetPostByAccountId(r.Context(), id)
+    if err != nil {
+        http.Error(w, "Post not found", http.StatusNotFound)
+        return
+    }
+
+	apiLikes := make([]api.Post, 0, len(posts))
+    
+    for _, info := range posts {
+		converted := mapper.PostToAPIWithMetadata(&info.Status,
+			&info.Account,
+			int(info.LikeCount),
+			int(info.ShareCount),
+			int(info.CommentCount))
+		apiLikes = append(apiLikes, *converted)
+    }
+
+	util.WriteJSON(w, http.StatusOK, apiLikes);
 }
 
 // PostApiAuthRegister implements api.ServerInterface.
