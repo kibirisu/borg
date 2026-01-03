@@ -11,6 +11,7 @@ type StatusRepository interface {
 	Create(context.Context, db.CreateStatusParams) (db.Status, error)
 	GetById(context.Context, int) (db.Status, error)
 	GetShares(context.Context, int) ([]db.Status, error)
+	GetLocalStatuses(context.Context) ([]db.GetLocalStatusesRow, error)
 	GetByIdWithMetadata(context.Context, int) (db.GetStatusByIdWithMetadataRow, error)
 }
 
@@ -35,4 +36,8 @@ func (r *statusRepository) GetByIdWithMetadata(ctx context.Context, id int) (db.
 // GetShares implements StatusRepository.
 func (r *statusRepository) GetShares(ctx context.Context, id int) ([]db.Status, error) {
 	return r.q.GetStatusShares(ctx, sql.NullInt32{Int32: int32(id), Valid: true})
+}
+// GetLocalStatuses implements StatusRepository.
+func (r *statusRepository) GetLocalStatuses(ctx context.Context) ([]db.GetLocalStatusesRow , error) {
+	return r.q.GetLocalStatuses(ctx)
 }

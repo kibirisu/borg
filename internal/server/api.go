@@ -464,5 +464,22 @@ func (s *Server) GetApiUsersIdFollowing(w http.ResponseWriter, r *http.Request, 
 
 // GetApiPosts implements api.ServerInterface.
 func (s *Server) GetApiPosts(w http.ResponseWriter, r *http.Request) {
-	panic("unimplemented")
+    posts, err := s.service.App.GetLocalPosts(r.Context())
+    if err != nil {
+        http.Error(w, "Database error " + err.Error(), http.StatusNotFound)
+        return
+    }
+
+	apiLikes := make([]api.Post, 0, len(posts))
+    
+    for _, info := range posts {
+		converted := mapper.PostToAPIWithMetadata(&info.Status,
+			&info.Account,
+			int(info.LikeCount),
+			int(info.ShareCount),
+			int(info.CommentCount))
+		apiLikes = append(apiLikes, *converted)
+    }
+
+	util.WriteJSON(w, http.StatusOK, apiLikes);
 }

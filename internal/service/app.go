@@ -29,6 +29,7 @@ type AppService interface {
 	FollowAccount(context.Context, int, int) (*db.Follow, error)
 	GetAccountById(context.Context, int) (db.Account, error)
 	GetAccount(context.Context, db.GetAccountParams) (*db.Account, error)
+	GetLocalPosts(context.Context) ([]db.GetLocalStatusesRow, error)
 	GetPostByAccountId(context.Context, int) ([]db.GetStatusesByAccountIdRow, error)
 	GetPostById(context.Context, int) (*db.Status, error)
 	GetPostLikes(context.Context, int) ([]db.Favourite, error)
@@ -210,4 +211,7 @@ func (s *appService) DeliverToFollowers(
 }
 func (s *appService) GetPostByAccountId(ctx context.Context, id int) ([]db.GetStatusesByAccountIdRow, error) {
 	return s.store.Accounts().GetPosts(ctx, id)
+}
+func (s *appService) GetLocalPosts(ctx context.Context) ([]db.GetLocalStatusesRow, error) {
+	return s.store.Statuses().GetLocalStatuses(ctx)
 }
