@@ -297,6 +297,48 @@ func (q *Queries) GetAccountFollowers(ctx context.Context, targetAccountID int32
 	return items, nil
 }
 
+const getAccountFollowing = `-- name: GetAccountFollowing :many
+SELECT a.id, a.created_at, a.updated_at, a.username, a.uri, a.display_name, a.domain, a.inbox_uri, a.outbox_uri, a.followers_uri, a.following_uri, a.url FROM accounts a
+JOIN follows f ON a.id = f.account_id
+WHERE f.account_id = $1
+`
+
+func (q *Queries) GetAccountFollowing(ctx context.Context, accountID int32) ([]Account, error) {
+	rows, err := q.db.QueryContext(ctx, getAccountFollowing, accountID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Account
+	for rows.Next() {
+		var i Account
+		if err := rows.Scan(
+			&i.ID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Username,
+			&i.Uri,
+			&i.DisplayName,
+			&i.Domain,
+			&i.InboxUri,
+			&i.OutboxUri,
+			&i.FollowersUri,
+			&i.FollowingUri,
+			&i.Url,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getActor = `-- name: GetActor :one
 SELECT id, created_at, updated_at, username, uri, display_name, domain, inbox_uri, outbox_uri, followers_uri, following_uri, url FROM accounts WHERE username = $1 AND domain IS NULL
 `
