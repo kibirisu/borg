@@ -43,6 +43,13 @@ INSERT INTO statuses (
 )
 RETURNING *;
 
+-- name: AddStatus :exec
+INSERT INTO statuses (
+    uri, url, content, account_id, in_reply_to_id, reblog_of_id
+) VALUES (
+    $1, $2, $3, $4, $5, $6
+);
+
 -- name: GetAccountFollowers :many
 SELECT a.* FROM accounts a
 JOIN follows f ON a.id = f.account_id

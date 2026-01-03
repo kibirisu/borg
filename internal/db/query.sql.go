@@ -10,6 +10,35 @@ import (
 	"database/sql"
 )
 
+const addStatus = `-- name: AddStatus :exec
+INSERT INTO statuses (
+    uri, url, content, account_id, in_reply_to_id, reblog_of_id
+) VALUES (
+    $1, $2, $3, $4, $5, $6
+)
+`
+
+type AddStatusParams struct {
+	Uri         string
+	Url         string
+	Content     string
+	AccountID   int32
+	InReplyToID sql.NullInt32
+	ReblogOfID  sql.NullInt32
+}
+
+func (q *Queries) AddStatus(ctx context.Context, arg AddStatusParams) error {
+	_, err := q.db.ExecContext(ctx, addStatus,
+		arg.Uri,
+		arg.Url,
+		arg.Content,
+		arg.AccountID,
+		arg.InReplyToID,
+		arg.ReblogOfID,
+	)
+	return err
+}
+
 const authData = `-- name: AuthData :one
 SELECT a.id, u.password_hash FROM accounts a JOIN users u ON a.id = u.account_id WHERE a.username = $1
 `
