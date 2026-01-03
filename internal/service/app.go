@@ -20,6 +20,7 @@ type AppService interface {
 	Register(context.Context, api.AuthForm) error
 	Login(context.Context, api.AuthForm) (string, error)
 	GetAccountFollowers(context.Context, int) ([]db.Account, error)
+	GetAccountFollowing(context.Context, int) ([]db.Account, error)
 	GetLocalAccount(context.Context, string) (*db.Account, error)
 	AddRemoteAccount(ctx context.Context, remote *db.CreateActorParams) (*db.Account, error)
 	CreateFollow(ctx context.Context, follow *db.CreateFollowParams) (*db.Follow, error) 
@@ -152,6 +153,12 @@ func (s *appService) GetAccountFollowers(
 	ctx context.Context, accountID int,
 ) ([]db.Account, error) {
 	return s.store.Accounts().GetFollowers(ctx, accountID);
+}
+// GetAccountFollowing implements AppService.
+func (s *appService) GetAccountFollowing(
+	ctx context.Context, accountID int,
+) ([]db.Account, error) {
+	return s.store.Accounts().GetFollowing(ctx, accountID);
 }
 func (s *appService) GetPostByIdWithMetadata(ctx context.Context, id int) (*db.GetStatusByIdWithMetadataRow, error) {
 	status, err := s.store.Statuses().GetByIdWithMetadata(ctx, id)

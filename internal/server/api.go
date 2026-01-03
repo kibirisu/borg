@@ -432,12 +432,34 @@ func (s *Server) PostApiAuthLogin(w http.ResponseWriter, r *http.Request) {
 
 // GetApiUsersIdFollowers implements api.ServerInterface.
 func (s *Server) GetApiUsersIdFollowers(w http.ResponseWriter, r *http.Request, id int) {
-	panic("unimplemented")
+	followers, err := s.service.App.GetAccountFollowers(r.Context(), id)
+	if err != nil {
+		http.Error(w, "Failed to fetch followers", http.StatusInternalServerError)
+		return
+	}
+
+	apiFollowers := make([]api.Account, 0, len(followers))
+	for _, follower := range followers {
+		apiFollowers  = append(apiFollowers, *mapper.AccountToAPI(&follower))
+	}
+
+	util.WriteJSON(w, http.StatusOK, apiFollowers);
 }
 
 // GetApiUsersIdFollowing implements api.ServerInterface.
 func (s *Server) GetApiUsersIdFollowing(w http.ResponseWriter, r *http.Request, id int) {
-	panic("unimplemented")
+	following, err := s.service.App.GetAccountFollowing(r.Context(), id)
+	if err != nil {
+		http.Error(w, "Failed to fetch following", http.StatusInternalServerError)
+		return
+	}
+
+	apiFollowers := make([]api.Account, 0, len(following))
+	for _, follower := range following {
+		apiFollowers  = append(apiFollowers, *mapper.AccountToAPI(&follower))
+	}
+
+	util.WriteJSON(w, http.StatusOK, apiFollowers);
 }
 
 // GetApiPosts implements api.ServerInterface.

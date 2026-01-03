@@ -12,6 +12,7 @@ type AccountRepository interface {
 	GetLocalByUsername(context.Context, string) (db.Account, error)
 	Create(context.Context, db.CreateActorParams) (db.Account, error)
 	GetFollowers(context.Context, int) ([]db.Account, error)
+	GetFollowing(context.Context, int) ([]db.Account, error)
 	GetPosts(context.Context, int) ([]db.GetStatusesByAccountIdRow , error)
 }
 
@@ -55,6 +56,12 @@ func (r *accountRepository) GetFollowers(
 	ctx context.Context, accountID int,
 ) ([]db.Account, error) {
 	return r.q.GetAccountFollowers(ctx, int32(accountID))
+}
+// GetFollowing implements AccountRepository.
+func (r *accountRepository) GetFollowing(
+	ctx context.Context, accountID int,
+) ([]db.Account, error) {
+	return r.q.GetAccountFollowing(ctx, int32(accountID))
 }
 // GetPosts implements AccountRepository.
 func (r *accountRepository) GetPosts(ctx context.Context, id int) ([]db.GetStatusesByAccountIdRow , error) {
