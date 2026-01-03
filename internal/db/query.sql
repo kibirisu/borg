@@ -24,6 +24,17 @@ SELECT * FROM accounts WHERE username = $1 AND domain = $2;
 -- name: GetAccountById :one
 SELECT * FROM accounts WHERE id = $1;
 
+-- name: GetLocalStatuses :many
+SELECT 
+    sqlc.embed(s),
+    sqlc.embed(a),
+    (SELECT COUNT(*) FROM favourites f WHERE f.status_id = s.id) AS like_count,
+    (SELECT COUNT(*) FROM statuses r WHERE r.in_reply_to_id = s.id) AS comment_count,
+    (SELECT COUNT(*) FROM statuses b WHERE b.reblog_of_id = s.id) AS share_count
+FROM statuses s
+JOIN accounts a ON s.account_id = a.id
+WHERE a.domain is null and s.in_reply_to_id is null;
+
 -- name: GetStatusById :one
 SELECT * FROM statuses WHERE id = $1;
 
