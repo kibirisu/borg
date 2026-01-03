@@ -176,7 +176,15 @@ func (s *Server) DeleteApiUsersId(w http.ResponseWriter, r *http.Request, id int
 
 // GetApiUsersId implements api.ServerInterface.
 func (s *Server) GetApiUsersId(w http.ResponseWriter, r *http.Request, id int) {
-	panic("unimplemented")
+    user, err := s.service.App.GetAccountById(r.Context(), id)
+
+    if err != nil {
+        http.Error(w, "Database error", http.StatusInternalServerError)
+        return
+    }
+    w.Header().Set("Content-Type", "application/json")
+    w.WriteHeader(http.StatusOK)
+	util.WriteJSON(w, http.StatusOK, *mapper.AccountToAPI(&user))
 }
 
 // PostApiUsers implements api.ServerInterface.
@@ -196,7 +204,19 @@ func (s *Server) DeleteApiPostsId(w http.ResponseWriter, r *http.Request, id int
 
 // GetApiPostsId implements api.ServerInterface.
 func (s *Server) GetApiPostsId(w http.ResponseWriter, r *http.Request, id int) {
-	panic("unimplemented")
+    info, err := s.service.App.GetPostByIdWithMetadata(r.Context(), id)
+
+    if err != nil {
+        http.Error(w, "Database error", http.StatusInternalServerError)
+        return
+    }
+    w.Header().Set("Content-Type", "application/json")
+    w.WriteHeader(http.StatusOK)
+	util.WriteJSON(w, http.StatusOK, *mapper.PostToAPIWithMetadata(&info.Status,
+		&info.Account,
+		int(info.LikeCount),
+		int(info.ShareCount),
+		int(info.CommentCount)))
 }
 
 // GetApiPostsIdComments implements api.ServerInterface.
@@ -243,7 +263,20 @@ func (s *Server) PostApiPostsIdComments(w http.ResponseWriter, r *http.Request, 
 
 // GetApiPostsIdLikes implements api.ServerInterface.
 func (s *Server) GetApiPostsIdLikes(w http.ResponseWriter, r *http.Request, id int) {
-	panic("unimplemented")
+    likes, err := s.service.App.GetPostLikes(r.Context(), id)
+
+    if err != nil {
+        http.Error(w, "Database error", http.StatusInternalServerError)
+        return
+    }
+	apiLikes := make([]api.Like, 0, len(likes))
+    
+    for _, like := range likes {
+        converted := mapper.LikeToAPI(&like)
+		apiLikes = append(apiLikes, *converted)
+    }
+
+	util.WriteJSON(w, http.StatusOK, apiLikes);
 }
 
 // PostApiPostsIdLikes implements api.ServerInterface.
@@ -280,12 +313,25 @@ func (s *Server) PostApiPostsIdLikes(w http.ResponseWriter, r *http.Request, id 
 
 // GetApiPostsIdShares implements api.ServerInterface.
 func (s *Server) GetApiPostsIdShares(w http.ResponseWriter, r *http.Request, id int) {
-	panic("unimplemented")
+    shares, err := s.service.App.GetPostShares(r.Context(), id)
+
+    if err != nil {
+        http.Error(w, "Database error", http.StatusInternalServerError)
+        return
+    }
+	apiShares := make([]api.Post, 0, len(shares))
+    
+    for _, share := range shares {
+        converted := mapper.PostToAPI(&share)
+		apiShares = append(apiShares, *converted)
+    }
+
+	util.WriteJSON(w, http.StatusOK, apiShares);
 }
 
 // PostApiPostsIdShares implements api.ServerInterface.
 func (s *Server) PostApiPostsIdShares(w http.ResponseWriter, r *http.Request, id int) {
-    var newShare api.NewShare // Assuming this exists in your generated API code
+    var newShare api.NewShare 
     if err := util.ReadJSON(r, &newShare); err != nil {
         http.Error(w, "Invalid request payload", http.StatusBadRequest)
         return 
@@ -354,7 +400,24 @@ func (s *Server) PutApiPostsId(w http.ResponseWriter, r *http.Request, id int) {
 
 // GetApiUsersIdPosts implements api.ServerInterface.
 func (s *Server) GetApiUsersIdPosts(w http.ResponseWriter, r *http.Request, id int) {
-	panic("unimplemented")
+    posts, err := s.service.App.GetPostByAccountId(r.Context(), id)
+    if err != nil {
+        http.Error(w, "Post not found", http.StatusNotFound)
+        return
+    }
+
+	apiLikes := make([]api.Post, 0, len(posts))
+    
+    for _, info := range posts {
+		converted := mapper.PostToAPIWithMetadata(&info.Status,
+			&info.Account,
+			int(info.LikeCount),
+			int(info.ShareCount),
+			int(info.CommentCount))
+		apiLikes = append(apiLikes, *converted)
+    }
+
+	util.WriteJSON(w, http.StatusOK, apiLikes);
 }
 
 // PostApiAuthRegister implements api.ServerInterface.
@@ -369,15 +432,54 @@ func (s *Server) PostApiAuthLogin(w http.ResponseWriter, r *http.Request) {
 
 // GetApiUsersIdFollowers implements api.ServerInterface.
 func (s *Server) GetApiUsersIdFollowers(w http.ResponseWriter, r *http.Request, id int) {
-	panic("unimplemented")
+	followers, err := s.service.App.GetAccountFollowers(r.Context(), id)
+	if err != nil {
+		http.Error(w, "Failed to fetch followers", http.StatusInternalServerError)
+		return
+	}
+
+	apiFollowers := make([]api.Account, 0, len(followers))
+	for _, follower := range followers {
+		apiFollowers  = append(apiFollowers, *mapper.AccountToAPI(&follower))
+	}
+
+	util.WriteJSON(w, http.StatusOK, apiFollowers);
 }
 
 // GetApiUsersIdFollowing implements api.ServerInterface.
 func (s *Server) GetApiUsersIdFollowing(w http.ResponseWriter, r *http.Request, id int) {
-	panic("unimplemented")
+	following, err := s.service.App.GetAccountFollowing(r.Context(), id)
+	if err != nil {
+		http.Error(w, "Failed to fetch following", http.StatusInternalServerError)
+		return
+	}
+
+	apiFollowers := make([]api.Account, 0, len(following))
+	for _, follower := range following {
+		apiFollowers  = append(apiFollowers, *mapper.AccountToAPI(&follower))
+	}
+
+	util.WriteJSON(w, http.StatusOK, apiFollowers);
 }
 
 // GetApiPosts implements api.ServerInterface.
 func (s *Server) GetApiPosts(w http.ResponseWriter, r *http.Request) {
-	panic("unimplemented")
+    posts, err := s.service.App.GetLocalPosts(r.Context())
+    if err != nil {
+        http.Error(w, "Database error " + err.Error(), http.StatusNotFound)
+        return
+    }
+
+	apiLikes := make([]api.Post, 0, len(posts))
+    
+    for _, info := range posts {
+		converted := mapper.PostToAPIWithMetadata(&info.Status,
+			&info.Account,
+			int(info.LikeCount),
+			int(info.ShareCount),
+			int(info.CommentCount))
+		apiLikes = append(apiLikes, *converted)
+    }
+
+	util.WriteJSON(w, http.StatusOK, apiLikes);
 }

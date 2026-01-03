@@ -14,3 +14,37 @@ func AccountToAPI(account *db.Account) *api.Account {
 		Username:    account.Username,
 	}
 }
+func PostToAPI(post *db.Status) *api.Post {
+	return &api.Post{
+		CommentCount: -1,
+		Content: post.Content,
+		CreatedAt: post.CreatedAt,
+		Id: int(post.ID),
+		LikeCount: -1,
+		ShareCount: -1,
+		UpdatedAt: post.UpdatedAt,
+		UserID: int(post.AccountID),
+		Username: nil,
+	}
+}
+func PostToAPIWithMetadata(post *db.Status, acc *db.Account, LikeCount int, ShareCount int, CommentCount int) *api.Post {
+	return &api.Post{
+		CommentCount: CommentCount,
+		Content: post.Content,
+		CreatedAt: post.CreatedAt,
+		Id: int(post.ID),
+		LikeCount: LikeCount,
+		ShareCount: ShareCount,
+		UpdatedAt: post.UpdatedAt,
+		UserID: int(post.AccountID),
+		Username: &acc.Username,
+	}
+}
+func LikeToAPI(like *db.Favourite) *api.Like {
+	return &api.Like{
+		CreatedAt: like.CreatedAt,
+		Id: int(like.ID),
+		PostID: int(like.StatusID),
+		UserID: int(like.AccountID),
+	}
+}
