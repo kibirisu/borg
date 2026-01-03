@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -13,6 +12,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"github.com/kibirisu/borg/internal/ap"
 	"github.com/kibirisu/borg/internal/db"
 	"github.com/kibirisu/borg/internal/domain"
 	"github.com/kibirisu/borg/internal/server/mapper"
@@ -40,18 +40,19 @@ func (s *Server) handleGetActor(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleInbox(w http.ResponseWriter, r *http.Request) {
 	username := chi.URLParam(r, "username")
-	var activity domain.Activity
-	bodyBytes, err := io.ReadAll(r.Body)
-	if err != nil {
-		util.WriteError(w, http.StatusBadRequest, "read error")
+	var object domain.ObjectOrLink
+	if err := util.ReadJSON(r, &object); err != nil {
+		log.Println(err)
+		util.WriteError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	if err = json.Unmarshal(bodyBytes, &activity); err != nil {
+	act := ap.NewActivity(&object)
+	if act.GetValueType() != ap.ObjectType {
 		return
 	}
 
-	switch activity.Type {
+	switch act.GetObject().Type {
 	case "Follow":
 		var followReq domain.Follow
 		if err = json.Unmarshal(bodyBytes, &followReq); err != nil {
@@ -93,11 +94,11 @@ func (s *Server) handleInbox(w http.ResponseWriter, r *http.Request) {
 		}
 		w.WriteHeader(http.StatusCreated)
 	case "Accept":
-		log.Printf("Acknowledge activity: %s\n", activity.Type)
+		log.Printf("Acknowledge activity: %s\n", object.Type)
 		w.WriteHeader(http.StatusAccepted)
 
 	default:
-		log.Printf("Received unsupported activity type: %s\n", activity.Type)
+		log.Printf("Received unsupported activity type: %s\n", object.Type)
 		w.WriteHeader(http.StatusAccepted)
 	}
 }
