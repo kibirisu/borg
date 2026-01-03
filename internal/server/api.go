@@ -204,7 +204,7 @@ func (s *Server) DeleteApiPostsId(w http.ResponseWriter, r *http.Request, id int
 
 // GetApiPostsId implements api.ServerInterface.
 func (s *Server) GetApiPostsId(w http.ResponseWriter, r *http.Request, id int) {
-    post, err := s.service.App.GetPostById(r.Context(), id)
+    post, err := s.service.App.GetPostByIdWithMetadata(r.Context(), id)
 
     if err != nil {
         http.Error(w, "Database error", http.StatusInternalServerError)
@@ -212,7 +212,7 @@ func (s *Server) GetApiPostsId(w http.ResponseWriter, r *http.Request, id int) {
     }
     w.Header().Set("Content-Type", "application/json")
     w.WriteHeader(http.StatusOK)
-	util.WriteJSON(w, http.StatusOK, *mapper.PostToAPI(post))
+	util.WriteJSON(w, http.StatusOK, *mapper.PostToAPIWithMetadata(post))
 }
 
 // GetApiPostsIdComments implements api.ServerInterface.

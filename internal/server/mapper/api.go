@@ -27,3 +27,16 @@ func PostToAPI(post *db.Status) *api.Post {
 		Username: nil,
 	}
 }
+func PostToAPIWithMetadata(post *db.GetStatusByIdWithMetadataRow) *api.Post {
+	return &api.Post{
+		CommentCount: int(post.CommentCount),
+		Content: post.Content,
+		CreatedAt: post.CreatedAt,
+		Id: int(post.ID),
+		LikeCount: int(post.LikeCount),
+		ShareCount: int(post.ShareCount),
+		UpdatedAt: post.UpdatedAt,
+		UserID: int(post.AccountID),
+		Username: &post.OwnerUsername,
+	}
+}
