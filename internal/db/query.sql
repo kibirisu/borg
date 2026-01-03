@@ -44,6 +44,11 @@ SELECT *
 FROM favourites
 WHERE status_id = $1;
 
+-- name: GetStatusShares :many
+SELECT *
+FROM statuses 
+WHERE reblog_of_id = $1;
+
 -- name: CreateFollow :one
 INSERT INTO follows (
     uri, account_id, target_account_id

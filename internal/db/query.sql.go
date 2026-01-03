@@ -433,3 +433,43 @@ func (q *Queries) GetStatusFavourites(ctx context.Context, statusID int32) ([]Fa
 	}
 	return items, nil
 }
+
+const getStatusShares = `-- name: GetStatusShares :many
+SELECT id, created_at, updated_at, uri, url, local, content, account_id, in_reply_to_id, reblog_of_id
+FROM statuses 
+WHERE reblog_of_id = $1
+`
+
+func (q *Queries) GetStatusShares(ctx context.Context, reblogOfID sql.NullInt32) ([]Status, error) {
+	rows, err := q.db.QueryContext(ctx, getStatusShares, reblogOfID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Status
+	for rows.Next() {
+		var i Status
+		if err := rows.Scan(
+			&i.ID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Uri,
+			&i.Url,
+			&i.Local,
+			&i.Content,
+			&i.AccountID,
+			&i.InReplyToID,
+			&i.ReblogOfID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
