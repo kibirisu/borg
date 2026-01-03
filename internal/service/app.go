@@ -30,6 +30,7 @@ type AppService interface {
 	GetAccount(context.Context, db.GetAccountParams) (*db.Account, error)
 	GetPostById(context.Context, int) (*db.Status, error)
 	GetPostLikes(context.Context, int) ([]db.Favourite, error)
+	GetPostShares(context.Context, int) ([]db.Status, error)
 	GetPostByIdWithMetadata(context.Context, int) (*db.GetStatusByIdWithMetadataRow, error)
 	// EW, idk if this should stay here
 	DeliverToFollowers(http.ResponseWriter, *http.Request, int, func(recipientURI string) any)
@@ -170,7 +171,9 @@ func (s *appService) GetPostById(ctx context.Context, id int) (*db.Status, error
 func (s *appService) GetPostLikes(ctx context.Context, id int) ([]db.Favourite, error) {
 	return s.store.Favourites().GetByPost(ctx, id)
 }
-
+func (s *appService) GetPostShares(ctx context.Context, id int) ([]db.Status, error) {
+	return s.store.Statuses().GetShares(ctx, id)
+}
 // FollowAccount implements AppService.
 func (s *appService) FollowAccount(ctx context.Context, follower int, followee int) (*db.Follow, error) {
 	createParams := db.CreateFollowParams {

@@ -309,7 +309,20 @@ func (s *Server) PostApiPostsIdLikes(w http.ResponseWriter, r *http.Request, id 
 
 // GetApiPostsIdShares implements api.ServerInterface.
 func (s *Server) GetApiPostsIdShares(w http.ResponseWriter, r *http.Request, id int) {
-	panic("unimplemented")
+    shares, err := s.service.App.GetPostShares(r.Context(), id)
+
+    if err != nil {
+        http.Error(w, "Database error", http.StatusInternalServerError)
+        return
+    }
+	apiShares := make([]api.Post, 0, len(shares))
+    
+    for _, share := range shares {
+        converted := mapper.PostToAPI(&share)
+		apiShares = append(apiShares, *converted)
+    }
+
+	util.WriteJSON(w, http.StatusOK, apiShares);
 }
 
 // PostApiPostsIdShares implements api.ServerInterface.
