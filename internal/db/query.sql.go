@@ -137,6 +137,25 @@ func (q *Queries) CreateFollow(ctx context.Context, arg CreateFollowParams) (Fol
 	return i, err
 }
 
+const createFollowRequest = `-- name: CreateFollowRequest :exec
+INSERT INTO follow_requests (
+    uri, account_id, target_account_id
+) VALUES (
+    $1, $2, $3
+)
+`
+
+type CreateFollowRequestParams struct {
+	Uri             string
+	AccountID       int32
+	TargetAccountID int32
+}
+
+func (q *Queries) CreateFollowRequest(ctx context.Context, arg CreateFollowRequestParams) error {
+	_, err := q.db.ExecContext(ctx, createFollowRequest, arg.Uri, arg.AccountID, arg.TargetAccountID)
+	return err
+}
+
 const createStatus = `-- name: CreateStatus :one
 INSERT INTO statuses (
     uri, url, local, content, account_id, in_reply_to_id, reblog_of_id

@@ -35,6 +35,13 @@ DO UPDATE SET
     updated_at = CURRENT_TIMESTAMP
 RETURNING *;
 
+-- name: CreateFollowRequest :exec
+INSERT INTO follow_requests (
+    uri, account_id, target_account_id
+) VALUES (
+    $1, $2, $3
+);
+
 -- name: CreateStatus :one
 INSERT INTO statuses (
     uri, url, local, content, account_id, in_reply_to_id, reblog_of_id

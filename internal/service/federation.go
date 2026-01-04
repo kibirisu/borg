@@ -109,6 +109,7 @@ func (s *federationService) AddNote(ctx context.Context, activity ap.Activiter[a
 
 	// We may make db rows searchable by AP object URI for smoothness
 	// Since we receiving that note, the account shall be present in db
+	// Otherwise, it may be DM, so we fetch remote actor
 
 	return s.store.Statuses().Add(ctx, db.AddStatusParams{
 		Uri:         note.ID,
