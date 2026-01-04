@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kibirisu/borg/internal/ap"
 	"github.com/kibirisu/borg/internal/api"
 	"github.com/kibirisu/borg/internal/domain"
 	"github.com/kibirisu/borg/internal/server/mapper"
@@ -126,14 +127,15 @@ func (s *Server) GetApiAccountsLookup(
 			// we fetched remote actor
 			// we must store it in database and return account in response
 			_ = resp.Body.Close()
-			row, err := s.service.Federation.CreateActor(r.Context(), *mapper.ActorToDB(&actor, addr))
-			if err != nil {
-				log.Println(err)
-				util.WriteError(w, http.StatusInternalServerError, err.Error())
-				return
-			}
-			log.Println(row)
-			util.WriteJSON(w, http.StatusOK, mapper.AccountToAPI(row))
+			// row, err := s.service.Federation.CreateActor(r.Context(), *mapper.ActorToDB(&actor, addr))
+
+			// if err != nil {
+			// 	log.Println(err)
+			// 	util.WriteError(w, http.StatusInternalServerError, err.Error())
+			// 	return
+			// }
+			// log.Println(row)
+			// util.WriteJSON(w, http.StatusOK, mapper.AccountToAPI(row))
 		}
 		util.WriteJSON(w, http.StatusOK, mapper.AccountToAPI(account))
 	} else {
@@ -144,12 +146,12 @@ func (s *Server) GetApiAccountsLookup(
 // PostApiAccountsIdFollow implements api.ServerInterface.
 func (s *Server) PostApiAccountsIdFollow(w http.ResponseWriter, r *http.Request, id int) {
 	container, ok := r.Context().Value("token").(*tokenContainer)
-    
-    if !ok || container == nil || container.id == nil {
-        util.WriteError(w, http.StatusUnauthorized, "User not authenticated")
-        return
-    }
-    currentUserID := *container.id
+
+	if !ok || container == nil || container.id == nil {
+		util.WriteError(w, http.StatusUnauthorized, "User not authenticated")
+		return
+	}
+	currentUserID := *container.id
 	if currentUserID == id {
 		http.Error(w, "Tried to follow oneself", http.StatusBadRequest)
 		return
@@ -161,12 +163,23 @@ func (s *Server) PostApiAccountsIdFollow(w http.ResponseWriter, r *http.Request,
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
-	APfollow := mapper.DBToFollow(follow, &follower, &followee)
+	// APfollow := mapper.DBToFollow(follow, &follower, &followee)
+	followActivity := ap.NewActivity(nil)
+	actor := ap.NewActor(nil)
+	actor.SetURI(follower.Uri)
+	object := ap.NewActor(nil)
+	object.SetURI(followee.Uri)
+	followActivity.SetObject(ap.Activity[any]{
+		ID:     follow.Uri,
+		Type:   "Follow",
+		Actor:  actor,
+		Object: object.(ap.Objecter[any]),
+	})
 	log.Println(followee.InboxUri)
 	if follower.Domain != followee.Domain {
-		util.DeliverToEndpoint(followee.InboxUri, APfollow)
+		util.DeliverToEndpoint(followee.InboxUri, followActivity.GetRaw())
 	}
-	util.WriteJSON(w, http.StatusCreated, nil);
+	util.WriteJSON(w, http.StatusCreated, nil)
 }
 
 // DeleteApiUsersId implements api.ServerInterface.
@@ -231,28 +244,50 @@ func (s *Server) PostApiPostsIdShares(w http.ResponseWriter, r *http.Request, id
 
 // PostApiPosts implements api.ServerInterface.
 func (s *Server) PostApiPosts(w http.ResponseWriter, r *http.Request) {
-    container, ok := r.Context().Value("token").(*tokenContainer)
-    if !ok || container == nil || container.id == nil {
-        util.WriteError(w, http.StatusUnauthorized, "User not authenticated")
-        return
-    }
-    currentUserID := *container.id
-    poster, err := s.service.App.GetAccountById(r.Context(), currentUserID)
-    var newPost api.NewPost
-    if err := util.ReadJSON(r, &newPost); err != nil {
-        http.Error(w, "Invalid request payload", http.StatusBadRequest)
-        return 
-    }
-    var newDBPost = mapper.NewPostToDB(&newPost, true)
-    status, err := s.service.App.AddNote(r.Context(), *newDBPost)
-    if err != nil {
-        http.Error(w, "Internal server error", http.StatusInternalServerError)
-        return
-    }
-    s.service.App.DeliverToFollowers(w, r, newPost.UserID, func(recipientURI string) any {
-        return mapper.PostToCreateNote(&status, &poster, []string{recipientURI})
-    })
-    util.WriteJSON(w, http.StatusCreated, nil);
+	container, ok := r.Context().Value("token").(*tokenContainer)
+	if !ok || container == nil || container.id == nil {
+		util.WriteError(w, http.StatusUnauthorized, "User not authenticated")
+		return
+	}
+	currentUserID := *container.id
+	poster, err := s.service.App.GetAccountById(r.Context(), currentUserID)
+	var newPost api.NewPost
+	if err := util.ReadJSON(r, &newPost); err != nil {
+		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+		return
+	}
+	newDBPost := mapper.NewPostToDB(&newPost, true)
+	status, err := s.service.App.AddNote(r.Context(), *newDBPost)
+	if err != nil {
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	s.service.App.DeliverToFollowers(w, r, newPost.UserID, func(recipientURI string) any {
+		create := ap.NewCreateActivity(nil)
+		actor := ap.NewActor(nil)
+		actor.SetURI(poster.Uri)
+		note := ap.NewNote(nil)
+		note.SetObject(ap.Note{
+			ID:           status.Uri,
+			Type:         "Note",
+			Content:      status.Content,
+			InReplyTo:    nil,
+			Published:    status.CreatedAt,
+			AttributedTo: nil,
+			To:           []string{recipientURI},
+			CC:           []string{recipientURI},
+			Replies:      nil,
+		})
+		create.SetObject(ap.Activity[ap.Note]{
+			ID:     "TODO",
+			Type:   "Create",
+			Actor:  actor,
+			Object: note,
+		})
+		return create.GetRaw()
+	})
+	util.WriteJSON(w, http.StatusCreated, nil)
 }
 
 // PutApiPostsId implements api.ServerInterface.

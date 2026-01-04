@@ -9,6 +9,7 @@ import (
 type StatusRepository interface {
 	Create(context.Context, db.CreateStatusParams) (db.Status, error)
 	Add(context.Context, db.AddStatusParams) error
+	AddFrom(context.Context, db.AddStatusFromParams) error
 }
 
 type statusRepository struct {
@@ -28,4 +29,9 @@ func (r *statusRepository) Create(
 // Add implements StatusRepository.
 func (r *statusRepository) Add(ctx context.Context, status db.AddStatusParams) error {
 	return r.q.AddStatus(ctx, status)
+}
+
+// AddFrom implements StatusRepository.
+func (r *statusRepository) AddFrom(ctx context.Context, status db.AddStatusFromParams) error {
+	return r.q.AddStatusFrom(ctx, status)
 }
