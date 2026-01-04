@@ -189,8 +189,30 @@ func (s *Server) GetApiUsersId(w http.ResponseWriter, r *http.Request, id int) {
 
 // PostApiUsers implements api.ServerInterface.
 func (s *Server) PostApiUsers(w http.ResponseWriter, r *http.Request) {
-	panic("unimplemented")
+    // 1. Decode the JSON payload specific to this endpoint
+	var body api.NewUser
+	if err := util.ReadJSON(r, &body); err != nil {
+		log.Println(err)
+		util.WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+    // 2. Map the payload to the AuthForm structure expected by the existing service
+	form := api.AuthForm{
+		Username: body.Username,
+		Password: body.Password,
+	}
+
+    // 3. Call the existing registration function
+	if err := s.service.App.Register(r.Context(), form); err != nil {
+		log.Println(err)
+		util.WriteError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
 }
+
 
 // PutApiUsersId implements api.ServerInterface.
 func (s *Server) PutApiUsersId(w http.ResponseWriter, r *http.Request, id int) {
