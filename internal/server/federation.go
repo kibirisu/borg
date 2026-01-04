@@ -49,8 +49,8 @@ func (s *Server) handleInbox(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusAccepted)
 }
 
-func (s *Server) fetchRemoteActor(ctx context.Context, uri string) (domain.Actor, error) {
-	var actor domain.Actor
+func (s *Server) fetchRemoteActor(ctx context.Context, uri string) (domain.ActorOld, error) {
+	var actor domain.ActorOld
 
 	req, err := http.NewRequestWithContext(ctx, "GET", uri, nil)
 	if err != nil {

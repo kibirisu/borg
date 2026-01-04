@@ -134,6 +134,37 @@ func (q *Queries) CreateActor(ctx context.Context, arg CreateActorParams) (Accou
 	return i, err
 }
 
+const createFavourite = `-- name: CreateFavourite :one
+INSERT INTO favourites (
+    uri, 
+    account_id, 
+    status_id
+) VALUES (
+    $1, $2, $3
+)
+RETURNING id, created_at, updated_at, uri, account_id, status_id
+`
+
+type CreateFavouriteParams struct {
+	Uri       string
+	AccountID int32
+	StatusID  int32
+}
+
+func (q *Queries) CreateFavourite(ctx context.Context, arg CreateFavouriteParams) (Favourite, error) {
+	row := q.db.QueryRowContext(ctx, createFavourite, arg.Uri, arg.AccountID, arg.StatusID)
+	var i Favourite
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Uri,
+		&i.AccountID,
+		&i.StatusID,
+	)
+	return i, err
+}
+
 const createFollow = `-- name: CreateFollow :one
 INSERT INTO follows (
     uri, account_id, target_account_id
@@ -343,6 +374,48 @@ func (q *Queries) GetAccountFollowers(ctx context.Context, targetAccountID int32
 	return items, nil
 }
 
+const getAccountFollowing = `-- name: GetAccountFollowing :many
+SELECT a.id, a.created_at, a.updated_at, a.username, a.uri, a.display_name, a.domain, a.inbox_uri, a.outbox_uri, a.followers_uri, a.following_uri, a.url FROM accounts a
+JOIN follows f ON a.id = f.account_id
+WHERE f.account_id = $1
+`
+
+func (q *Queries) GetAccountFollowing(ctx context.Context, accountID int32) ([]Account, error) {
+	rows, err := q.db.QueryContext(ctx, getAccountFollowing, accountID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Account
+	for rows.Next() {
+		var i Account
+		if err := rows.Scan(
+			&i.ID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Username,
+			&i.Uri,
+			&i.DisplayName,
+			&i.Domain,
+			&i.InboxUri,
+			&i.OutboxUri,
+			&i.FollowersUri,
+			&i.FollowingUri,
+			&i.Url,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getActor = `-- name: GetActor :one
 SELECT id, created_at, updated_at, username, uri, display_name, domain, inbox_uri, outbox_uri, followers_uri, following_uri, url FROM accounts WHERE username = $1 AND domain IS NULL
 `
@@ -389,4 +462,293 @@ func (q *Queries) GetActorByURI(ctx context.Context, uri string) (Account, error
 		&i.Url,
 	)
 	return i, err
+}
+
+const getLocalStatuses = `-- name: GetLocalStatuses :many
+SELECT 
+    s.id, s.created_at, s.updated_at, s.uri, s.url, s.local, s.content, s.account_id, s.in_reply_to_id, s.reblog_of_id,
+    a.id, a.created_at, a.updated_at, a.username, a.uri, a.display_name, a.domain, a.inbox_uri, a.outbox_uri, a.followers_uri, a.following_uri, a.url,
+    (SELECT COUNT(*) FROM favourites f WHERE f.status_id = s.id) AS like_count,
+    (SELECT COUNT(*) FROM statuses r WHERE r.in_reply_to_id = s.id) AS comment_count,
+    (SELECT COUNT(*) FROM statuses b WHERE b.reblog_of_id = s.id) AS share_count
+FROM statuses s
+JOIN accounts a ON s.account_id = a.id
+WHERE a.domain is null and s.in_reply_to_id is null
+`
+
+type GetLocalStatusesRow struct {
+	Status       Status
+	Account      Account
+	LikeCount    int64
+	CommentCount int64
+	ShareCount   int64
+}
+
+func (q *Queries) GetLocalStatuses(ctx context.Context) ([]GetLocalStatusesRow, error) {
+	rows, err := q.db.QueryContext(ctx, getLocalStatuses)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetLocalStatusesRow
+	for rows.Next() {
+		var i GetLocalStatusesRow
+		if err := rows.Scan(
+			&i.Status.ID,
+			&i.Status.CreatedAt,
+			&i.Status.UpdatedAt,
+			&i.Status.Uri,
+			&i.Status.Url,
+			&i.Status.Local,
+			&i.Status.Content,
+			&i.Status.AccountID,
+			&i.Status.InReplyToID,
+			&i.Status.ReblogOfID,
+			&i.Account.ID,
+			&i.Account.CreatedAt,
+			&i.Account.UpdatedAt,
+			&i.Account.Username,
+			&i.Account.Uri,
+			&i.Account.DisplayName,
+			&i.Account.Domain,
+			&i.Account.InboxUri,
+			&i.Account.OutboxUri,
+			&i.Account.FollowersUri,
+			&i.Account.FollowingUri,
+			&i.Account.Url,
+			&i.LikeCount,
+			&i.CommentCount,
+			&i.ShareCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getStatusById = `-- name: GetStatusById :one
+SELECT id, created_at, updated_at, uri, url, local, content, account_id, in_reply_to_id, reblog_of_id FROM statuses WHERE id = $1
+`
+
+func (q *Queries) GetStatusById(ctx context.Context, id int32) (Status, error) {
+	row := q.db.QueryRowContext(ctx, getStatusById, id)
+	var i Status
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Uri,
+		&i.Url,
+		&i.Local,
+		&i.Content,
+		&i.AccountID,
+		&i.InReplyToID,
+		&i.ReblogOfID,
+	)
+	return i, err
+}
+
+const getStatusByIdWithMetadata = `-- name: GetStatusByIdWithMetadata :one
+SELECT 
+    s.id, s.created_at, s.updated_at, s.uri, s.url, s.local, s.content, s.account_id, s.in_reply_to_id, s.reblog_of_id,
+    a.id, a.created_at, a.updated_at, a.username, a.uri, a.display_name, a.domain, a.inbox_uri, a.outbox_uri, a.followers_uri, a.following_uri, a.url,
+    (SELECT COUNT(*) FROM favourites f WHERE f.status_id = s.id) AS like_count,
+    (SELECT COUNT(*) FROM statuses r WHERE r.in_reply_to_id = s.id) AS comment_count,
+    (SELECT COUNT(*) FROM statuses b WHERE b.reblog_of_id = s.id) AS share_count
+FROM statuses s
+JOIN accounts a ON s.account_id = a.id
+WHERE s.id = $1
+`
+
+type GetStatusByIdWithMetadataRow struct {
+	Status       Status
+	Account      Account
+	LikeCount    int64
+	CommentCount int64
+	ShareCount   int64
+}
+
+func (q *Queries) GetStatusByIdWithMetadata(ctx context.Context, id int32) (GetStatusByIdWithMetadataRow, error) {
+	row := q.db.QueryRowContext(ctx, getStatusByIdWithMetadata, id)
+	var i GetStatusByIdWithMetadataRow
+	err := row.Scan(
+		&i.Status.ID,
+		&i.Status.CreatedAt,
+		&i.Status.UpdatedAt,
+		&i.Status.Uri,
+		&i.Status.Url,
+		&i.Status.Local,
+		&i.Status.Content,
+		&i.Status.AccountID,
+		&i.Status.InReplyToID,
+		&i.Status.ReblogOfID,
+		&i.Account.ID,
+		&i.Account.CreatedAt,
+		&i.Account.UpdatedAt,
+		&i.Account.Username,
+		&i.Account.Uri,
+		&i.Account.DisplayName,
+		&i.Account.Domain,
+		&i.Account.InboxUri,
+		&i.Account.OutboxUri,
+		&i.Account.FollowersUri,
+		&i.Account.FollowingUri,
+		&i.Account.Url,
+		&i.LikeCount,
+		&i.CommentCount,
+		&i.ShareCount,
+	)
+	return i, err
+}
+
+const getStatusFavourites = `-- name: GetStatusFavourites :many
+SELECT id, created_at, updated_at, uri, account_id, status_id
+FROM favourites
+WHERE status_id = $1
+`
+
+func (q *Queries) GetStatusFavourites(ctx context.Context, statusID int32) ([]Favourite, error) {
+	rows, err := q.db.QueryContext(ctx, getStatusFavourites, statusID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Favourite
+	for rows.Next() {
+		var i Favourite
+		if err := rows.Scan(
+			&i.ID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Uri,
+			&i.AccountID,
+			&i.StatusID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getStatusShares = `-- name: GetStatusShares :many
+SELECT id, created_at, updated_at, uri, url, local, content, account_id, in_reply_to_id, reblog_of_id
+FROM statuses 
+WHERE reblog_of_id = $1
+`
+
+func (q *Queries) GetStatusShares(ctx context.Context, reblogOfID sql.NullInt32) ([]Status, error) {
+	rows, err := q.db.QueryContext(ctx, getStatusShares, reblogOfID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Status
+	for rows.Next() {
+		var i Status
+		if err := rows.Scan(
+			&i.ID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Uri,
+			&i.Url,
+			&i.Local,
+			&i.Content,
+			&i.AccountID,
+			&i.InReplyToID,
+			&i.ReblogOfID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getStatusesByAccountId = `-- name: GetStatusesByAccountId :many
+SELECT 
+    s.id, s.created_at, s.updated_at, s.uri, s.url, s.local, s.content, s.account_id, s.in_reply_to_id, s.reblog_of_id,
+    a.id, a.created_at, a.updated_at, a.username, a.uri, a.display_name, a.domain, a.inbox_uri, a.outbox_uri, a.followers_uri, a.following_uri, a.url,
+    (SELECT COUNT(*) FROM favourites f WHERE f.status_id = s.id) AS like_count,
+    (SELECT COUNT(*) FROM statuses r WHERE r.in_reply_to_id = s.id) AS comment_count,
+    (SELECT COUNT(*) FROM statuses b WHERE b.reblog_of_id = s.id) AS share_count
+FROM statuses s
+JOIN accounts a ON s.account_id = a.id
+WHERE s.account_id = $1
+`
+
+type GetStatusesByAccountIdRow struct {
+	Status       Status
+	Account      Account
+	LikeCount    int64
+	CommentCount int64
+	ShareCount   int64
+}
+
+func (q *Queries) GetStatusesByAccountId(ctx context.Context, accountID int32) ([]GetStatusesByAccountIdRow, error) {
+	rows, err := q.db.QueryContext(ctx, getStatusesByAccountId, accountID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetStatusesByAccountIdRow
+	for rows.Next() {
+		var i GetStatusesByAccountIdRow
+		if err := rows.Scan(
+			&i.Status.ID,
+			&i.Status.CreatedAt,
+			&i.Status.UpdatedAt,
+			&i.Status.Uri,
+			&i.Status.Url,
+			&i.Status.Local,
+			&i.Status.Content,
+			&i.Status.AccountID,
+			&i.Status.InReplyToID,
+			&i.Status.ReblogOfID,
+			&i.Account.ID,
+			&i.Account.CreatedAt,
+			&i.Account.UpdatedAt,
+			&i.Account.Username,
+			&i.Account.Uri,
+			&i.Account.DisplayName,
+			&i.Account.Domain,
+			&i.Account.InboxUri,
+			&i.Account.OutboxUri,
+			&i.Account.FollowersUri,
+			&i.Account.FollowingUri,
+			&i.Account.Url,
+			&i.LikeCount,
+			&i.CommentCount,
+			&i.ShareCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

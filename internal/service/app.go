@@ -20,13 +20,21 @@ type AppService interface {
 	Register(context.Context, api.AuthForm) error
 	Login(context.Context, api.AuthForm) (string, error)
 	GetAccountFollowers(context.Context, int) ([]db.Account, error)
+	GetAccountFollowing(context.Context, int) ([]db.Account, error)
 	GetLocalAccount(context.Context, string) (*db.Account, error)
 	AddRemoteAccount(ctx context.Context, remote *db.CreateActorParams) (*db.Account, error)
 	CreateFollow(ctx context.Context, follow *db.CreateFollowParams) (*db.Follow, error) 
 	AddNote(context.Context, db.CreateStatusParams) (db.Status, error)
+	AddFavourite(context.Context, int, int) (db.Favourite, error)
 	FollowAccount(context.Context, int, int) (*db.Follow, error)
 	GetAccountById(context.Context, int) (db.Account, error)
 	GetAccount(context.Context, db.GetAccountParams) (*db.Account, error)
+	GetLocalPosts(context.Context) ([]db.GetLocalStatusesRow, error)
+	GetPostByAccountId(context.Context, int) ([]db.GetStatusesByAccountIdRow, error)
+	GetPostById(context.Context, int) (*db.Status, error)
+	GetPostLikes(context.Context, int) ([]db.Favourite, error)
+	GetPostShares(context.Context, int) ([]db.Status, error)
+	GetPostByIdWithMetadata(context.Context, int) (*db.GetStatusByIdWithMetadataRow, error)
 	// EW, idk if this should stay here
 	DeliverToFollowers(http.ResponseWriter, *http.Request, int, func(recipientURI string) any)
 }
@@ -129,6 +137,17 @@ func (s *appService) GetAccountById(
 ) (db.Account, error) {
 	return s.store.Accounts().GetById(ctx, accountID);
 }
+// AddFavourite implements AppService.
+func (s *appService) AddFavourite (
+	ctx context.Context, accountID int, postID int,
+) (db.Favourite, error) {
+	params := db.CreateFavouriteParams{
+		Uri: "TODO",
+		AccountID: int32(accountID),
+		StatusID: int32(postID),
+	}
+	return s.store.Favourites().Create(ctx, params)
+}
 
 // GetAccountFollowers implements AppService.
 func (s *appService) GetAccountFollowers(
@@ -136,7 +155,34 @@ func (s *appService) GetAccountFollowers(
 ) ([]db.Account, error) {
 	return s.store.Accounts().GetFollowers(ctx, accountID);
 }
-
+// GetAccountFollowing implements AppService.
+func (s *appService) GetAccountFollowing(
+	ctx context.Context, accountID int,
+) ([]db.Account, error) {
+	return s.store.Accounts().GetFollowing(ctx, accountID);
+}
+func (s *appService) GetPostByIdWithMetadata(ctx context.Context, id int) (*db.GetStatusByIdWithMetadataRow, error) {
+	status, err := s.store.Statuses().GetByIdWithMetadata(ctx, id)
+	if err != nil {
+		return nil, err
+	}else {
+		return &status, nil
+	}
+}
+func (s *appService) GetPostById(ctx context.Context, id int) (*db.Status, error) {
+	status, err := s.store.Statuses().GetById(ctx, id)
+	if err != nil {
+		return nil, err
+	}else {
+		return &status, nil
+	}
+}
+func (s *appService) GetPostLikes(ctx context.Context, id int) ([]db.Favourite, error) {
+	return s.store.Favourites().GetByPost(ctx, id)
+}
+func (s *appService) GetPostShares(ctx context.Context, id int) ([]db.Status, error) {
+	return s.store.Statuses().GetShares(ctx, id)
+}
 // FollowAccount implements AppService.
 func (s *appService) FollowAccount(ctx context.Context, follower int, followee int) (*db.Follow, error) {
 	createParams := db.CreateFollowParams {
@@ -162,4 +208,10 @@ func (s *appService) DeliverToFollowers(
 		payload := build(follower.Uri)
 		util.DeliverToEndpoint(follower.InboxUri, payload)
 	}
+}
+func (s *appService) GetPostByAccountId(ctx context.Context, id int) ([]db.GetStatusesByAccountIdRow, error) {
+	return s.store.Accounts().GetPosts(ctx, id)
+}
+func (s *appService) GetLocalPosts(ctx context.Context) ([]db.GetLocalStatusesRow, error) {
+	return s.store.Statuses().GetLocalStatuses(ctx)
 }
