@@ -9,6 +9,8 @@ import (
 
 type StatusRepository interface {
 	Create(context.Context, db.CreateStatusParams) (db.Status, error)
+	Add(context.Context, db.AddStatusParams) error
+	AddFrom(context.Context, db.AddStatusFromParams) error
 	GetById(context.Context, int) (db.Status, error)
 	GetShares(context.Context, int) ([]db.Status, error)
 	GetLocalStatuses(context.Context) ([]db.GetLocalStatusesRow, error)
@@ -22,22 +24,42 @@ type statusRepository struct {
 var _ StatusRepository = (*statusRepository)(nil)
 
 // Create implements StatusRepository.
-func (r *statusRepository) Create(ctx context.Context, status db.CreateStatusParams) (db.Status, error) {
+func (r *statusRepository) Create(
+	ctx context.Context,
+	status db.CreateStatusParams,
+) (db.Status, error) {
 	return r.q.CreateStatus(ctx, status)
 }
+
+// Add implements StatusRepository.
+func (r *statusRepository) Add(ctx context.Context, status db.AddStatusParams) error {
+	return r.q.AddStatus(ctx, status)
+}
+
+// AddFrom implements StatusRepository.
+func (r *statusRepository) AddFrom(ctx context.Context, status db.AddStatusFromParams) error {
+	return r.q.AddStatusFrom(ctx, status)
+}
+
 // GetById implements StatusRepository.
 func (r *statusRepository) GetById(ctx context.Context, id int) (db.Status, error) {
 	return r.q.GetStatusById(ctx, int32(id))
 }
+
 // GetById implements StatusRepository.
-func (r *statusRepository) GetByIdWithMetadata(ctx context.Context, id int) (db.GetStatusByIdWithMetadataRow, error) {
+func (r *statusRepository) GetByIdWithMetadata(
+	ctx context.Context,
+	id int,
+) (db.GetStatusByIdWithMetadataRow, error) {
 	return r.q.GetStatusByIdWithMetadata(ctx, int32(id))
 }
+
 // GetShares implements StatusRepository.
 func (r *statusRepository) GetShares(ctx context.Context, id int) ([]db.Status, error) {
 	return r.q.GetStatusShares(ctx, sql.NullInt32{Int32: int32(id), Valid: true})
 }
+
 // GetLocalStatuses implements StatusRepository.
-func (r *statusRepository) GetLocalStatuses(ctx context.Context) ([]db.GetLocalStatusesRow , error) {
+func (r *statusRepository) GetLocalStatuses(ctx context.Context) ([]db.GetLocalStatusesRow, error) {
 	return r.q.GetLocalStatuses(ctx)
 }

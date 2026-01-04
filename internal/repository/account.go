@@ -8,6 +8,7 @@ import (
 
 type AccountRepository interface {
 	Get(context.Context, db.GetAccountParams) (db.Account, error)
+	GetByURI(context.Context, string) (db.Account, error)
 	GetById(context.Context, int) (db.Account, error)
 	GetLocalByUsername(context.Context, string) (db.Account, error)
 	Create(context.Context, db.CreateActorParams) (db.Account, error)
@@ -21,6 +22,11 @@ type accountRepository struct {
 }
 
 var _ AccountRepository = (*accountRepository)(nil)
+
+// GetByURI implements AccountRepository.
+func (r *accountRepository) GetByURI(ctx context.Context, uri string) (db.Account, error) {
+	return r.q.GetActorByURI(ctx, uri)
+}
 
 // GetLocalByUsername implements AccountRepository.
 func (r *accountRepository) GetLocalByUsername(
@@ -45,12 +51,14 @@ func (r *accountRepository) Get(
 ) (db.Account, error) {
 	return r.q.GetAccount(ctx, account)
 }
+
 // GetById implements AccountRepository.
 func (r *accountRepository) GetById(
 	ctx context.Context, id int,
 ) (db.Account, error) {
 	return r.q.GetAccountById(ctx, int32(id))
 }
+
 // GetFollowers implements AccountRepository.
 func (r *accountRepository) GetFollowers(
 	ctx context.Context, accountID int,

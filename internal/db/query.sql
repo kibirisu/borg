@@ -1,6 +1,9 @@
 -- name: GetActor :one
 SELECT * FROM accounts WHERE username = $1 AND domain IS NULL;
 
+-- name: GetActorByURI :one
+SELECT * FROM accounts WHERE uri = $1;
+
 -- name: AuthData :one
 SELECT a.id, u.password_hash FROM accounts a JOIN users u ON a.id = u.account_id WHERE a.username = $1;
 
@@ -81,6 +84,13 @@ DO UPDATE SET
     updated_at = CURRENT_TIMESTAMP
 RETURNING *;
 
+-- name: CreateFollowRequest :exec
+INSERT INTO follow_requests (
+    uri, account_id, target_account_id
+) VALUES (
+    $1, $2, $3
+);
+
 -- name: CreateStatus :one
 INSERT INTO statuses (
     uri, url, local, content, account_id, in_reply_to_id, reblog_of_id
@@ -88,6 +98,20 @@ INSERT INTO statuses (
     $1, $2, $3, $4, $5, $6, $7
 )
 RETURNING *;
+
+-- name: AddStatusFrom :exec
+INSERT INTO statuses (
+    uri, url, content, account_id, in_reply_to_id, reblog_of_id
+) VALUES (
+    $1, $2, $3, (SELECT id FROM accounts a WHERE a.uri = $4), $5, $6
+);
+
+-- name: AddStatus :exec
+INSERT INTO statuses (
+    uri, url, content, account_id, in_reply_to_id, reblog_of_id
+) VALUES (
+    $1, $2, $3, $4, $5, $6
+);
 
 -- name: CreateFavourite :one
 INSERT INTO favourites (

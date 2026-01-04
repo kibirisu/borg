@@ -9,8 +9,8 @@ import (
 	"github.com/kibirisu/borg/internal/domain"
 )
 
-func AccountToActor(account *db.Account) *domain.Actor {
-	return &domain.Actor{
+func AccountToActor(account *db.Account) *domain.ActorOld {
+	return &domain.ActorOld{
 		Context:           "https://www.w3.org/ns/activitystreams",
 		ID:                account.Uri,
 		Type:              "Person",
@@ -22,7 +22,7 @@ func AccountToActor(account *db.Account) *domain.Actor {
 	}
 }
 
-func ActorToAccountCreate(account *domain.Actor, domain string) *db.CreateActorParams {
+func ActorToAccountCreate(account *domain.ActorOld, domain string) *db.CreateActorParams {
 	return &db.CreateActorParams{
 		Username: account.PreferredUsername,
 		Uri:      account.ID,
@@ -41,26 +41,28 @@ func ActorToAccountCreate(account *domain.Actor, domain string) *db.CreateActorP
 		Url:          "", // TODO
 	}
 }
+
 func DBToFollow(follow *db.Follow, follower *db.Account, followee *db.Account) *domain.Follow {
 	followerURI, _ := json.Marshal(follower.Uri)
 	followedURI, _ := json.Marshal(followee.Uri)
 	return &domain.Follow{
-		ID: follow.Uri,
-		Type: "Follow",
+		ID:     follow.Uri,
+		Type:   "Follow",
 		Actor:  json.RawMessage(followerURI),
 		Object: json.RawMessage(followedURI),
-	};
+	}
 }
+
 func DBToFavourite(fav *db.Favourite, liker *db.Account, post *db.Status) *domain.Like {
-    likerURI, _ := json.Marshal(liker.Uri)
-    postURI, _ := json.Marshal(post.Uri)
-    
-    return &domain.Like{
-        ID:     fav.Uri,
-        Type:   "Like",
-        Actor:  json.RawMessage(likerURI),
-        Object: json.RawMessage(postURI),
-    }
+	likerURI, _ := json.Marshal(liker.Uri)
+	postURI, _ := json.Marshal(post.Uri)
+
+	return &domain.Like{
+		ID:     fav.Uri,
+		Type:   "Like",
+		Actor:  json.RawMessage(likerURI),
+		Object: json.RawMessage(postURI),
+	}
 }
 
 func ToFollow(data []byte) (*domain.Follow, error) {
@@ -76,8 +78,7 @@ func ToCreate(data []byte) (*domain.Create, error) {
 }
 
 func PostToCreateNote(post *db.Status, poster *db.Account, followersUri string) *domain.Create {
-
-	note := domain.Note{
+	note := domain.NoteOld{
 		ID:           post.Uri,
 		Type:         "Note",
 		Published:    post.CreatedAt,
@@ -100,5 +101,5 @@ func PostToCreateNote(post *db.Status, poster *db.Account, followersUri string) 
 		Actor:  json.RawMessage(actorBytes),
 		Object: json.RawMessage(noteBytes),
 	}
-	return &activity;
+	return &activity
 }

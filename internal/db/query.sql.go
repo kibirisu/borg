@@ -10,6 +10,64 @@ import (
 	"database/sql"
 )
 
+const addStatus = `-- name: AddStatus :exec
+INSERT INTO statuses (
+    uri, url, content, account_id, in_reply_to_id, reblog_of_id
+) VALUES (
+    $1, $2, $3, $4, $5, $6
+)
+`
+
+type AddStatusParams struct {
+	Uri         string
+	Url         string
+	Content     string
+	AccountID   int32
+	InReplyToID sql.NullInt32
+	ReblogOfID  sql.NullInt32
+}
+
+func (q *Queries) AddStatus(ctx context.Context, arg AddStatusParams) error {
+	_, err := q.db.ExecContext(ctx, addStatus,
+		arg.Uri,
+		arg.Url,
+		arg.Content,
+		arg.AccountID,
+		arg.InReplyToID,
+		arg.ReblogOfID,
+	)
+	return err
+}
+
+const addStatusFrom = `-- name: AddStatusFrom :exec
+INSERT INTO statuses (
+    uri, url, content, account_id, in_reply_to_id, reblog_of_id
+) VALUES (
+    $1, $2, $3, (SELECT id FROM accounts a WHERE a.uri = $4), $5, $6
+)
+`
+
+type AddStatusFromParams struct {
+	Uri         string
+	Url         string
+	Content     string
+	Uri_2       string
+	InReplyToID sql.NullInt32
+	ReblogOfID  sql.NullInt32
+}
+
+func (q *Queries) AddStatusFrom(ctx context.Context, arg AddStatusFromParams) error {
+	_, err := q.db.ExecContext(ctx, addStatusFrom,
+		arg.Uri,
+		arg.Url,
+		arg.Content,
+		arg.Uri_2,
+		arg.InReplyToID,
+		arg.ReblogOfID,
+	)
+	return err
+}
+
 const authData = `-- name: AuthData :one
 SELECT a.id, u.password_hash FROM accounts a JOIN users u ON a.id = u.account_id WHERE a.username = $1
 `
@@ -137,6 +195,25 @@ func (q *Queries) CreateFollow(ctx context.Context, arg CreateFollowParams) (Fol
 		&i.TargetAccountID,
 	)
 	return i, err
+}
+
+const createFollowRequest = `-- name: CreateFollowRequest :exec
+INSERT INTO follow_requests (
+    uri, account_id, target_account_id
+) VALUES (
+    $1, $2, $3
+)
+`
+
+type CreateFollowRequestParams struct {
+	Uri             string
+	AccountID       int32
+	TargetAccountID int32
+}
+
+func (q *Queries) CreateFollowRequest(ctx context.Context, arg CreateFollowRequestParams) error {
+	_, err := q.db.ExecContext(ctx, createFollowRequest, arg.Uri, arg.AccountID, arg.TargetAccountID)
+	return err
 }
 
 const createStatus = `-- name: CreateStatus :one
@@ -345,6 +422,30 @@ SELECT id, created_at, updated_at, username, uri, display_name, domain, inbox_ur
 
 func (q *Queries) GetActor(ctx context.Context, username string) (Account, error) {
 	row := q.db.QueryRowContext(ctx, getActor, username)
+	var i Account
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Username,
+		&i.Uri,
+		&i.DisplayName,
+		&i.Domain,
+		&i.InboxUri,
+		&i.OutboxUri,
+		&i.FollowersUri,
+		&i.FollowingUri,
+		&i.Url,
+	)
+	return i, err
+}
+
+const getActorByURI = `-- name: GetActorByURI :one
+SELECT id, created_at, updated_at, username, uri, display_name, domain, inbox_uri, outbox_uri, followers_uri, following_uri, url FROM accounts WHERE uri = $1
+`
+
+func (q *Queries) GetActorByURI(ctx context.Context, uri string) (Account, error) {
+	row := q.db.QueryRowContext(ctx, getActorByURI, uri)
 	var i Account
 	err := row.Scan(
 		&i.ID,
