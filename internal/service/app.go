@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"net/http"
 
 	"golang.org/x/crypto/bcrypt"
 
@@ -12,16 +13,22 @@ import (
 	"github.com/kibirisu/borg/internal/config"
 	"github.com/kibirisu/borg/internal/db"
 	repo "github.com/kibirisu/borg/internal/repository"
+	"github.com/kibirisu/borg/internal/util"
 )
 
 type AppService interface {
 	Register(context.Context, api.AuthForm) error
 	Login(context.Context, api.AuthForm) (string, error)
+	GetAccountFollowers(context.Context, int) ([]db.Account, error)
 	GetLocalAccount(context.Context, string) (*db.Account, error)
 	AddRemoteAccount(ctx context.Context, remote *db.CreateActorParams) (*db.Account, error)
-	CreateFollow(ctx context.Context, follow *db.CreateFollowParams) error
-	AddNote(context.Context, db.CreateStatusParams) error
+	CreateFollow(ctx context.Context, follow *db.CreateFollowParams) (*db.Follow, error) 
+	AddNote(context.Context, db.CreateStatusParams) (db.Status, error)
+	FollowAccount(context.Context, int, int) (*db.Follow, error)
+	GetAccountById(context.Context, int) (db.Account, error)
 	GetAccount(context.Context, db.GetAccountParams) (*db.Account, error)
+	// EW, idk if this should stay here
+	DeliverToFollowers(http.ResponseWriter, *http.Request, int, func(recipientURI string) any)
 }
 
 type appService struct {
@@ -72,7 +79,7 @@ func (s *appService) Login(ctx context.Context, form api.AuthForm) (string, erro
 	if err != nil {
 		return "", err
 	}
-	if err = bcrypt.CompareHashAndPassword([]byte(form.Password), []byte(auth.PasswordHash)); err != nil {
+	if err = bcrypt.CompareHashAndPassword([]byte(auth.PasswordHash), []byte(form.Password)); err != nil {
 		return "", err
 	}
 	token, err := issueToken(auth.ID, form.Username, s.conf.ListenHost, s.conf.JWTSecret)
@@ -99,12 +106,12 @@ func (s *appService) AddRemoteAccount(
 	return &acc, err
 }
 
-func (s *appService) CreateFollow(ctx context.Context, follow *db.CreateFollowParams) error {
+func (s *appService) CreateFollow(ctx context.Context, follow *db.CreateFollowParams) (*db.Follow, error) {
 	return s.store.Follows().Create(ctx, *follow)
 }
 
 // AddNote implements AppService.
-func (s *appService) AddNote(ctx context.Context, note db.CreateStatusParams) error {
+func (s *appService) AddNote(ctx context.Context, note db.CreateStatusParams) (db.Status, error) {
 	return s.store.Statuses().Create(ctx, note)
 }
 
@@ -115,4 +122,44 @@ func (s *appService) GetAccount(
 ) (*db.Account, error) {
 	res, err := s.store.Accounts().Get(ctx, account)
 	return &res, err
+}
+// GetAccountById implements AppService.
+func (s *appService) GetAccountById(
+	ctx context.Context, accountID int,
+) (db.Account, error) {
+	return s.store.Accounts().GetById(ctx, accountID);
+}
+
+// GetAccountFollowers implements AppService.
+func (s *appService) GetAccountFollowers(
+	ctx context.Context, accountID int,
+) ([]db.Account, error) {
+	return s.store.Accounts().GetFollowers(ctx, accountID);
+}
+
+// FollowAccount implements AppService.
+func (s *appService) FollowAccount(ctx context.Context, follower int, followee int) (*db.Follow, error) {
+	createParams := db.CreateFollowParams {
+		Uri: "", //TODO
+		AccountID: int32(follower),
+		TargetAccountID: int32(followee),
+	}
+	return s.store.Follows().Create(ctx, createParams);
+}
+func (s *appService) DeliverToFollowers(
+	w http.ResponseWriter, r *http.Request, userID int,
+	build func(recipientURI string) any,
+) {
+	followers, err := s.GetAccountFollowers(r.Context(), userID);
+    if err != nil {
+        http.Error(w, "Internal server error", http.StatusInternalServerError)
+        return
+    }
+	for _, follower := range followers {
+		if !follower.Domain.Valid {
+			continue
+		}
+		payload := build(follower.Uri)
+		util.DeliverToEndpoint(follower.InboxUri, payload)
+	}
 }

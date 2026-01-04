@@ -2,10 +2,8 @@ package server
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -30,76 +28,29 @@ func (s *Server) federationRoutes() func(chi.Router) {
 
 func (s *Server) handleGetActor(w http.ResponseWriter, r *http.Request) {
 	user := chi.URLParam(r, "username")
-	account, err := s.service.App.GetLocalAccount(r.Context(), user)
+	actor, err := s.service.Federation.GetLocalActor(r.Context(), user)
 	if err != nil {
 		util.WriteError(w, http.StatusNotFound, "user not found")
 		return
 	}
-	util.WriteActivityJSON(w, http.StatusOK, mapper.AccountToActor(account))
+	util.WriteActivityJSON(w, http.StatusOK, actor)
 }
 
 func (s *Server) handleInbox(w http.ResponseWriter, r *http.Request) {
 	username := chi.URLParam(r, "username")
-	var activity domain.Activity
-	bodyBytes, err := io.ReadAll(r.Body)
-	if err != nil {
-		util.WriteError(w, http.StatusBadRequest, "read error")
+	_ = username
+
+	var object domain.ObjectOrLink
+	if err := util.ReadJSON(r, &object); err != nil {
+		log.Println(err)
+		util.WriteError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	if err = json.Unmarshal(bodyBytes, &activity); err != nil {
-		return
+	if err := s.service.Federation.ProcessInbox(r.Context(), &object); err != nil {
+		util.WriteError(w, http.StatusInternalServerError, err.Error())
 	}
-
-	switch activity.Type {
-	case "Follow":
-		var followReq domain.Follow
-		if err = json.Unmarshal(bodyBytes, &followReq); err != nil {
-			util.WriteError(w, http.StatusBadRequest, err.Error())
-			return
-		}
-
-		s.handleFollow(w, r, username, followReq)
-	case "Create":
-		var note domain.Note
-		if err = json.Unmarshal(bodyBytes, &note); err != nil {
-			util.WriteError(w, http.StatusBadRequest, err.Error())
-			return
-		}
-		// My goal is to build more generic / less concrete service functions
-		// that will usually perform multiple repository operations.
-		// At all cost, I would avoid just proxying repostiroy functions or explore more advanced sql queries.
-		actor, err := s.service.App.GetAccount(r.Context(), db.GetAccountParams{
-			Username: note.AttributedTo,
-			Domain: sql.NullString{
-				String: r.RemoteAddr,
-				Valid:  true,
-			}, // FIXME: RemoveAddr is shall be set to smth like <Host>:<Port>, we need to decide where servers accept TCP
-		})
-		if err != nil {
-			util.WriteError(w, http.StatusInternalServerError, err.Error())
-			return
-		}
-		if err = s.service.App.AddNote(r.Context(), db.CreateStatusParams{
-			Uri:         note.ID,
-			Url:         "TODO",
-			Local:       sql.NullBool{Bool: false, Valid: true},
-			Content:     note.Content,
-			AccountID:   actor.ID,
-			InReplyToID: sql.NullInt32{},
-			ReblogOfID:  sql.NullInt32{},
-		}); err != nil {
-			util.WriteError(w, http.StatusInternalServerError, err.Error())
-		}
-		w.WriteHeader(http.StatusCreated)
-	case "Accept":
-		log.Printf("Acknowledge activity: %s\n", activity.Type)
-		w.WriteHeader(http.StatusAccepted)
-
-	default:
-		log.Printf("Received unsupported activity type: %s\n", activity.Type)
-		w.WriteHeader(http.StatusAccepted)
-	}
+	w.WriteHeader(http.StatusAccepted)
 }
 
 func (s *Server) fetchRemoteActor(ctx context.Context, uri string) (domain.Actor, error) {
@@ -194,7 +145,7 @@ func (s *Server) handleFollow(
 		AccountID:       followerAccount.ID,
 		TargetAccountID: localAccount.ID,
 	}
-	err = s.service.App.CreateFollow(r.Context(), &createFollow)
+	_, err = s.service.App.CreateFollow(r.Context(), &createFollow)
 	if err != nil {
 		util.WriteError(w, http.StatusInternalServerError, "Error when adding follow: "+err.Error())
 		return

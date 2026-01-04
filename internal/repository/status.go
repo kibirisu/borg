@@ -7,7 +7,8 @@ import (
 )
 
 type StatusRepository interface {
-	Create(context.Context, db.CreateStatusParams) error
+	Create(context.Context, db.CreateStatusParams) (db.Status, error)
+	Add(context.Context, db.AddStatusParams) error
 }
 
 type statusRepository struct {
@@ -17,6 +18,14 @@ type statusRepository struct {
 var _ StatusRepository = (*statusRepository)(nil)
 
 // Create implements StatusRepository.
-func (r *statusRepository) Create(ctx context.Context, status db.CreateStatusParams) error {
+func (r *statusRepository) Create(
+	ctx context.Context,
+	status db.CreateStatusParams,
+) (db.Status, error) {
 	return r.q.CreateStatus(ctx, status)
+}
+
+// Add implements StatusRepository.
+func (r *statusRepository) Add(ctx context.Context, status db.AddStatusParams) error {
+	return r.q.AddStatus(ctx, status)
 }

@@ -74,13 +74,11 @@ var (
 )
 
 func NewActorCollection(from *domain.ObjectOrLink) ActorCollectioner {
-	collection := actorCollection{collection{object{from}}}
-	return &collection
+	return &actorCollection{collection{object{from}}}
 }
 
 func NewNoteCollection(from *domain.ObjectOrLink) NoteCollectioner {
-	collection := noteCollection{collection{object{from}}}
-	return &collection
+	return &noteCollection{collection{object{from}}}
 }
 
 // GetObject implements Collectioner.
@@ -97,7 +95,7 @@ func (c *collection) GetObject() Collection[any] {
 // SetObject implements Collectioner.
 // Subtle: this method shadows the method (object).SetObject of collection.object.
 func (c *collection) SetObject(collection Collection[any]) {
-	c.raw = &domain.ObjectOrLink{
+	*c.raw = domain.ObjectOrLink{
 		Object: &domain.Object{
 			ID:   collection.ID,
 			Type: collection.Type,
@@ -121,7 +119,7 @@ func (a *actorCollection) GetObject() Collection[Actor] {
 // SetObject implements ActorCollectioner.
 // Subtle: this method shadows the method (collection).SetObject of actorCollection.collection.
 func (a *actorCollection) SetObject(collection Collection[Actor]) {
-	a.raw = &domain.ObjectOrLink{
+	*a.raw = domain.ObjectOrLink{
 		Object: &domain.Object{
 			ID:   collection.ID,
 			Type: collection.Type,
@@ -145,7 +143,7 @@ func (n *noteCollection) GetObject() Collection[Note] {
 // SetObject implements NoteCollectioner.
 // Subtle: this method shadows the method (collection).SetObject of noteCollection.collection.
 func (n *noteCollection) SetObject(collection Collection[Note]) {
-	n.raw = &domain.ObjectOrLink{
+	*n.raw = domain.ObjectOrLink{
 		Object: &domain.Object{
 			ID:   collection.ID,
 			Type: collection.Type,
@@ -176,11 +174,8 @@ func (c *collectionPage) GetObject() CollectionPage[any] {
 // SetObject implements CollectionPager.
 // Subtle: this method shadows the method (object).SetObject of collectionPage.object.
 func (c *collectionPage) SetObject(page CollectionPage[any]) {
-	items := []domain.ObjectOrLink{}
-	for _, item := range page.Items {
-		items = append(items, *item.GetRaw())
-	}
-	c.raw = &domain.ObjectOrLink{
+	items := mapToRaw(page.Items)
+	*c.raw = domain.ObjectOrLink{
 		Object: &domain.Object{
 			ID:   page.ID,
 			Type: page.Type,
@@ -213,11 +208,8 @@ func (a *actorCollectionPage) GetObject() CollectionPage[Actor] {
 // SetObject implements ActorCollectionPager.
 // Subtle: this method shadows the method (collectionPage).SetObject of actorCollectionPage.collectionPage.
 func (a *actorCollectionPage) SetObject(page CollectionPage[Actor]) {
-	items := []domain.ObjectOrLink{}
-	for _, item := range page.Items {
-		items = append(items, *item.GetRaw())
-	}
-	a.raw = &domain.ObjectOrLink{
+	items := mapToRaw(page.Items)
+	*a.raw = domain.ObjectOrLink{
 		Object: &domain.Object{
 			ID:   page.ID,
 			Type: page.Type,
@@ -250,11 +242,8 @@ func (n *noteCollectionPage) GetObject() CollectionPage[Note] {
 // SetObject implements NoteCollectionPager.
 // Subtle: this method shadows the method (object).SetObject of noteCollectionPage.object.
 func (n *noteCollectionPage) SetObject(page CollectionPage[Note]) {
-	items := []domain.ObjectOrLink{}
-	for _, item := range page.Items {
-		items = append(items, *item.GetRaw())
-	}
-	n.raw = &domain.ObjectOrLink{
+	items := mapToRaw(page.Items)
+	*n.raw = domain.ObjectOrLink{
 		Object: &domain.Object{
 			ID:   page.ID,
 			Type: page.Type,
@@ -265,4 +254,12 @@ func (n *noteCollectionPage) SetObject(page CollectionPage[Note]) {
 			},
 		},
 	}
+}
+
+func mapToRaw[T any](objects []Objecter[T]) []domain.ObjectOrLink {
+	items := make([]domain.ObjectOrLink, len(objects))
+	for _, item := range objects {
+		items = append(items, *item.GetRaw())
+	}
+	return items
 }

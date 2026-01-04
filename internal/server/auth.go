@@ -48,25 +48,33 @@ func authFunc(ctx context.Context, ai *openapi3filter.AuthenticationInput) error
 	if header == "" {
 		return errors.New("token not provided")
 	}
+
 	token, present := strings.CutPrefix(header, "Bearer: ")
 	if !present {
 		return errors.New("header value should start with \"Bearer: \"")
 	}
-	if _, err := jwt.Parse(token, func(t *jwt.Token) (any, error) {
-		// maybe it is not the right place to check this since jwt.Parse already returns Token object (???)
-		container := ctx.Value("token").(*tokenContainer)
+
+	var container *tokenContainer
+	if val := ctx.Value("token"); val != nil {
+		container = val.(*tokenContainer)
+	}
+	_, err := jwt.Parse(token, func(t *jwt.Token) (any, error) {
 		claim, err := t.Claims.GetSubject()
 		if err != nil {
 			return nil, err
 		}
+
 		id, err := strconv.Atoi(claim)
 		if err != nil {
 			return nil, err
 		}
-		container.id = &id
+
+		if container != nil {
+			container.id = &id
+		}
+
 		return []byte(signingKey), nil
-	}, jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()})); err != nil {
-		return err
-	}
-	return nil
+	}, jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}))
+
+	return err
 }

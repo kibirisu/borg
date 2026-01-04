@@ -30,7 +30,7 @@ func (c *createActivity) GetObject() Activity[Note] {
 // SetObject implements CreateActivitier.
 // Subtle: this method shadows the method (activity).SetObject of createActivity.activity.
 func (c *createActivity) SetObject(activity Activity[Note]) {
-	c.raw = &domain.ObjectOrLink{
+	*c.raw = domain.ObjectOrLink{
 		Object: &domain.Object{
 			ID:             activity.ID,
 			Type:           activity.Type,

@@ -1,28 +1,29 @@
 package util
 
 import (
-	"encoding/json"
+	"bytes"
+	"context"
+	"encoding/json/v2"
 	"net/http"
+	"time"
 )
 
 func WriteJSON(w http.ResponseWriter, status int, data any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(data)
+	_ = json.MarshalWrite(w, data)
 }
 
 func WriteActivityJSON(w http.ResponseWriter, status int, data any) {
 	w.Header().Set("Content-Type", "application/activity+json")
 	w.WriteHeader(status)
-	if data != nil {
-		_ = json.NewEncoder(w).Encode(data)
-	}
+	_ = json.MarshalWrite(w, data)
 }
 
 func WriteWebFingerJSON(w http.ResponseWriter, status int, data any) {
 	w.Header().Set("Content-Type", "application/jrd+json")
 	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(data)
+	_ = json.MarshalWrite(w, data)
 }
 
 func WriteError(w http.ResponseWriter, status int, message string) {
@@ -33,5 +34,35 @@ func WriteError(w http.ResponseWriter, status int, message string) {
 }
 
 func ReadJSON(r *http.Request, dst any) error {
-	return json.NewDecoder(r.Body).Decode(dst)
+	return json.UnmarshalRead(r.Body, dst)
+}
+
+func DeliverToEndpoint(endpoint string, payload any) {
+	if endpoint == "" {
+		return
+	}
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		jsonData, err := json.Marshal(payload)
+		if err != nil {
+			return
+		}
+		req, err := http.NewRequestWithContext(
+			ctx,
+			http.MethodPost,
+			endpoint,
+			bytes.NewBuffer(jsonData),
+		)
+		if err != nil {
+			return
+		}
+		req.Header.Set("Content-Type", "application/json")
+		client := &http.Client{}
+		resp, err := client.Do(req)
+		if err != nil {
+			return
+		}
+		defer resp.Body.Close()
+	}()
 }
