@@ -243,7 +243,21 @@ func (s *Server) GetApiPostsId(w http.ResponseWriter, r *http.Request, id int) {
 
 // GetApiPostsIdComments implements api.ServerInterface.
 func (s *Server) GetApiPostsIdComments(w http.ResponseWriter, r *http.Request, id int) {
-	panic("unimplemented")
+    comments, err := s.service.App.GetPostComments(r.Context(), id)
+    
+    if err != nil {
+        http.Error(w, "Database error", http.StatusInternalServerError)
+        return
+    }
+    
+    apiComments := make([]api.Comment, 0, len(comments))
+    
+    for _, comment := range comments {
+        converted := mapper.StatusToComment(&comment)
+        apiComments = append(apiComments, *converted)
+    }
+    
+    util.WriteJSON(w, http.StatusOK, apiComments)
 }
 
 // PostApiPostsIdComments implements api.ServerInterface.

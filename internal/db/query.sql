@@ -108,3 +108,11 @@ WHERE f.target_account_id = $1;
 SELECT a.* FROM accounts a
 JOIN follows f ON a.id = f.account_id
 WHERE f.account_id = $1;
+
+-- name: GetStatusComments :many
+SELECT 
+    sqlc.embed(s),
+    sqlc.embed(a)
+FROM statuses s
+JOIN accounts a ON s.account_id = a.id
+WHERE s.in_reply_to_id = $1;
