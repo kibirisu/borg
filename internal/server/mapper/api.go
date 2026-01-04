@@ -57,3 +57,19 @@ func LikeToAPI(like *db.Favourite) *api.Like {
 		UserID:    int(like.AccountID),
 	}
 }
+func StatusToComment(status *db.Status) *api.Comment {
+    postID := 0
+    if status.InReplyToID.Valid {
+        postID = int(status.InReplyToID.Int32)
+    }
+    
+    return &api.Comment{
+        Id:        int(status.ID),
+        PostID:    postID,
+        UserID:    int(status.AccountID),
+        Content:   status.Content,
+        ParentID:  postID,  // In this case ParentID = PostID (comment replies to post)
+        CreatedAt: status.CreatedAt,
+        UpdatedAt: status.UpdatedAt,
+    }
+}
