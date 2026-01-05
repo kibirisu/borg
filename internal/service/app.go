@@ -38,7 +38,7 @@ type AppService interface {
 	GetPostShares(context.Context, int) ([]db.Status, error)
 	GetPostByIdWithMetadata(context.Context, int) (*db.GetStatusByIdWithMetadataRow, error)
 	UpdatePost(context.Context, db.UpdateStatusParams) (db.Status, error)
-	GetComments(context.Context, int) ([]db.Status, error) 
+	GetPostComments(context.Context, int) ([]db.Status, error) 
 	// EW, idk if this should stay here
 	DeliverToFollowers(http.ResponseWriter, *http.Request, int, func(recipientURI string) any)
 }
