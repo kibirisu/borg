@@ -183,7 +183,7 @@ paths:
               $ref: "#/components/schemas/UpdatePost"
       responses:
         "200":
-          description: Updated user
+          description: Update a post
   /api/posts/{id}/comments:
     get:
       summary: Get a post's comments by ID
