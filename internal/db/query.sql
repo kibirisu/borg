@@ -116,3 +116,11 @@ SELECT
 FROM statuses s
 JOIN accounts a ON s.account_id = a.id
 WHERE s.in_reply_to_id = $1;
+
+-- name: UpdateStatus :one
+UPDATE statuses
+SET 
+    content = COALESCE($1, content),
+    updated_at = CURRENT_TIMESTAMP
+WHERE id = $2
+RETURNING *;

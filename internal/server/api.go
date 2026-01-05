@@ -431,7 +431,76 @@ func (s *Server) PostApiPosts(w http.ResponseWriter, r *http.Request) {
 
 // PutApiPostsId implements api.ServerInterface.
 func (s *Server) PutApiPostsId(w http.ResponseWriter, r *http.Request, id int) {
-	panic("unimplemented")
+    // 1. Authorization (pattern from PostApiPosts, lines 408–413)
+    container, ok := r.Context().Value("token").(*tokenContainer)
+    if !ok || container == nil || container.id == nil {
+        util.WriteError(w, http.StatusUnauthorized, "User not authenticated")
+        return
+    }
+    currentUserID := *container.id
+
+    // 2. Check if the post exists and get initial post data
+    post, err := s.service.App.GetPostById(r.Context(), id)
+    if err != nil {
+        util.WriteError(w, http.StatusNotFound, "Post not found")
+        return
+    }
+
+    // 3. Check ownership (critical security check)
+    if int(post.AccountID) != currentUserID {
+        util.WriteError(w, http.StatusForbidden, "Forbidden")
+        return
+    }
+
+    // 4. Read request body
+    var update api.UpdatePost
+    if err := util.ReadJSON(r, &update); err != nil {
+        util.WriteError(w, http.StatusBadRequest, "Invalid request payload")
+        return
+    }
+
+    // 5. Validate content - check if content is provided and not empty
+    if update.Content == nil || strings.TrimSpace(*update.Content) == "" {
+        util.WriteError(w, http.StatusBadRequest, "Content cannot be empty")
+        return
+    }
+
+    // 6. Get poster account for federation notifications
+    poster, err := s.service.App.GetAccountById(r.Context(), currentUserID)
+    if err != nil {
+        util.WriteError(w, http.StatusInternalServerError, "Internal server error")
+        return
+    }
+
+    // 7. Use mapper to convert update to DB params
+    updateParams := mapper.UpdatePostToDB(&update, id)
+
+    // 8. Update the post
+    updatedStatus, err := s.service.App.UpdatePost(r.Context(), *updateParams)
+    if err != nil {
+        util.WriteError(w, http.StatusInternalServerError, "Internal server error")
+        return
+    }
+
+    // 9. Fetch updated post with metadata for response
+    info, err := s.service.App.GetPostByIdWithMetadata(r.Context(), id)
+    if err != nil {
+        util.WriteError(w, http.StatusInternalServerError, "Internal server error")
+        return
+    }
+
+    // 10. Send federation notifications to followers (pattern from PostApiPosts, line 426)
+    s.service.App.DeliverToFollowers(w, r, currentUserID, func(recipientURI string) any {
+        return mapper.PostToUpdateNote(&updatedStatus, &poster, poster.FollowersUri)
+    })
+
+    // 11. Return response
+    util.WriteJSON(w, http.StatusOK, *mapper.PostToAPIWithMetadata(
+        &info.Status,
+        &info.Account,
+        int(info.LikeCount),
+        int(info.ShareCount),
+        int(info.CommentCount)))
 }
 
 // GetApiUsersIdPosts implements api.ServerInterface.
