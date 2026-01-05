@@ -507,6 +507,66 @@ func (q *Queries) GetStatusByIdWithMetadata(ctx context.Context, id int32) (GetS
 	return i, err
 }
 
+const getStatusComments = `-- name: GetStatusComments :many
+SELECT 
+    s.id, s.created_at, s.updated_at, s.uri, s.url, s.local, s.content, s.account_id, s.in_reply_to_id, s.reblog_of_id,
+    a.id, a.created_at, a.updated_at, a.username, a.uri, a.display_name, a.domain, a.inbox_uri, a.outbox_uri, a.followers_uri, a.following_uri, a.url
+FROM statuses s
+JOIN accounts a ON s.account_id = a.id
+WHERE s.in_reply_to_id = $1
+`
+
+type GetStatusCommentsRow struct {
+	Status  Status
+	Account Account
+}
+
+func (q *Queries) GetStatusComments(ctx context.Context, inReplyToID sql.NullInt32) ([]GetStatusCommentsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getStatusComments, inReplyToID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetStatusCommentsRow
+	for rows.Next() {
+		var i GetStatusCommentsRow
+		if err := rows.Scan(
+			&i.Status.ID,
+			&i.Status.CreatedAt,
+			&i.Status.UpdatedAt,
+			&i.Status.Uri,
+			&i.Status.Url,
+			&i.Status.Local,
+			&i.Status.Content,
+			&i.Status.AccountID,
+			&i.Status.InReplyToID,
+			&i.Status.ReblogOfID,
+			&i.Account.ID,
+			&i.Account.CreatedAt,
+			&i.Account.UpdatedAt,
+			&i.Account.Username,
+			&i.Account.Uri,
+			&i.Account.DisplayName,
+			&i.Account.Domain,
+			&i.Account.InboxUri,
+			&i.Account.OutboxUri,
+			&i.Account.FollowersUri,
+			&i.Account.FollowingUri,
+			&i.Account.Url,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getStatusFavourites = `-- name: GetStatusFavourites :many
 SELECT id, created_at, updated_at, uri, account_id, status_id
 FROM favourites
@@ -650,4 +710,36 @@ func (q *Queries) GetStatusesByAccountId(ctx context.Context, accountID int32) (
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateStatus = `-- name: UpdateStatus :one
+UPDATE statuses
+SET 
+    content = COALESCE($1, content),
+    updated_at = CURRENT_TIMESTAMP
+WHERE id = $2
+RETURNING id, created_at, updated_at, uri, url, local, content, account_id, in_reply_to_id, reblog_of_id
+`
+
+type UpdateStatusParams struct {
+	Content string
+	ID      int32
+}
+
+func (q *Queries) UpdateStatus(ctx context.Context, arg UpdateStatusParams) (Status, error) {
+	row := q.db.QueryRowContext(ctx, updateStatus, arg.Content, arg.ID)
+	var i Status
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Uri,
+		&i.Url,
+		&i.Local,
+		&i.Content,
+		&i.AccountID,
+		&i.InReplyToID,
+		&i.ReblogOfID,
+	)
+	return i, err
 }
