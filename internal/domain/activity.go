@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-type Actor struct {
+type ActorOld struct {
 	Context           any    `json:"@context"`
 	ID                string `json:"id"`
 	Type              string `json:"type"`
@@ -38,7 +38,7 @@ type Follow struct {
 	Object json.RawMessage `json:"object"`
 }
 
-type Note struct {
+type NoteOld struct {
 	ID           string    `json:"id"`
 	Type         string    `json:"type"`
 	Published    time.Time `json:"published"`
@@ -53,4 +53,11 @@ type Accept struct {
 	Type    string `json:"type"`
 	Actor   string `json:"actor"`
 	Object  any    `json:"object"`
+}
+type Like struct {
+	Context any             `json:"@context"`
+	ID      string          `json:"id"`
+	Type    string          `json:"type"`
+	Actor   json.RawMessage `json:"actor"`
+	Object  json.RawMessage `json:"object"`
 }

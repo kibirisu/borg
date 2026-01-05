@@ -42,6 +42,15 @@ type Follow struct {
 	TargetAccountID int32
 }
 
+type FollowRequest struct {
+	ID              int32
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+	Uri             string
+	AccountID       int32
+	TargetAccountID int32
+}
+
 type Status struct {
 	ID          int32
 	CreatedAt   time.Time

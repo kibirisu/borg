@@ -39,6 +39,17 @@ CREATE TABLE follows (
     CHECK (account_id != target_account_id)
 );
 
+CREATE TABLE follow_requests (
+    id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    uri TEXT UNIQUE NOT NULL,
+    account_id INTEGER NOT NULL REFERENCES accounts (id),
+    target_account_id INTEGER NOT NULL REFERENCES accounts (id),
+    UNIQUE (account_id, target_account_id),
+    CHECK (account_id != target_account_id)
+);
+
 CREATE TABLE favourites (
     id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -57,6 +68,7 @@ CREATE TABLE users (
 
 -- +goose Down
 DROP TABLE follows;
+DROP TABLE follow_requests;
 DROP TABLE favourites;
 DROP TABLE users;
 DROP TABLE statuses;
