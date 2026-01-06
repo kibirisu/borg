@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useContext, useState } from "react";
-import { useLoaderData } from "react-router";
+import { useLoaderData, useNavigate } from "react-router";
 import type { AppClient } from "../../lib/client";
 import ClientContext from "../../lib/client";
 import type { components } from "../../lib/api/v1";
@@ -16,6 +16,7 @@ export const loader = (client: AppClient) => async () => {
 
 export default function ExplorePage() {
   const client = useContext(ClientContext);
+  const navigate = useNavigate();
   const { opts } = useLoaderData() as Awaited<
     ReturnType<ReturnType<typeof loader>>
   >;
@@ -76,6 +77,11 @@ export default function ExplorePage() {
   const handlePostSelect = (post: PostPresentable) => {
     setSelectedPost(post);
     setIsComposerOpen(true);
+  };
+  const handleCommentClick = (post: PostPresentable) => {
+    if ("id" in post.data) {
+      navigate(`/post/${post.data.id}`);
+    }
   };
 
   const openComposerForNewPost = () => {
@@ -218,6 +224,7 @@ export default function ExplorePage() {
                   post={{ data: post }}
                   client={client!}
                   onSelect={handlePostSelect}
+                  onCommentClick={handleCommentClick}
                 />
               ))}
             {!isPending && !data?.length && (

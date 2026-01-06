@@ -18,9 +18,16 @@ interface PostProps {
   client: AppClient;
   onSelect?: (post: PostPresentable) => void;
   showActions?: boolean;
+  onCommentClick?: (post: PostPresentable) => void;
 }
 
-export const PostItem = ({ post, client, onSelect, showActions = false }: PostProps) => {
+export const PostItem = ({
+  post,
+  client,
+  onSelect,
+  showActions = false,
+  onCommentClick,
+}: PostProps) => {
   const likeAction = async () => {
     console.warn("Likes API is not available yet");
   };
@@ -86,18 +93,18 @@ export const PostItem = ({ post, client, onSelect, showActions = false }: PostPr
 
           <div className="flex justify-between mt-3 text-gray-500 text-sm max-w-md">
             {"commentCount" in post.data && (
-              <Link
-                to={`/post/${post.data.id}`}
-                onClick={(event) => event.stopPropagation()}
+              <button
+                type="button"
+                className="flex items-center space-x-1 hover:text-blue-500 transition"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  if (onCommentClick) {
+                    onCommentClick(post);
+                  }
+                }}
               >
-                <button
-                  type="button"
-                  className="flex items-center space-x-1 hover:text-blue-500 transition"
-                >
-                  <MessageCircle size={16} />{" "}
-                  <span>{post.data.commentCount}</span>
-                </button>
-              </Link>
+                <MessageCircle size={16} /> <span>{post.data.commentCount}</span>
+              </button>
             )}
             {"shareCount" in post.data && (
               <form

@@ -1,47 +1,60 @@
-import { useEffect, useRef } from "react";
-import { type ActionFunctionArgs, Form, useNavigation } from "react-router";
+import { useEffect, useRef, useContext } from "react";
+import {
+  type ActionFunctionArgs,
+  Form,
+  useActionData,
+  useNavigation,
+} from "react-router";
+import AppContext from "../../lib/state";
 import type { AppClient } from "../../lib/client";
 
 export const action =
   (client: AppClient) =>
   async ({ request, params }: ActionFunctionArgs) => {
-    // if (!params.postId) {
-    //   throw new Error("No post ID provided");
-    // }
-    //
-    // const postId = parseInt(params.postId);
-    //
-    // const formData = await request.formData();
-    // const content = formData.get("content") as string;
-    // if (!content) {
-    //   throw new Error("Comment content cannot be empty");
-    // }
-    //
-    // const newCommentOps: components["schemas"]["NewComment"] = {
-    //   postID: postId,
-    //   userID: 1, //TODO
-    //   content,
-    // };
-    //
-    // const mutationOpts = client.$api.queryOptions(
-    //   "post",
-    //   "/api/posts/{id}/comments",
-    //   {
-    //     params: { path: { id: postId } },
-    //     body: newCommentOps,
-    //   },
-    // );
-    // client.queryClient.invalidateQueries({
-    //   queryKey: ["get", "/api/posts/{id}/comments", { id: postId }],
-    // });
-    //
-    // await client.queryClient.ensureQueryData(mutationOpts);
-    return { form: "Comments are not available yet." };
+    if (!params.postId) {
+      return { form: "No post ID provided" };
+    }
+
+    const postId = Number(params.postId);
+    const formData = await request.formData();
+    const contentRaw = formData.get("content")?.toString() ?? "";
+    const userIdRaw = formData.get("userId")?.toString() ?? "";
+    const userId = Number(userIdRaw);
+
+    if (!contentRaw.trim()) {
+      return { form: "Comment content cannot be empty" };
+    }
+    if (!userId || Number.isNaN(userId)) {
+      return { form: "User not authenticated" };
+    }
+
+    const body = {
+      postID: postId,
+      userID: userId,
+      content: contentRaw.trim(),
+    };
+
+    const res = await client.fetchClient.POST("/api/posts/{id}/comments", {
+      params: { path: { id: postId } },
+      body,
+    });
+
+    if (res.error) {
+      return { form: "Failed to post comment" };
+    }
+
+    client.queryClient.invalidateQueries({ queryKey: ["comments", postId] });
+    client.queryClient.invalidateQueries({ queryKey: ["user-posts"] });
+    return null;
   };
 
 export default function CommentForm() {
+  const appState = useContext(AppContext);
+  const errors = useActionData() as { form?: string } | undefined;
   const navigation = useNavigation();
   const isSubmitting = navigation.state === "submitting";
+  const userId = appState?.userId ?? null;
+  const isAuthenticated = userId !== null;
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -56,10 +69,17 @@ export default function CommentForm() {
       method="post"
       className="p-4 border-t border-gray-200 bg-white flex flex-col gap-3 rounded-b-2xl"
     >
-      <div className="rounded-lg bg-gray-50 border border-dashed border-gray-300 p-3 text-sm text-gray-600">
-        Commenting is temporarily disabled while the API endpoint is being
-        implemented.
-      </div>
+      <input type="hidden" name="userId" value={userId ?? ""} />
+      {!isAuthenticated && (
+        <div className="rounded-lg bg-yellow-50 border border-dashed border-yellow-200 p-3 text-sm text-gray-700">
+          Sign in to comment.
+        </div>
+      )}
+      {errors?.form && (
+        <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700">
+          {errors.form}
+        </div>
+      )}
       <textarea
         ref={textareaRef}
         name="content"
@@ -67,12 +87,12 @@ export default function CommentForm() {
         placeholder="Write a comment..."
         className="border border-gray-300 p-3 rounded-xl w-full resize-none shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-gray-50"
         rows={3}
-        disabled
+        disabled={!isAuthenticated}
       />
 
       <button
         type="submit"
-        disabled={isSubmitting}
+        disabled={isSubmitting || !isAuthenticated}
         className="self-end rounded-full bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm disabled:opacity-50"
       >
         {isSubmitting ? "Posting…" : "Post"}

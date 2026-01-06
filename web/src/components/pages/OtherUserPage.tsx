@@ -21,6 +21,10 @@ export default function OtherUserPage() {
   const appState = useContext(AppContext);
   const client = useContext(ClientContext);
   const tokenUserId = appState?.userId ?? null;
+  const userId = useMemo(() => {
+    if (handle && !Number.isNaN(Number(handle))) return Number(handle);
+    return null;
+  }, [handle]);
   const derivedUsername = useMemo(() => {
     if (handle) {
       return String(handle);
@@ -59,6 +63,40 @@ export default function OtherUserPage() {
     },
   });
 
+  const { data: followers } = useQuery<components["schemas"]["Account"][]>({
+    queryKey: ["followers", userId],
+    enabled: Boolean(client) && userId !== null,
+    queryFn: async () => {
+      if (!client || userId === null) {
+        throw new Error("Client or user not ready");
+      }
+      const res = await client.fetchClient.GET("/api/users/{id}/followers", {
+        params: { path: { id: userId } },
+      });
+      if (res.error) {
+        throw new Error("Failed to fetch followers");
+      }
+      return res.data ?? [];
+    },
+  });
+
+  const { data: following } = useQuery<components["schemas"]["Account"][]>({
+    queryKey: ["following", userId],
+    enabled: Boolean(client) && userId !== null,
+    queryFn: async () => {
+      if (!client || userId === null) {
+        throw new Error("Client or user not ready");
+      }
+      const res = await client.fetchClient.GET("/api/users/{id}/following", {
+        params: { path: { id: userId } },
+      });
+      if (res.error) {
+        throw new Error("Failed to fetch following");
+      }
+      return res.data ?? [];
+    },
+  });
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="grid grid-cols-[1fr_256px] gap-6">
@@ -81,10 +119,16 @@ export default function OtherUserPage() {
                 </p>
                 <div className="mt-4 flex items-center gap-8 text-sm text-gray-600">
                   <span>
-                    Followers: <strong className="text-gray-900">—</strong>
+                    Followers:{" "}
+                    <strong className="text-gray-900">
+                      {followers ? followers.length : "—"}
+                    </strong>
                   </span>
                   <span>
-                    Following: <strong className="text-gray-900">—</strong>
+                    Following:{" "}
+                    <strong className="text-gray-900">
+                      {following ? following.length : "—"}
+                    </strong>
                   </span>
                 </div>
               </div>
