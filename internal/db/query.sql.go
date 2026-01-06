@@ -608,6 +608,28 @@ func (q *Queries) GetStatusByIdWithMetadata(ctx context.Context, id int32) (GetS
 	return i, err
 }
 
+const getStatusByURI = `-- name: GetStatusByURI :one
+SELECT id, created_at, updated_at, uri, url, local, content, account_id, in_reply_to_id, reblog_of_id FROM statuses WHERE uri = $1
+`
+
+func (q *Queries) GetStatusByURI(ctx context.Context, uri string) (Status, error) {
+	row := q.db.QueryRowContext(ctx, getStatusByURI, uri)
+	var i Status
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Uri,
+		&i.Url,
+		&i.Local,
+		&i.Content,
+		&i.AccountID,
+		&i.InReplyToID,
+		&i.ReblogOfID,
+	)
+	return i, err
+}
+
 const getStatusFavourites = `-- name: GetStatusFavourites :many
 SELECT id, created_at, updated_at, uri, account_id, status_id
 FROM favourites

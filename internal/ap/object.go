@@ -38,6 +38,9 @@ func (o *object) GetURI() string {
 
 // GetValueType implements Objecter.
 func (o *object) GetValueType() ValueType {
+	if o.raw == nil {
+		return NullType
+	}
 	switch o.raw.GetType() {
 	case domain.LinkType:
 		return LinkType

@@ -41,6 +41,9 @@ WHERE a.domain is null and s.in_reply_to_id is null;
 -- name: GetStatusById :one
 SELECT * FROM statuses WHERE id = $1;
 
+-- name: GetStatusByURI :one
+SELECT * FROM statuses WHERE uri = $1;
+
 -- name: GetStatusByIdWithMetadata :one
 SELECT 
     sqlc.embed(s),

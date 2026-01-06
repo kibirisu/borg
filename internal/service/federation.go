@@ -9,20 +9,22 @@ import (
 	"github.com/kibirisu/borg/internal/db"
 	"github.com/kibirisu/borg/internal/domain"
 	repo "github.com/kibirisu/borg/internal/repository"
+	"github.com/kibirisu/borg/internal/transport"
 )
 
 type FederationService interface {
 	GetLocalActor(context.Context, string) (*domain.Object, error)
 	CreateActor(context.Context, db.CreateActorParams) (*db.Account, error)
-	ProcessInbox(context.Context, *domain.ObjectOrLink) error
+	ProcessIncoming(context.Context, *domain.ObjectOrLink) error
 }
 
 type federationService struct {
-	store repo.Store
+	store  repo.Store
+	client transport.Client
 }
 
 func NewFederationService(store repo.Store) FederationService {
-	return &federationService{store}
+	return &federationService{store: store}
 }
 
 var _ FederationService = (*federationService)(nil)
@@ -59,7 +61,10 @@ func (s *federationService) CreateActor(
 }
 
 // ProcessInbox implements FederationService.
-func (s *federationService) ProcessInbox(ctx context.Context, object *domain.ObjectOrLink) error {
+func (s *federationService) ProcessIncoming(
+	ctx context.Context,
+	object *domain.ObjectOrLink,
+) error {
 	activity := ap.NewActivity(object)
 	if activity.GetValueType() != ap.ObjectType {
 		return errors.New("expected JSON object")
@@ -103,30 +108,76 @@ func (s *federationService) addNote(ctx context.Context, activity ap.Activiter[a
 		return errors.New("expected Note object")
 	}
 
-	// We may make db rows searchable by AP object URI for smoothness
-	// Since we receiving that note, the account shall be present in db
-	// Otherwise, it may be DM, so we fetch remote actor
-
 	attributedTo := getActorURI(note.AttributedTo)
-
-	err := s.store.Statuses().AddFrom(ctx, db.AddStatusFromParams{
-		Uri:         note.ID,
-		Url:         "TODO",
-		Content:     note.Content,
-		Uri_2:       attributedTo,
-		InReplyToID: sql.NullInt32{},
-		ReblogOfID:  sql.NullInt32{},
-	})
+	account, err := s.store.Accounts().GetByURI(ctx, attributedTo)
 	if err != nil {
-		return err
+		obj, err := s.client.Get(attributedTo)
+		if err != nil {
+			return err
+		}
+		actor := ap.NewActor(obj)
+		actorData := actor.GetObject()
+		account, err = s.store.Accounts().Create(ctx, db.CreateActorParams{
+			Username:     actorData.PreferredUsername,
+			Uri:          actorData.ID,
+			DisplayName:  sql.NullString{},
+			Domain:       sql.NullString{},
+			InboxUri:     actorData.Inbox,
+			OutboxUri:    actorData.Outbox,
+			Url:          "nope",
+			FollowersUri: actorData.Followers,
+			FollowingUri: actorData.Following,
+		})
+		if err != nil {
+			return err
+		}
+	}
+	inReplyTo := sql.NullInt32{}
+	var inReplyToURI string
+	switch note.InReplyTo.GetValueType() {
+	case ap.LinkType:
+		inReplyToURI = note.InReplyTo.GetURI()
+	case ap.NullType:
+	case ap.ObjectType:
+		inReplyToURI = note.InReplyTo.GetObject().ID
+	default:
+		panic("unexpected ap.ValueType")
+	}
+
+	if inReplyToURI != "" {
+		parentStatus, err := s.store.Statuses().GetByURI(ctx, inReplyToURI)
+		if err != nil {
+			obj, err := s.client.Get(inReplyToURI)
+			if err != nil {
+				return err
+			}
+			status := ap.NewNote(obj)
+			statusData := status.GetObject()
+			parentStatus, err = s.store.Statuses().Create(ctx, db.CreateStatusParams{
+				Uri:         statusData.ID,
+				Url:         "nope",
+				Local:       sql.NullBool{},
+				Content:     statusData.Content,
+				AccountID:   0, // TODO: check again for actor
+				InReplyToID: inReplyTo,
+				ReblogOfID:  sql.NullInt32{},
+			})
+			if err != nil {
+				return err
+			}
+		}
+		inReplyTo = sql.NullInt32{
+			Int32: parentStatus.ID,
+			Valid: true,
+		}
 	}
 
 	return s.store.Statuses().Add(ctx, db.AddStatusParams{
 		Uri:         note.ID,
-		Url:         "TODO",
+		Url:         "nope",
 		Content:     note.Content,
-		AccountID:   0, // TODO
-		InReplyToID: sql.NullInt32{},
+		AccountID:   account.ID,
+		InReplyToID: inReplyTo,
 		ReblogOfID:  sql.NullInt32{},
 	})
 }
@@ -142,7 +193,4 @@ func getActorURI(object ap.Actorer) string {
 	default:
 		panic("unexpected ap.ValueType")
 	}
-}
-
-func (s *federationService) getActor() {
 }
