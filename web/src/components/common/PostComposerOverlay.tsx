@@ -5,14 +5,17 @@ interface PostComposerOverlayProps {
   isOpen: boolean;
   onClose: () => void;
   replyTo?: PostPresentable | null;
+  onSubmit?: (content: string) => Promise<void> | void;
 }
 
 const PostComposerOverlay = ({
   isOpen,
   onClose,
   replyTo,
+  onSubmit,
 }: PostComposerOverlayProps) => {
   const [message, setMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (!isOpen) {
@@ -24,11 +27,25 @@ const PostComposerOverlay = ({
     return null;
   }
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    console.info("[Composer] submitting post:", message);
-    onClose();
-    setMessage("");
+    if (!message.trim() || isSubmitting) {
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      if (onSubmit) {
+        await onSubmit(message.trim());
+      } else {
+        console.info("[Composer] submitting post:", message);
+      }
+      onClose();
+      setMessage("");
+    } catch (err) {
+      console.error("[Composer] failed to submit post", err);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -72,6 +89,7 @@ const PostComposerOverlay = ({
               value={message}
               onChange={(event) => setMessage(event.target.value)}
               required
+              disabled={isSubmitting}
             />
             <div className="flex items-center justify-between border-t border-gray-200 pt-3">
               <div className="flex items-center gap-2">
@@ -95,8 +113,9 @@ const PostComposerOverlay = ({
               <button
                 type="submit"
                 className="rounded-full bg-indigo-600 px-6 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-300"
+                disabled={isSubmitting}
               >
-                Post me
+                {isSubmitting ? "Posting…" : "Post me"}
               </button>
             </div>
           </form>

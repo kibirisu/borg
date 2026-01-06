@@ -1,13 +1,10 @@
 package server
 
 import (
-	"database/sql"
-	"errors"
 	"log"
 	"net/http"
 
 	"github.com/kibirisu/borg/internal/api"
-	"github.com/kibirisu/borg/internal/db"
 	"github.com/kibirisu/borg/internal/server/mapper"
 	"github.com/kibirisu/borg/internal/util"
 )
@@ -214,28 +211,54 @@ func (s *Server) PostApiPostsIdShares(w http.ResponseWriter, r *http.Request, id
 
 // PostApiPosts implements api.ServerInterface.
 func (s *Server) PostApiPosts(w http.ResponseWriter, r *http.Request) {
-    container, ok := r.Context().Value("token").(*tokenContainer)
-    if !ok || container == nil || container.id == nil {
-        util.WriteError(w, http.StatusUnauthorized, "User not authenticated")
-        return
-    }
-    currentUserID := *container.id
-    poster, err := s.service.App.GetAccountById(r.Context(), currentUserID)
-    var newPost api.NewPost
-    if err := util.ReadJSON(r, &newPost); err != nil {
-        http.Error(w, "Invalid request payload", http.StatusBadRequest)
-        return 
-    }
-    var newDBPost = mapper.NewPostToDB(&newPost, true)
-    status, err := s.service.App.AddNote(r.Context(), *newDBPost)
-    if err != nil {
-        http.Error(w, "Internal server error", http.StatusInternalServerError)
-        return
-    }
-    s.service.App.DeliverToFollowers(w, r, newPost.UserID, func(recipientURI string) any {
-        return mapper.PostToCreateNote(&status, &poster, []string{recipientURI})
-    })
-    util.WriteJSON(w, http.StatusCreated, nil);
+	container, ok := r.Context().Value("token").(*tokenContainer)
+	if !ok || container == nil || container.id == nil {
+		util.WriteError(w, http.StatusUnauthorized, "User not authenticated")
+		return
+	}
+	currentUserID := *container.id
+	poster, err := s.service.App.GetAccountById(r.Context(), currentUserID)
+	var newPost api.NewPost
+	if err := util.ReadJSON(r, &newPost); err != nil {
+		log.Printf("[PostApiPosts] failed to parse payload: %v", err)
+		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+		return
+	}
+	log.Printf("[PostApiPosts] user=%d payload_user=%d content_len=%d", currentUserID, newPost.UserID, len(newPost.Content))
+	newDBPost := mapper.NewPostToDB(&newPost, true)
+	status, err := s.service.App.AddNote(r.Context(), *newDBPost)
+	if err != nil {
+		http.Error(w, "Cannot add note"+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	s.service.App.DeliverToFollowers(w, r, newPost.UserID, func(recipientURI string) any {
+		create := ap.NewCreateActivity(nil)
+		actor := ap.NewActor(nil)
+		actor.SetLink(poster.Uri)
+		note := ap.NewNote(nil)
+		replies := ap.NewNoteCollection(nil)
+		replies.SetLink("YO MAMA TODO")
+		note.SetObject(ap.Note{
+			ID:           status.Uri,
+			Type:         "Note",
+			Content:      status.Content,
+			InReplyTo:    ap.NewNote(nil),
+			Published:    status.CreatedAt,
+			AttributedTo: ap.NewActor(nil),
+			To:           []string{recipientURI},
+			CC:           []string{recipientURI},
+			Replies:      replies,
+		})
+		create.SetObject(ap.Activity[ap.Note]{
+			ID:     "TODO",
+			Type:   "Create",
+			Actor:  actor,
+			Object: note,
+		})
+		return create.GetRaw()
+	})
+	util.WriteJSON(w, http.StatusCreated, nil)
 }
 
 // PutApiPostsId implements api.ServerInterface.

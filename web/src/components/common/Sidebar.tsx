@@ -142,9 +142,13 @@ export default function Sidebar({ onPostClick }: SidebarProps) {
   const appState = useContext(AppContext);
   const decoded = decodeToken(appState?.tokenRef?.current ?? null);
   const userId = decoded?.userId ?? null;
-  console.log("[sidebar] decoded token", decoded, "profile target userId", userId);
-  const profileTarget = userId ? `/profile/${userId}` : "/signin";
   const isAuthenticated = Boolean(userId);
+  const profileTarget = userId ? `/profile/${userId}` : "/signin";
+
+  const handlePostClick = () => {
+    console.log("[sidebar] post click", { userId, isAuthenticated });
+    onPostClick?.();
+  };
 
   return (
     <aside className="w-64 h-screen bg-white border-r px-4 py-6">
@@ -177,9 +181,8 @@ export default function Sidebar({ onPostClick }: SidebarProps) {
 
       <button
         type="button"
-        className="mt-8 w-full bg-indigo-500 text-white py-2 rounded-full font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-        onClick={onPostClick}
-        disabled={!isAuthenticated}
+        className="mt-8 w-full bg-indigo-500 text-white py-2 rounded-full font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:cursor-pointer"
+        onClick={handlePostClick}
       >
         {isAuthenticated ? "Post" : "Sign in to post"}
       </button>

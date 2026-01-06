@@ -9,10 +9,9 @@ import PostComposerOverlay from "../common/PostComposerOverlay";
 import Sidebar from "../common/Sidebar";
 
 export const loader = (client: AppClient) => async () => {
-  // const opts = client.$api.queryOptions("get", "/api/posts", {});
-  // await client.queryClient.ensureQueryData(opts);
-  // return { opts };
-  return { opts: undefined };
+  const opts = client.$api.queryOptions("get", "/api/posts", {});
+  await client.queryClient.ensureQueryData(opts);
+  return { opts };
 };
 
 export default function ExplorePage() {
@@ -20,10 +19,7 @@ export default function ExplorePage() {
   const { opts } = useLoaderData() as Awaited<
     ReturnType<ReturnType<typeof loader>>
   >;
-  const queryArgs = opts
-    ? { ...opts }
-    : { queryKey: [], queryFn: async () => [], enabled: false };
-  const { data, isPending } = useQuery(queryArgs);
+  const { data, isPending } = useQuery(opts);
   const [searchTerm, setSearchTerm] = useState("");
   const [searchError, setSearchError] = useState("");
   const [searchResult, setSearchResult] =
@@ -212,10 +208,10 @@ export default function ExplorePage() {
             </div>
           )}
           <section className="bg-white rounded-2xl border border-gray-200 p-4 space-y-4 min-h-[400px]">
-            {isPending && opts && (
+            {isPending && (
               <p className="text-gray-500 text-center">Loading…</p>
             )}
-            {!isPending && opts &&
+            {!isPending &&
               data?.map((post: components["schemas"]["Post"]) => (
                 <PostItem
                   key={post.id}
@@ -224,14 +220,9 @@ export default function ExplorePage() {
                   onSelect={handlePostSelect}
                 />
               ))}
-            {!isPending && opts && !data?.length && (
+            {!isPending && !data?.length && (
               <p className="text-center text-gray-500">
                 Nothing posted yet.
-              </p>
-            )}
-            {!opts && (
-              <p className="text-center text-gray-500">
-                Posts feed is not available yet. Search remains available.
               </p>
             )}
           </section>

@@ -28,11 +28,7 @@ export default function Feed() {
   >;
 
   if (!opts) {
-    return (
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 text-center text-gray-500">
-        Posts feed is not available yet.
-      </div>
-    );
+    return null;
   }
 
   const { data, isPending } = useQuery<components["schemas"]["Post"][]>(opts);
