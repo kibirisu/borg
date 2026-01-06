@@ -1,6 +1,6 @@
 import { useContext, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { type LoaderFunctionArgs, Outlet, useLoaderData } from "react-router";
+import { type LoaderFunctionArgs, Outlet, useLoaderData, useNavigate } from "react-router";
 import type { AppClient } from "../../lib/client";
 import ClientContext from "../../lib/client";
 import AppContext from "../../lib/state";
@@ -21,6 +21,7 @@ export default function UserPage() {
   const { handle } = useLoaderData() as Awaited<
     ReturnType<ReturnType<typeof loader>>
   >;
+  const navigate = useNavigate();
   const appState = useContext(AppContext);
   const client = useContext(ClientContext);
   const tokenUsername = appState?.username ?? "";
@@ -88,6 +89,39 @@ export default function UserPage() {
   });
 
   const [isComposerOpen, setComposerOpen] = useState(false);
+  const { data: followers } = useQuery<components["schemas"]["Account"][]>({
+    queryKey: ["followers", userId],
+    enabled: Boolean(client) && userId !== null,
+    queryFn: async () => {
+      if (!client || userId === null) {
+        throw new Error("Client or user not ready");
+      }
+      const res = await client.fetchClient.GET("/api/users/{id}/followers", {
+        params: { path: { id: userId } },
+      });
+      if (res.error) {
+        throw new Error("Failed to fetch followers");
+      }
+      return res.data ?? [];
+    },
+  });
+
+  const { data: following } = useQuery<components["schemas"]["Account"][]>({
+    queryKey: ["following", userId],
+    enabled: Boolean(client) && userId !== null,
+    queryFn: async () => {
+      if (!client || userId === null) {
+        throw new Error("Client or user not ready");
+      }
+      const res = await client.fetchClient.GET("/api/users/{id}/following", {
+        params: { path: { id: userId } },
+      });
+      if (res.error) {
+        throw new Error("Failed to fetch following");
+      }
+      return res.data ?? [];
+    },
+  });
   const openComposer = () => {
     console.log("[UserPage] open composer", { userId });
     setComposerOpen(true);
@@ -131,10 +165,16 @@ export default function UserPage() {
                 </p>
                 <div className="mt-4 flex items-center gap-8 text-sm text-gray-600">
                   <span>
-                    Followers: <strong className="text-gray-900">—</strong>
+                    Followers:{" "}
+                    <strong className="text-gray-900">
+                      {followers ? followers.length : "—"}
+                    </strong>
                   </span>
                   <span>
-                    Following: <strong className="text-gray-900">—</strong>
+                    Following:{" "}
+                    <strong className="text-gray-900">
+                      {following ? following.length : "—"}
+                    </strong>
                   </span>
                 </div>
               </div>
@@ -159,6 +199,11 @@ export default function UserPage() {
                       post={{ data: post }}
                       client={client!}
                       showActions
+                      onCommentClick={(p) => {
+                        if ("id" in p.data) {
+                          navigate(`/post/${p.data.id}`);
+                        }
+                      }}
                     />
                   ))
                 ) : (
