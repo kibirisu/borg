@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"golang.org/x/crypto/bcrypt"
+	"github.com/google/uuid"
 
 	"github.com/kibirisu/borg/internal/api"
 	"github.com/kibirisu/borg/internal/config"
@@ -126,6 +127,13 @@ func (s *appService) CreateFollow(ctx context.Context, follow *db.CreateFollowPa
 
 // AddNote implements AppService.
 func (s *appService) AddNote(ctx context.Context, note db.CreateStatusParams) (db.Status, error) {
+	// Generate unique URIs if not provided; required by DB constraints.
+	if note.Uri == "" {
+		note.Uri = fmt.Sprintf("http://%s/statuses/%s", s.conf.ListenHost, uuid.NewString())
+	}
+	if note.Url == "" {
+		note.Url = note.Uri
+	}
 	return s.store.Statuses().Create(ctx, note)
 }
 

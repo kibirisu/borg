@@ -4,8 +4,11 @@ import { type LoaderFunctionArgs, Outlet, useLoaderData } from "react-router";
 import type { AppClient } from "../../lib/client";
 import ClientContext from "../../lib/client";
 import AppContext from "../../lib/state";
+import type { components } from "../../lib/api/v1";
 import Sidebar from "../common/Sidebar";
 import anonAvatar from "../../assets/Anonomous.jpg";
+import { PostItem } from "../common/PostItem";
+import PostComposerOverlay from "../common/PostComposerOverlay";
 
 export const loader =
   (client: AppClient) =>
@@ -22,10 +25,6 @@ export default function UserPage() {
   const client = useContext(ClientContext);
   const tokenUsername = appState?.username ?? "";
   const tokenUserId = appState?.userId ?? null;
-  console.log("[UserPage] loader handle", handle, "token user", {
-    username: tokenUsername,
-    userId: tokenUserId,
-  });
   const derivedUsername = useMemo(() => {
     if (tokenUsername) {
       return tokenUsername;
@@ -64,6 +63,52 @@ export default function UserPage() {
     },
   });
 
+  const userId = useMemo(() => {
+    if (tokenUserId !== null) return tokenUserId;
+    if (handle && !Number.isNaN(Number(handle))) return Number(handle);
+    return null;
+  }, [handle, tokenUserId]);
+
+  const {
+    data: posts,
+    isPending: postsPending,
+    isError: postsError,
+  } = useQuery<components["schemas"]["Post"][]>({
+    queryKey: ["user-posts", userId],
+    enabled: Boolean(client) && userId !== null,
+    queryFn: async () => {
+      const res = await client!.fetchClient.GET("/api/users/{id}/posts", {
+        params: { path: { id: userId! } },
+      });
+      if (res.error) {
+        throw new Error("Failed to fetch posts");
+      }
+      return res.data ?? [];
+    },
+  });
+
+  const [isComposerOpen, setComposerOpen] = useState(false);
+  const openComposer = () => {
+    console.log("[UserPage] open composer", { userId });
+    setComposerOpen(true);
+  };
+  const closeComposer = () => setComposerOpen(false);
+
+  const handleCreatePost = async (content: string) => {
+    if (!client || userId === null) {
+      throw new Error("User not authenticated");
+    }
+    await client.fetchClient.POST("/api/posts", {
+      body: { userID: userId, content },
+    });
+    await client.queryClient.invalidateQueries({
+      queryKey: ["user-posts", userId],
+    });
+    await client.queryClient.invalidateQueries({
+      queryKey: ["get", "/api/posts", {}],
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="grid grid-cols-[1fr_256px] gap-6">
@@ -95,13 +140,45 @@ export default function UserPage() {
               </div>
             </div>
           </section>
-            {/* POSTS */}
+          {/* POSTS */}
           <section className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-              <Outlet />
+            {postsPending && (
+              <div className="p-4 text-sm text-gray-500">Loading posts…</div>
+            )}
+            {postsError && (
+              <div className="p-4 text-sm text-red-600">
+                Failed to load posts.
+              </div>
+            )}
+            {!postsPending && !postsError && (
+              <>
+                {posts && posts.length > 0 ? (
+                  posts.map((post) => (
+                    <PostItem
+                      key={post.id}
+                      post={{ data: post }}
+                      client={client!}
+                      showActions
+                    />
+                  ))
+                ) : (
+                  <div className="p-4 text-sm text-gray-500">
+                    No posts yet.
+                  </div>
+                )}
+              </>
+            )}
+            <Outlet />
           </section>
         </main>
-        <Sidebar />
+        <Sidebar onPostClick={openComposer} />
       </div>
+      <PostComposerOverlay
+        isOpen={isComposerOpen}
+        onClose={closeComposer}
+        replyTo={null}
+        onSubmit={handleCreatePost}
+      />
     </div>
   );
 }

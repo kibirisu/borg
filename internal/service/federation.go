@@ -9,7 +9,6 @@ import (
 	"github.com/kibirisu/borg/internal/db"
 	"github.com/kibirisu/borg/internal/domain"
 	repo "github.com/kibirisu/borg/internal/repository"
-	"github.com/kibirisu/borg/internal/util"
 )
 
 type FederationService interface {

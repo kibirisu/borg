@@ -5,7 +5,7 @@ import {
   RouterContextProvider,
   RouterProvider as Provider,
 } from "react-router";
-import Feed, { loader as feedLoader } from "../components/common/Feed";
+import Feed, { loader as feedLoader } from "../components/common/PostsFeed";
 import { action as addCommentAction } from "../components/feed/CommentForm";
 import CommentView, {
   CommentsFeed,
@@ -14,7 +14,7 @@ import CommentView, {
 } from "../components/feed/CommentView";
 import MainFeed, {
   loader as mainFeedLoader,
-} from "../components/feed/MainFeed";
+} from "../components/feed/HomeFeedLayout";
 import { action as addPostAction } from "../components/feed/NewPostForm";
 import UserPage, { loader as userPageLoader } from "../components/pages/UserPage";
 import OtherUserPage from "../components/pages/OtherUserPage";

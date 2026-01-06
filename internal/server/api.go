@@ -1,14 +1,11 @@
 package server
 
 import (
-	"database/sql"
-	"errors"
 	"log"
 	"net/http"
 
 	"github.com/kibirisu/borg/internal/ap"
 	"github.com/kibirisu/borg/internal/api"
-	"github.com/kibirisu/borg/internal/db"
 	"github.com/kibirisu/borg/internal/server/mapper"
 	"github.com/kibirisu/borg/internal/util"
 )
@@ -76,77 +73,8 @@ func (s *Server) GetApiAccountsLookup(
 		}
 		log.Printf("lookup: found local account %s", account.Username)
 		util.WriteJSON(w, http.StatusOK, mapper.AccountToAPI(account))
-	} else if addr != "" {
-		// actor, err := s.ds.Raw().GetAccount(r.Context(), db.GetAccountParams{username, sql.NullString{domain, true}})
-		account, err := s.service.App.GetLocalAccount(r.Context(), username)
-		if err != nil {
-			// we should do webfinger lookup at this point
-			// code bellow will be move to worker
-
-			client := http.Client{Timeout: 2 * time.Second}
-			req, err := http.NewRequest("GET", "http://"+addr+"/.well-known/webfinger", nil)
-			q := req.URL.Query()
-			q.Set("resource", acct)
-			req.URL.RawQuery = q.Encode()
-			if err != nil {
-				log.Println(err)
-				util.WriteError(w, http.StatusInternalServerError, err.Error())
-				return
-			}
-			resp, err := client.Do(req)
-			if err != nil {
-				log.Println(err)
-				util.WriteError(w, http.StatusInternalServerError, err.Error())
-				return
-			}
-			var webfinger api.WebFingerResponse
-			if err = util.ReadJSON(r, &webfinger); err != nil {
-				log.Println(err)
-				_ = resp.Body.Close()
-				util.WriteError(w, http.StatusInternalServerError, err.Error())
-				return
-			}
-			_ = resp.Body.Close()
-
-			// at this point we successfully looked up a account
-			// and we should ask the other server for actor associated with the account
-
-			req, err = http.NewRequest("GET", webfinger.Links[0].Href, nil)
-			if err != nil {
-				log.Println(err)
-				util.WriteError(w, http.StatusInternalServerError, err.Error())
-				return
-			}
-			resp, err = client.Do(req)
-			if err != nil {
-				log.Println(err)
-				util.WriteError(w, http.StatusInternalServerError, err.Error())
-				return
-			}
-			var actor domain.ActorOld
-			if err = util.ReadJSON(r, &actor); err != nil {
-				log.Println(err)
-				_ = resp.Body.Close()
-				util.WriteError(w, http.StatusInternalServerError, err.Error())
-				return
-			}
-			log.Println(actor)
-			// we fetched remote actor
-			// we must store it in database and return account in response
-			_ = resp.Body.Close()
-			// row, err := s.service.Federation.CreateActor(r.Context(), *mapper.ActorToDB(&actor, addr))
-
-			// if err != nil {
-			// 	log.Println(err)
-			// 	util.WriteError(w, http.StatusInternalServerError, err.Error())
-			// 	return
-			// }
-			// log.Println(row)
-			// util.WriteJSON(w, http.StatusOK, mapper.AccountToAPI(row))
-		}
-		util.WriteJSON(w, http.StatusOK, mapper.AccountToAPI(account))
 	} else {
-		w.WriteHeader(http.StatusBadRequest)
+		util.WriteError(w, http.StatusNotImplemented, "remote lookup not implemented yet")
 	}
 }
 
@@ -393,12 +321,15 @@ func (s *Server) PostApiPosts(w http.ResponseWriter, r *http.Request) {
 	poster, err := s.service.App.GetAccountById(r.Context(), currentUserID)
 	var newPost api.NewPost
 	if err := util.ReadJSON(r, &newPost); err != nil {
+		log.Printf("[PostApiPosts] failed to parse payload: %v", err)
 		http.Error(w, "Invalid request payload", http.StatusBadRequest)
 		return
 	}
+	log.Printf("[PostApiPosts] user=%d payload_user=%d content_len=%d", currentUserID, newPost.UserID, len(newPost.Content))
 	newDBPost := mapper.NewPostToDB(&newPost, true)
 	status, err := s.service.App.AddNote(r.Context(), *newDBPost)
 	if err != nil {
+		log.Printf("[PostApiPosts] AddNote error: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}

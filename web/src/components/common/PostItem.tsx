@@ -17,9 +17,10 @@ interface PostProps {
   post: PostPresentable;
   client: AppClient;
   onSelect?: (post: PostPresentable) => void;
+  showActions?: boolean;
 }
 
-export const PostItem = ({ post, client, onSelect }: PostProps) => {
+export const PostItem = ({ post, client, onSelect, showActions = false }: PostProps) => {
   const likeAction = async () => {
     console.warn("Likes API is not available yet");
   };
@@ -41,17 +42,43 @@ export const PostItem = ({ post, client, onSelect }: PostProps) => {
     >
       <div className="flex space-x-3">
         <div className="flex-1">
-          {"username" in post.data && (
-            <div className="flex items-center space-x-1 mb-2">
-              <Link
-                to={`/profile/${post.data.userID}`}
-                className="hover:underline font-semibold text-gray-900"
-                onClick={(event) => event.stopPropagation()}
-              >
-                {post.data.username}
-              </Link>
-            </div>
-          )}
+          <div className="flex items-start justify-between mb-2">
+            {"username" in post.data && (
+              <div className="flex items-center space-x-1">
+                <Link
+                  to={`/profile/${post.data.userID}`}
+                  className="hover:underline font-semibold text-gray-900"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  {post.data.username}
+                </Link>
+              </div>
+            )}
+            {showActions && (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  className="text-black bg-white box-border border border-black hover:bg-gray-100 hover:cursor-pointer shadow-xs font-medium leading-5 rounded-full text-sm px-4 py-2.5 focus:outline-none"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                  }}
+                >
+                  <i className="bi bi-pencil mr-1" aria-hidden="true"></i>
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  className="text-black bg-white box-border border border-black hover:bg-gray-100 hover:cursor-pointer shadow-xs font-medium leading-5 rounded-full text-sm px-4 py-2.5 focus:outline-none"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                  }}
+                >
+                  <i className="bi bi-trash3 mr-1" aria-hidden="true"></i>
+                  Delete
+                </button>
+              </div>
+            )}
+          </div>
           <div className="flex items-center space-x-1"></div>
           <div className="prose max-w-none text-gray-800">
             <ReactMarkdown>{post.data.content}</ReactMarkdown>

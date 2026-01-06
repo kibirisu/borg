@@ -21,7 +21,6 @@ export default function OtherUserPage() {
   const appState = useContext(AppContext);
   const client = useContext(ClientContext);
   const tokenUserId = appState?.userId ?? null;
-  console.log("[OtherUserPage] loader handle", handle, "token userId", tokenUserId);
   const derivedUsername = useMemo(() => {
     if (handle) {
       return String(handle);
