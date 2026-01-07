@@ -6,7 +6,7 @@ import (
 
 	"github.com/kibirisu/borg/internal/ap"
 	"github.com/kibirisu/borg/internal/domain"
-	"github.com/kibirisu/borg/internal/processing"
+	proc "github.com/kibirisu/borg/internal/processing"
 	repo "github.com/kibirisu/borg/internal/repository"
 )
 
@@ -17,7 +17,7 @@ type FederationService interface {
 
 type federationService struct {
 	store     repo.Store
-	processor processing.Processor
+	processor proc.Processor
 }
 
 func NewFederationService(store repo.Store) FederationService {
