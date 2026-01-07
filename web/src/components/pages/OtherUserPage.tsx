@@ -1,11 +1,13 @@
-import { useContext, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { type LoaderFunctionArgs, Outlet, useLoaderData } from "react-router";
+import { useContext, useEffect, useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { type LoaderFunctionArgs, useLoaderData } from "react-router";
 import type { AppClient } from "../../lib/client";
 import ClientContext from "../../lib/client";
 import AppContext from "../../lib/state";
 import Sidebar from "../common/Sidebar";
 import anonAvatar from "../../assets/Anonomous.jpg";
+import type { components } from "../../lib/api/v1";
+import { PostItem } from "../common/PostItem";
 
 export const loader =
   (client: AppClient) =>
@@ -20,6 +22,7 @@ export default function OtherUserPage() {
   >;
   const appState = useContext(AppContext);
   const client = useContext(ClientContext);
+  const queryClient = useQueryClient();
   const tokenUserId = appState?.userId ?? null;
   const userId = useMemo(() => {
     if (handle && !Number.isNaN(Number(handle))) return Number(handle);
@@ -36,6 +39,8 @@ export default function OtherUserPage() {
       ? `u r logged in `
       : "Profile data is unavailable until the API endpoint is implemented.";
   const [isFollowed, setIsFollowed] = useState(false);
+  const [followError, setFollowError] = useState<string | null>(null);
+  const [followPending, setFollowPending] = useState(false);
 
   const { data: profileData } = useQuery({
     queryKey: ["profile", handle ?? derivedUsername],
@@ -97,6 +102,57 @@ export default function OtherUserPage() {
     },
   });
 
+  const { data: posts, isPending: postsPending, isError: postsError } = useQuery<
+    components["schemas"]["Post"][]
+  >({
+    queryKey: ["user-posts", userId, "other"],
+    enabled: Boolean(client) && userId !== null,
+    queryFn: async () => {
+      if (!client || userId === null) {
+        throw new Error("Client or user not ready");
+      }
+      const res = await client.fetchClient.GET("/api/users/{id}/posts", {
+        params: { path: { id: userId } },
+      });
+      if (res.error) {
+        throw new Error("Failed to fetch posts");
+      }
+      return res.data ?? [];
+    },
+  });
+
+  const handleFollow = async () => {
+    if (!client || userId === null) {
+      setFollowError("Sign in to follow");
+      return;
+    }
+    setFollowError(null);
+    setFollowPending(true);
+    try {
+      const res = await client.fetchClient.POST("/api/accounts/{id}/follow", {
+        params: { path: { id: userId } },
+      });
+      if (res.error) {
+        setFollowError("Failed to follow user");
+      } else {
+        setIsFollowed(true);
+        queryClient.invalidateQueries({ queryKey: ["followers", userId] });
+      }
+    } catch (err) {
+      setFollowError("Failed to follow user");
+    } finally {
+      setFollowPending(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!followers || tokenUserId === null) {
+      setIsFollowed(false);
+      return;
+    }
+    setIsFollowed(followers.some((follower) => follower.id === tokenUserId));
+  }, [followers, tokenUserId]);
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="grid grid-cols-[1fr_256px] gap-6">
@@ -134,16 +190,43 @@ export default function OtherUserPage() {
               </div>
               <button
                 type="button"
-                onClick={() => setIsFollowed((prev) => !prev)}
-                className={`btn rounded-[12px] ${isFollowed ? "btn-outline btn-secondary" : "btn-primary"}`}
+                onClick={handleFollow}
+                disabled={followPending}
+                className={`btn rounded-[12px] ${
+                  isFollowed ? "btn-outline btn-secondary" : "btn-primary"
+                }`}
               >
-                {isFollowed ? "Unfollow" : "Follow"}
+                {isFollowed ? "Unfollow" : followPending ? "Following…" : "Follow"}
               </button>
             </div>
+            {followError && (
+              <div className="mt-3 text-sm text-red-600">{followError}</div>
+            )}
           </section>
-            {/* POSTS */}
+          {/* POSTS */}
           <section className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-              <Outlet />
+            {postsPending && (
+              <div className="p-4 text-sm text-gray-500">Loading posts…</div>
+            )}
+            {postsError && (
+              <div className="p-4 text-sm text-red-600">
+                Failed to load posts.
+              </div>
+            )}
+            {!postsPending && !postsError && posts && posts.length > 0 ? (
+              posts.map((post) => (
+                <PostItem
+                  key={post.id}
+                  post={{ data: post }}
+                  client={client!}
+                />
+              ))
+            ) : (
+              !postsPending &&
+              !postsError && (
+                <div className="p-4 text-sm text-gray-500">No posts yet.</div>
+              )
+            )}
           </section>
         </main>
         <Sidebar />
