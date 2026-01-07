@@ -8,6 +8,7 @@ import (
 
 type Processor interface {
 	Actor(ap.Actorer) Actor
+	Status(ap.Noter) Status
 }
 
 type processor struct {
@@ -20,4 +21,9 @@ var _ Processor = (*processor)(nil)
 // Actor implements Processor.
 func (p *processor) Actor(object ap.Actorer) Actor {
 	return &actor{object, p.store, p.client}
+}
+
+// Status implements Processor.
+func (p *processor) Status(object ap.Noter) Status {
+	return &status{object, p.store, p.client}
 }

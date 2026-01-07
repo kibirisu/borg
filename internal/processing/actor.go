@@ -3,6 +3,7 @@ package processing
 import (
 	"context"
 	"database/sql"
+	"errors"
 
 	"github.com/kibirisu/borg/internal/ap"
 	"github.com/kibirisu/borg/internal/db"
@@ -22,9 +23,16 @@ type actor struct {
 
 var _ Actor = (*actor)(nil)
 
+func newActor(object ap.Actorer, store repo.Store, client transport.Client) Actor {
+	return &actor{object, store, client}
+}
+
 // Get implements Actor.
 func (a *actor) Get(ctx context.Context) (db.Account, error) {
 	uri := a.object.GetURI()
+	if uri == "" {
+		return db.Account{}, errors.New("invalid object")
+	}
 	account, err := a.store.Accounts().GetByURI(ctx, uri)
 	if err != nil {
 		object, err := a.client.Get(uri)
