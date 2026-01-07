@@ -26,13 +26,30 @@ func (o *object) GetObject() any {
 	}
 }
 
+// GetURI implements Objecter.
+func (o *object) GetURI() string {
+	if o.raw == nil {
+		return ""
+	}
+	switch o.raw.GetType() {
+	case domain.LinkType:
+		return *o.raw.Link
+	case domain.NullType:
+		return ""
+	case domain.ObjectType:
+		return o.raw.Object.ID
+	default:
+		return ""
+	}
+}
+
 // GetRaw implements Objecter.
 func (o *object) GetRaw() *domain.ObjectOrLink {
 	return o.raw
 }
 
-// GetURI implements Objecter.
-func (o *object) GetURI() string {
+// GetLink implements Objecter.
+func (o *object) GetLink() string {
 	return *o.raw.Link
 }
 
@@ -49,7 +66,7 @@ func (o *object) GetValueType() ValueType {
 	case domain.ObjectType:
 		return ObjectType
 	default:
-		panic("unexpected domain.Type")
+		return InvalidType
 	}
 }
 
@@ -69,9 +86,9 @@ func (o *object) SetObject(object any) {
 	}
 }
 
-// SetURI implements Objecter.
-func (o *object) SetURI(uri string) {
+// SetLink implements Objecter.
+func (o *object) SetLink(link string) {
 	*o.raw = domain.ObjectOrLink{
-		Link: &uri,
+		Link: &link,
 	}
 }

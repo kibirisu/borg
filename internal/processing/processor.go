@@ -7,7 +7,7 @@ import (
 )
 
 type Processor interface {
-	Actor(ap.Actor) Actor
+	Actor(ap.Actorer) Actor
 }
 
 type processor struct {
@@ -18,6 +18,6 @@ type processor struct {
 var _ Processor = (*processor)(nil)
 
 // Actor implements Processor.
-func (p *processor) Actor(object ap.Actor) Actor {
-	return &actor{object, p}
+func (p *processor) Actor(object ap.Actorer) Actor {
+	return &actor{object, p.store, p.client}
 }

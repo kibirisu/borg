@@ -43,7 +43,7 @@ func (s *Server) handleInbox(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := s.service.Federation.ProcessInbox(r.Context(), &object); err != nil {
+	if err := s.service.Federation.ProcessIncoming(r.Context(), &object); err != nil {
 		util.WriteError(w, http.StatusInternalServerError, err.Error())
 	}
 	w.WriteHeader(http.StatusAccepted)

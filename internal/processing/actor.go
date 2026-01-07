@@ -2,9 +2,12 @@ package processing
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/kibirisu/borg/internal/ap"
 	"github.com/kibirisu/borg/internal/db"
+	repo "github.com/kibirisu/borg/internal/repository"
+	"github.com/kibirisu/borg/internal/transport"
 )
 
 type Actor interface {
@@ -12,15 +15,38 @@ type Actor interface {
 }
 
 type actor struct {
-	object    ap.Actor
-	processor *processor
+	object ap.Actorer
+	store  repo.Store
+	client transport.Client
 }
 
 var _ Actor = (*actor)(nil)
 
 // Get implements Actor.
 func (a *actor) Get(ctx context.Context) (db.Account, error) {
-	account, err := a.processor.store.Accounts().GetByURI(ctx, a.object.ID)
-	_, _ = account, err
-	panic("")
+	uri := a.object.GetURI()
+	account, err := a.store.Accounts().GetByURI(ctx, uri)
+	if err != nil {
+		object, err := a.client.Get(uri)
+		if err != nil {
+			return account, err
+		}
+		fetchedActor := ap.NewActor(object)
+		actorData := fetchedActor.GetObject()
+		account, err := a.store.Accounts().Create(ctx, db.CreateActorParams{
+			Username:     actorData.PreferredUsername,
+			Uri:          actorData.ID,
+			DisplayName:  sql.NullString{},
+			Domain:       sql.NullString{},
+			InboxUri:     actorData.Inbox,
+			OutboxUri:    actorData.Outbox,
+			Url:          "nope",
+			FollowersUri: actorData.Followers,
+			FollowingUri: actorData.Following,
+		})
+		if err != nil {
+			return account, err
+		}
+	}
+	return account, nil
 }
