@@ -1,11 +1,8 @@
 package server
 
 import (
-	"context"
-	"fmt"
 	"log"
 	"net/http"
-	"time"
 
 	"github.com/go-chi/chi/v5"
 
@@ -43,40 +40,10 @@ func (s *Server) handleInbox(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := s.service.Federation.ProcessIncoming(r.Context(), &object); err != nil {
-		util.WriteError(w, http.StatusInternalServerError, err.Error())
+	job, err := s.service.Federation.ProcessIncoming(r.Context(), &object)
+	if err != nil {
+		util.WriteError(w, http.StatusBadRequest, err.Error())
 	}
+	_ = job
 	w.WriteHeader(http.StatusAccepted)
-}
-
-func (s *Server) fetchRemoteActor(ctx context.Context, uri string) (domain.ActorOld, error) {
-	var actor domain.ActorOld
-
-	req, err := http.NewRequestWithContext(ctx, "GET", uri, nil)
-	if err != nil {
-		return actor, err
-	}
-	req.Header.Set("Accept", "application/activity+json")
-
-	client := http.Client{Timeout: 5 * time.Second}
-	resp, err := client.Do(req)
-	if err != nil {
-		return actor, err
-	}
-	defer func() {
-		err = resp.Body.Close()
-		if err != nil {
-			log.Println(err)
-		}
-	}()
-
-	if resp.StatusCode != http.StatusOK {
-		return actor, fmt.Errorf("remote server returned status %d", resp.StatusCode)
-	}
-
-	if err = util.ReadJSON(req, &actor); err != nil {
-		return actor, fmt.Errorf("failed to decode actor: %w", err)
-	}
-
-	return actor, nil
 }

@@ -24,6 +24,9 @@ func (c *client) Get(uri string) (*domain.ObjectOrLink, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 	if err = json.UnmarshalRead(resp.Body, &object); err != nil {
 		return nil, err
 	}

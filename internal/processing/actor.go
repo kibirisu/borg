@@ -41,7 +41,7 @@ func (a *actor) Get(ctx context.Context) (db.Account, error) {
 		}
 		fetchedActor := ap.NewActor(object)
 		actorData := fetchedActor.GetObject()
-		account, err := a.store.Accounts().Create(ctx, db.CreateActorParams{
+		account, err = a.store.Accounts().Create(ctx, db.CreateActorParams{
 			Username:     actorData.PreferredUsername,
 			Uri:          actorData.ID,
 			DisplayName:  sql.NullString{},

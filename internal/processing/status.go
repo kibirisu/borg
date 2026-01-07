@@ -57,7 +57,7 @@ func (s *status) Get(ctx context.Context) (db.Status, error) {
 				Valid: true,
 			}
 		}
-		status, err := s.store.Statuses().Create(ctx, db.CreateStatusParams{
+		status, err = s.store.Statuses().Create(ctx, db.CreateStatusParams{
 			Uri:         uri,
 			Url:         "nope",
 			Local:       sql.NullBool{},

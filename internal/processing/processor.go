@@ -18,6 +18,10 @@ type processor struct {
 
 var _ Processor = (*processor)(nil)
 
+func NewProcessor(store repo.Store, client transport.Client) Processor {
+	return &processor{store, client}
+}
+
 // Actor implements Processor.
 func (p *processor) Actor(object ap.Actorer) Actor {
 	return &actor{object, p.store, p.client}
