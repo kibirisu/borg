@@ -67,7 +67,7 @@ export default function CommentForm() {
   return (
     <Form
       method="post"
-      className="p-4 border-t border-gray-200 bg-white flex flex-col gap-3 rounded-b-2xl"
+      className="p-4 border-t border-gray-200 bg-white flex flex-col gap-3"
     >
       <input type="hidden" name="userId" value={userId ?? ""} />
       {!isAuthenticated && (
@@ -85,7 +85,7 @@ export default function CommentForm() {
         name="content"
         required
         placeholder="Write a comment..."
-        className="border border-gray-300 p-3 rounded-xl w-full resize-none shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-gray-50"
+        className="border-none p-3 rounded-xl w-full resize-none shadow-sm focus:outline-none bg-gray-50 text-black"
         rows={3}
         disabled={!isAuthenticated}
       />

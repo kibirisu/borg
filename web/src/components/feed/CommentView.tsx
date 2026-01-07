@@ -1,6 +1,6 @@
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { useContext } from "react";
-import { type LoaderFunctionArgs, Outlet, useLoaderData } from "react-router";
+import { type LoaderFunctionArgs, useLoaderData } from "react-router";
 import ClientContext, { type AppClient } from "../../lib/client";
 import type { components } from "../../lib/api/v1";
 import { PostItem } from "../common/PostItem";
@@ -10,7 +10,7 @@ export const loader =
   (client: AppClient) =>
   async ({ params }: LoaderFunctionArgs) => {
     if (!params.postId) {
-      return { postOpts: undefined, commentOpts: undefined };
+      return { postOpts: undefined, commentOpts: undefined, postId: undefined };
     }
     const postId = Number(params.postId);
     const queryParams = { params: { path: { id: postId } } };
@@ -50,37 +50,43 @@ export const commentsLoader =
  */
 export default function CommentView() {
   const client = useContext(ClientContext);
-  const { postOpts } = useLoaderData() as Awaited<
+  const { postOpts, commentOpts, postId } = useLoaderData() as Awaited<
     ReturnType<ReturnType<typeof loader>>
   >;
   const postData = postOpts ? useSuspenseQuery(postOpts) : null;
   return (
-    <div className="max-w-2xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-      <header className="p-4 border-b border-gray-200 text-xl font-semibold bg-gray-50">
-        Post
-      </header>
-      <div className="border-b border-gray-200 p-4 bg-gray-50">
-        {postData && postData.data && (
-          <PostItem post={{ data: postData.data as any }} client={client!} />
-        )}
+    <div className="min-h-screen bg-gray-50">
+      <div className="w-full bg-white border border-gray-200 overflow-hidden divide-y divide-gray-200 shadow-sm">
+        <div className="bg-white">
+          {postData && postData.data ? (
+            <PostItem post={{ data: postData.data as any }} client={client!} />
+          ) : (
+            <div className="p-6 text-center text-gray-600">Post not found.</div>
+          )}
+        </div>
+        <div className="p-4 bg-gray-50">
+          <CommentForm />
+        </div>
+        <div className="bg-white">
+          <CommentsFeed opts={commentOpts} postId={postId} />
+        </div>
       </div>
-      <CommentForm />
-      <Outlet />
     </div>
   );
 }
 
-export function CommentsFeed() {
+export function CommentsFeed({
+  opts,
+  postId,
+}: {
+  opts?: any;
+  postId?: number;
+}) {
   const client = useContext(ClientContext);
-  const { opts } = useLoaderData() as Awaited<
-    ReturnType<ReturnType<typeof commentsLoader>>
-  >;
   if (!opts) {
     return (
-      <div className="max-w-2xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="p-6 text-center text-gray-600">
-          Comments are not available yet.
-        </div>
+      <div className="p-6 text-center text-gray-600">
+        Comments are not available yet.
       </div>
     );
   }
@@ -91,14 +97,16 @@ export function CommentsFeed() {
     return <></>;
   }
   return (
-    <div className="max-w-2xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-200 divide-y">
-      {data?.map((comment: components["schemas"]["Comment"]) => (
-        <PostItem
-          key={comment.id}
-          post={{ data: comment }}
-          client={client!}
-        />
-      )) || (
+    <div className="divide-y divide-gray-200">
+      {data && data.length > 0 ? (
+        data.map((comment: components["schemas"]["Comment"]) => (
+          <PostItem
+            key={comment.id}
+            post={{ data: comment }}
+            client={client!}
+          />
+        ))
+      ) : (
         <div className="p-6 text-center text-gray-600">No comments yet.</div>
       )}
     </div>

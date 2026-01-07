@@ -3,6 +3,8 @@ import ReactMarkdown from "react-markdown";
 import { Link } from "react-router";
 import type { components } from "../../lib/api/v1";
 import type { AppClient } from "../../lib/client";
+import { useContext } from "react";
+import AppContext from "../../lib/state";
 
 interface PostData {
   data: components["schemas"]["Post"];
@@ -28,12 +30,51 @@ export const PostItem = ({
   showActions = false,
   onCommentClick,
 }: PostProps) => {
+  const appState = useContext(AppContext);
+  const currentUserId = appState?.userId ?? null;
+
   const likeAction = async () => {
-    console.warn("Likes API is not available yet");
+    if (!("id" in post.data)) return;
+    if (!currentUserId) {
+      console.warn("User not authenticated, cannot like");
+      return;
+    }
+    try {
+      await client.fetchClient.POST("/api/posts/{id}/likes", {
+        params: { path: { id: Number(post.data.id) } },
+        body: { postID: Number(post.data.id), userID: currentUserId },
+      });
+      client.queryClient.invalidateQueries({
+        queryKey: ["get", "/api/posts", {}],
+      });
+      client.queryClient.invalidateQueries({
+        queryKey: ["user-posts", currentUserId],
+      });
+    } catch (err) {
+      console.error("Failed to like post", err);
+    }
   };
 
   const shareAction = async () => {
-    console.warn("Shares API is not available yet");
+    if (!("id" in post.data)) return;
+    if (!currentUserId) {
+      console.warn("User not authenticated, cannot share");
+      return;
+    }
+    try {
+      await client.fetchClient.POST("/api/posts/{id}/shares", {
+        params: { path: { id: Number(post.data.id) } },
+        body: { postID: Number(post.data.id), userID: currentUserId },
+      });
+      client.queryClient.invalidateQueries({
+        queryKey: ["get", "/api/posts", {}],
+      });
+      client.queryClient.invalidateQueries({
+        queryKey: ["user-posts", currentUserId],
+      });
+    } catch (err) {
+      console.error("Failed to share post", err);
+    }
   };
 
   const handleSelect = () => {
@@ -107,31 +148,29 @@ export const PostItem = ({
               </button>
             )}
             {"shareCount" in post.data && (
-              <form
-                action={shareAction}
-                onClick={(event) => event.stopPropagation()}
+              <button
+                type="button"
+                className="flex items-center space-x-1 hover:text-green-500 transition"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  void shareAction();
+                }}
               >
-                <button
-                  type="submit"
-                  className="flex items-center space-x-1 hover:text-green-500 transition"
-                >
-                  <Repeat size={16} /> <span>{post.data.shareCount}</span>
-                </button>
-              </form>
+                <Repeat size={16} /> <span>{post.data.shareCount}</span>
+              </button>
             )}
             {"likeCount" in post.data && (
-              <form
-                action={likeAction}
-                onClick={(event) => event.stopPropagation()}
+              <button
+                type="button"
+                className="flex items-center space-x-1 hover:text-pink-500 transition"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  void likeAction();
+                }}
               >
-                <button
-                  type="submit"
-                  className="flex items-center space-x-1 hover:text-pink-500 transition"
-                >
-                  <Heart size={16} />
-                  <span>{post.data.likeCount}</span>
-                </button>
-              </form>
+                <Heart size={16} />
+                <span>{post.data.likeCount}</span>
+              </button>
             )}
             {"shareCount" in post.data && (
               <button
