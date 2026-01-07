@@ -1,29 +1,18 @@
-import { useQuery } from "@tanstack/react-query";
 import { useContext, useState } from "react";
 import { useLoaderData } from "react-router";
 import type { AppClient } from "../../lib/client";
 import ClientContext from "../../lib/client";
-import type { components } from "../../lib/api/v1";
 import { PostItem, type PostPresentable } from "../common/PostItem";
 import PostComposerOverlay from "../common/PostComposerOverlay";
 import Sidebar from "../common/Sidebar";
 
 export const loader = (client: AppClient) => async () => {
-  // const opts = client.$api.queryOptions("get", "/api/posts", {});
-  // await client.queryClient.ensureQueryData(opts);
-  // return { opts };
-  return { opts: undefined };
+  return {};
 };
 
 export default function LikesPage() {
   const client = useContext(ClientContext);
-  const { opts } = useLoaderData() as Awaited<
-    ReturnType<ReturnType<typeof loader>>
-  >;
-  const queryArgs = opts
-    ? { ...opts }
-    : { queryKey: [], queryFn: async () => [], enabled: false };
-  const { data, isPending } = useQuery(queryArgs);
+  useLoaderData();
   const [isComposerOpen, setIsComposerOpen] = useState(false);
   const [selectedPost, setSelectedPost] = useState<PostPresentable | null>(null);
 
@@ -53,30 +42,7 @@ export default function LikesPage() {
               general feed.
             </p>
           </section>
-          <section className="bg-white rounded-2xl border border-gray-200 p-4 space-y-4 min-h-[400px]">
-            {isPending && opts && (
-              <p className="text-center text-gray-500">Loading…</p>
-            )}
-            {!isPending && opts &&
-              data?.map((post: components["schemas"]["Post"]) => (
-                <PostItem
-                  key={post.id}
-                  post={{ data: post }}
-                  client={client!}
-                  onSelect={handlePostSelect}
-                />
-              ))}
-            {!isPending && opts && !data?.length && (
-              <p className="text-center text-gray-500">
-                Nothing liked yet.
-              </p>
-            )}
-            {!opts && (
-              <p className="text-center text-gray-500">
-                Likes feed is not available yet.
-              </p>
-            )}
-          </section>
+          {/* Likes by post ID are handled via the form above; feed removed. */}
         </main>
         <Sidebar onPostClick={openComposerForNewPost} />
       </div>

@@ -224,7 +224,6 @@ func (s *Server) PostApiPosts(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid request payload", http.StatusBadRequest)
 		return
 	}
-	log.Printf("[PostApiPosts] user=%d payload_user=%d content_len=%d", currentUserID, newPost.UserID, len(newPost.Content))
 	newDBPost := mapper.NewPostToDB(&newPost, true)
 	status, err := s.service.App.AddNote(r.Context(), *newDBPost)
 	if err != nil {
