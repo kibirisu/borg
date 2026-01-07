@@ -63,7 +63,7 @@ export default function OtherUserPage() {
     },
   });
 
-  const { data: followers } = useQuery<components["schemas"]["Account"][]>({
+  const { data: followers } = useQuery<components["schemas"]["User"][]>({
     queryKey: ["followers", userId],
     enabled: Boolean(client) && userId !== null,
     queryFn: async () => {
@@ -76,11 +76,11 @@ export default function OtherUserPage() {
       if (res.error) {
         throw new Error("Failed to fetch followers");
       }
-      return res.data ?? [];
+      return (res.data as components["schemas"]["User"][]) ?? [];
     },
   });
 
-  const { data: following } = useQuery<components["schemas"]["Account"][]>({
+  const { data: following } = useQuery<components["schemas"]["User"][]>({
     queryKey: ["following", userId],
     enabled: Boolean(client) && userId !== null,
     queryFn: async () => {
@@ -93,7 +93,7 @@ export default function OtherUserPage() {
       if (res.error) {
         throw new Error("Failed to fetch following");
       }
-      return res.data ?? [];
+      return (res.data as components["schemas"]["User"][]) ?? [];
     },
   });
 

@@ -24,7 +24,7 @@ const UnauthorizedBanner = () => {
           to="/signin"
           className="text-white bg-indigo-600 hover:bg-indigo-700 border border-transparent focus:ring-4 focus:ring-indigo-300 shadow-xs font-medium leading-5 rounded-lg text-xs px-3 py-1.5 focus:outline-none me-2"
         >
-          Sign in
+          Sign In
         </Link>
         <button
           type="button"
@@ -89,10 +89,10 @@ const ErrorPage = () => {
         </p>
         <div className="flex items-center justify-center gap-3">
           <Link
-            to="/signin"
+            to="/explore"
             className="inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700"
           >
-            Sign In
+            Explore
           </Link>
           <button
             type="button"
