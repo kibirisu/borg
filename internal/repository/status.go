@@ -19,6 +19,7 @@ type StatusRepository interface {
 	GetComments(context.Context, int) ([]db.Status, error)
 	GetPostComments(context.Context, int) ([]db.Status, error)
 	Update(context.Context, db.UpdateStatusParams) (db.Status, error)
+	Delete(context.Context, int) error
 }
 
 type statusRepository struct {
@@ -79,4 +80,8 @@ func (r *statusRepository) GetPostComments(ctx context.Context, id int) ([]db.St
 // Update implements StatusRepository.
 func (r *statusRepository) Update(ctx context.Context, params db.UpdateStatusParams) (db.Status, error) {
     return r.q.UpdateStatus(ctx, params)
+}
+// Delete implements StatusRepository.:
+func (r *statusRepository) Delete(ctx context.Context, id int) error {
+    return r.q.DeleteStatus(ctx, int32(id))
 }

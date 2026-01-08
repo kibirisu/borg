@@ -40,6 +40,7 @@ type AppService interface {
 	UpdatePost(context.Context, db.UpdateStatusParams) (db.Status, error)
 	GetPostComments(context.Context, int) ([]db.Status, error) 
 	UpdateAccount(ctx context.Context, params db.UpdateAccountParams) (db.Account, error)
+	DeletePost(context.Context, int) error
 	// EW, idk if this should stay here
 	DeliverToFollowers(http.ResponseWriter, *http.Request, int, func(recipientURI string) any)
 }
@@ -266,4 +267,8 @@ func (s *appService) UpdatePost(ctx context.Context, params db.UpdateStatusParam
 // UpdateAccount implements AppService.
 func (s *appService) UpdateAccount(ctx context.Context, params db.UpdateAccountParams) (db.Account, error) {
 	return s.store.Accounts().UpdateAccount(ctx, params)
+}
+// DeletePost implements AppService.
+func (s *appService) DeletePost(ctx context.Context, id int) error {
+    return s.store.Statuses().Delete(ctx, id)
 }

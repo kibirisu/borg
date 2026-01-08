@@ -633,4 +633,35 @@ func (s *Server) GetApiPosts(w http.ResponseWriter, r *http.Request) {
 	util.WriteJSON(w, http.StatusOK, apiLikes)
 }
 
-//
+// DeleteApiPostsId implements api.ServerInterface.
+func (s *Server) DeleteApiPostsId(w http.ResponseWriter, r *http.Request, id int) {
+    // 1. Authorization
+    container, ok := r.Context().Value("token").(*tokenContainer)
+    if !ok || container == nil || container.id == nil {
+        util.WriteError(w, http.StatusUnauthorized, "User not authenticated")
+        return
+    }
+    currentUserID := *container.id
+
+    // 2. Check if the post exists
+    post, err := s.service.App.GetPostById(r.Context(), id)
+    if err != nil {
+        util.WriteError(w, http.StatusNotFound, "Post not found")
+        return
+    }
+
+    // 3. Check ownership
+    if int(post.AccountID) != currentUserID {
+        util.WriteError(w, http.StatusForbidden, "Forbidden")
+        return
+    }
+
+    // 4. Delete the post
+    if err := s.service.App.DeletePost(r.Context(), id); err != nil {
+        util.WriteError(w, http.StatusInternalServerError, "Internal server error")
+        return
+    }
+
+    // 5. Return 204 (No Content)
+    util.WriteJSON(w, http.StatusNoContent, nil)
+}

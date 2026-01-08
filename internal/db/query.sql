@@ -174,3 +174,6 @@ SET
     updated_at = CURRENT_TIMESTAMP
 WHERE id = $2
 RETURNING *;
+
+-- name: DeleteStatus :exec
+DELETE FROM statuses WHERE id = $1;
