@@ -102,30 +102,3 @@ func PostToCreateNote(post *db.Status, poster *db.Account, followersUri string) 
 	}
 	return &activity;
 }
-
-func PostToUpdateNote(post *db.Status, poster *db.Account, followersUri string) *domain.Update {
-	note := domain.Note{
-		ID:           post.Uri,
-		Type:         "Note",
-		Published:    post.CreatedAt,
-		AttributedTo: poster.Uri,
-		Content:      post.Content,
-		To:           []string{followersUri},
-	}
-	noteBytes, err := json.Marshal(note)
-	if err != nil {
-		return nil
-	}
-	actorBytes, err := json.Marshal(poster.Uri)
-	if err != nil {
-		return nil
-	}
-
-	activity := domain.Update{
-		ID:     poster.Uri + "/posts/" + strconv.Itoa(int(post.ID)) + "/update",
-		Type:   "Update",
-		Actor:  json.RawMessage(actorBytes),
-		Object: json.RawMessage(noteBytes),
-	}
-	return &activity
-}

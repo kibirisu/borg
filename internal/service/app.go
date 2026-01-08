@@ -228,5 +228,5 @@ func (s *appService) UpdatePost(ctx context.Context, params db.UpdateStatusParam
 }
 // UpdateAccount implements AppService.
 func (s *appService) UpdateAccount(ctx context.Context, params db.UpdateAccountParams) (db.Account, error) {
-	return s.store.Accounts().Update(ctx, params)
+	return s.store.Accounts().UpdateAccount(ctx, params)
 }
