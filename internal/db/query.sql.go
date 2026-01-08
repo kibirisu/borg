@@ -202,6 +202,15 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) error {
 	return err
 }
 
+const deleteStatus = `-- name: DeleteStatus :exec
+DELETE FROM statuses WHERE id = $1
+`
+
+func (q *Queries) DeleteStatus(ctx context.Context, id int32) error {
+	_, err := q.db.ExecContext(ctx, deleteStatus, id)
+	return err
+}
+
 const getAccount = `-- name: GetAccount :one
 SELECT id, created_at, updated_at, username, uri, display_name, domain, inbox_uri, outbox_uri, followers_uri, following_uri, url FROM accounts WHERE username = $1 AND domain = $2
 `
@@ -710,6 +719,40 @@ func (q *Queries) GetStatusesByAccountId(ctx context.Context, accountID int32) (
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateAccount = `-- name: UpdateAccount :one
+UPDATE accounts
+SET 
+    display_name = COALESCE($1, display_name),
+    updated_at = CURRENT_TIMESTAMP
+WHERE id = $2
+RETURNING id, created_at, updated_at, username, uri, display_name, domain, inbox_uri, outbox_uri, followers_uri, following_uri, url
+`
+
+type UpdateAccountParams struct {
+	DisplayName sql.NullString
+	ID          int32
+}
+
+func (q *Queries) UpdateAccount(ctx context.Context, arg UpdateAccountParams) (Account, error) {
+	row := q.db.QueryRowContext(ctx, updateAccount, arg.DisplayName, arg.ID)
+	var i Account
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Username,
+		&i.Uri,
+		&i.DisplayName,
+		&i.Domain,
+		&i.InboxUri,
+		&i.OutboxUri,
+		&i.FollowersUri,
+		&i.FollowingUri,
+		&i.Url,
+	)
+	return i, err
 }
 
 const updateStatus = `-- name: UpdateStatus :one
