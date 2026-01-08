@@ -20,10 +20,6 @@ type federationService struct {
 	processor proc.Processor
 }
 
-func NewFederationService(store repo.Store) FederationService {
-	return &federationService{store: store}
-}
-
 var _ FederationService = (*federationService)(nil)
 
 // GetLocalActor implements FederationService.
@@ -60,11 +56,18 @@ func (s *federationService) ProcessIncoming(
 	switch object.Object.Type {
 	case "Create":
 		return func(ctx context.Context) error {
-			_, err := s.processor.Status(ap.NewNote(nil)).Get(ctx)
+			_, err := s.processor.LookupStatus(ctx, ap.NewNote(object.Object.ActivityObject))
 			return err
 		}, nil
 	case "Follow":
-	case "Like":
+		return func(ctx context.Context) error {
+			return s.processor.AcceptFollow(ctx, ap.NewFollowActivity(object))
+		}, nil
+	case "Accept":
+		fallthrough
+	case "Undo":
+		fallthrough
+	default:
+		return nil, errors.New("unsupported Activity type")
 	}
-	return nil, nil
 }

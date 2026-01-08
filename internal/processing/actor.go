@@ -16,7 +16,7 @@ func (p *processor) LookupActor(ctx context.Context, object ap.Actorer) (db.Acco
 	}
 	account, err := p.store.Accounts().GetByURI(ctx, uri)
 	if err != nil {
-		object, err := p.client.Get(uri)
+		object, err := p.client.Get(ctx, uri)
 		if err != nil {
 			return account, err
 		}

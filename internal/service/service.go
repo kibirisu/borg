@@ -2,7 +2,9 @@ package service
 
 import (
 	"github.com/kibirisu/borg/internal/config"
+	proc "github.com/kibirisu/borg/internal/processing"
 	"github.com/kibirisu/borg/internal/repository"
+	"github.com/kibirisu/borg/internal/transport"
 )
 
 type Container struct {
@@ -11,9 +13,10 @@ type Container struct {
 }
 
 func NewContainer(conf *config.Config) *Container {
-	store := repository.NewStore(conf.DatabaseURL)
+	store := repository.New(conf.DatabaseURL)
+	proc := proc.New(store, transport.New())
 	return &Container{
-		App:        NewAppService(store, conf),
-		Federation: NewFederationService(store),
+		App:        &appService{store, conf},
+		Federation: &federationService{store, proc},
 	}
 }

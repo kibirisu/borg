@@ -16,7 +16,7 @@ func (p *processor) LookupStatus(ctx context.Context, object ap.Noter) (db.Statu
 	}
 	status, err := p.store.Statuses().GetByURI(ctx, uri)
 	if err != nil {
-		object, err := p.client.Get(uri)
+		object, err := p.client.Get(ctx, uri)
 		if err != nil {
 			return status, err
 		}

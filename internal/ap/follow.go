@@ -12,6 +12,10 @@ type followActivity struct {
 
 var _ FollowActivitier = (*followActivity)(nil)
 
+func NewFollowActivity(from *domain.ObjectOrLink) FollowActivitier {
+	return &followActivity{activity{object{from}}}
+}
+
 // GetObject implements FollowActivitier.
 // Subtle: this method shadows the method (activity).GetObject of followActivity.activity.
 func (f *followActivity) GetObject() Activity[Actor] {
