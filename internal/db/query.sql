@@ -166,3 +166,11 @@ SET
     updated_at = CURRENT_TIMESTAMP
 WHERE id = $2
 RETURNING *;
+
+-- name: UpdateAccount :one
+UPDATE accounts
+SET 
+    display_name = COALESCE($1, display_name),
+    updated_at = CURRENT_TIMESTAMP
+WHERE id = $2
+RETURNING *;

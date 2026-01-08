@@ -15,6 +15,7 @@ type AccountRepository interface {
 	GetFollowers(context.Context, int) ([]db.Account, error)
 	GetFollowing(context.Context, int) ([]db.Account, error)
 	GetPosts(context.Context, int) ([]db.GetStatusesByAccountIdRow , error)
+	UpdateAccount(context.Context, db.UpdateAccountParams) (db.Account, error)
 }
 
 type accountRepository struct {
@@ -74,4 +75,8 @@ func (r *accountRepository) GetFollowing(
 // GetPosts implements AccountRepository.
 func (r *accountRepository) GetPosts(ctx context.Context, id int) ([]db.GetStatusesByAccountIdRow , error) {
 	return r.q.GetStatusesByAccountId(ctx, int32(id))
+}
+// UpdateAccount implements AccountRepository.
+func (r *accountRepository) UpdateAccount(ctx context.Context, params db.UpdateAccountParams) (db.Account, error) {
+	return r.q.UpdateAccount(ctx, params)
 }

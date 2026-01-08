@@ -51,3 +51,14 @@ func UpdatePostToDB(update *api.UpdatePost, id int) *db.UpdateStatusParams {
         ID:      int32(id),
     }
 }
+
+func UpdateUserToDB(update *api.UpdateUser, id int) *db.UpdateAccountParams {
+	var displayName sql.NullString
+	if update.Bio != nil {
+		displayName = sql.NullString{String: *update.Bio, Valid: true}
+	}
+	return &db.UpdateAccountParams{
+		DisplayName: displayName,
+		ID:          int32(id),
+	}
+}

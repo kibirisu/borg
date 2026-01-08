@@ -207,7 +207,46 @@ func (s *Server) PostApiUsers(w http.ResponseWriter, r *http.Request) {
 
 // PutApiUsersId implements api.ServerInterface.
 func (s *Server) PutApiUsersId(w http.ResponseWriter, r *http.Request, id int) {
-	panic("unimplemented")
+	// 1. Authorization (pattern from PutApiPostsId, lines 435-440)
+	container, ok := r.Context().Value("token").(*tokenContainer)
+	if !ok || container == nil || container.id == nil {
+		util.WriteError(w, http.StatusUnauthorized, "User not authenticated")
+		return
+	}
+	currentUserID := *container.id
+
+	// 2. Check if user exists
+	account, err := s.service.App.GetAccountById(r.Context(), id)
+	if err != nil {
+		util.WriteError(w, http.StatusNotFound, "User not found")
+		return
+	}
+
+	// 3. Check ownership (only owner can update)
+	if id != currentUserID {
+		util.WriteError(w, http.StatusForbidden, "Forbidden")
+		return
+	}
+
+	// 4. Read request body
+	var update api.UpdateUser
+	if err := util.ReadJSON(r, &update); err != nil {
+		util.WriteError(w, http.StatusBadRequest, "Invalid request payload")
+		return
+	}
+
+	// 5. Map to DB params (Bio -> DisplayName, ignore IsAdmin)
+	updateParams := mapper.UpdateUserToDB(&update, id)
+
+	// 6. Update account
+	updatedAccount, err := s.service.App.UpdateAccount(r.Context(), *updateParams)
+	if err != nil {
+		util.WriteError(w, http.StatusInternalServerError, "Internal server error")
+		return
+	}
+
+	// 7. Return response (using AccountToAPI, same as GetApiUsersId)
+	util.WriteJSON(w, http.StatusOK, *mapper.AccountToAPI(&updatedAccount))
 }
 
 // DeleteApiPostsId implements api.ServerInterface.
