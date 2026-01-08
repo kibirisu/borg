@@ -44,6 +44,6 @@ func (s *Server) handleInbox(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		util.WriteError(w, http.StatusBadRequest, err.Error())
 	}
-	_ = job
+	s.worker.Enqueue(job)
 	w.WriteHeader(http.StatusAccepted)
 }

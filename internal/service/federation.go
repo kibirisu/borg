@@ -8,11 +8,12 @@ import (
 	"github.com/kibirisu/borg/internal/domain"
 	proc "github.com/kibirisu/borg/internal/processing"
 	repo "github.com/kibirisu/borg/internal/repository"
+	"github.com/kibirisu/borg/internal/worker"
 )
 
 type FederationService interface {
 	GetLocalActor(context.Context, string) (*domain.Object, error)
-	ProcessIncoming(context.Context, *domain.ObjectOrLink) (func(context.Context) error, error)
+	ProcessIncoming(context.Context, *domain.ObjectOrLink) (worker.Job, error)
 }
 
 type federationService struct {
@@ -48,9 +49,8 @@ func (s *federationService) GetLocalActor(
 func (s *federationService) ProcessIncoming(
 	ctx context.Context,
 	object *domain.ObjectOrLink,
-) (func(context.Context) error, error) {
-	activity := ap.NewActivity(object)
-	if activity.GetValueType() != ap.ObjectType {
+) (worker.Job, error) {
+	if object.GetType() != domain.ObjectType {
 		return nil, errors.New("expected JSON object")
 	}
 	switch object.Object.Type {

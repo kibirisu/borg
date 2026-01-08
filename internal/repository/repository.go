@@ -22,8 +22,8 @@ type store struct {
 	q  *db.Queries
 }
 
-func New(url string) Store {
-	db, q := db.GetDB(context.Background(), url)
+func New(ctx context.Context, url string) Store {
+	db, q := db.GetDB(ctx, url)
 	return &store{db, q}
 }
 
