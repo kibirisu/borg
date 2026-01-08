@@ -247,7 +247,6 @@ func (s *Server) PutApiUsersId(w http.ResponseWriter, r *http.Request, id int) {
 
 	// 7. Return response (using AccountToAPI, same as GetApiUsersId)
 	util.WriteJSON(w, http.StatusOK, *mapper.AccountToAPI(&updatedAccount))
-}
 
 // DeleteApiPostsId implements api.ServerInterface.
 func (s *Server) DeleteApiPostsId(w http.ResponseWriter, r *http.Request, id int) {
@@ -539,12 +538,7 @@ func (s *Server) PutApiPostsId(w http.ResponseWriter, r *http.Request, id int) {
         return
     }
 
-    // 10. Send federation notifications to followers (pattern from PostApiPosts, line 426)
-    s.service.App.DeliverToFollowers(w, r, currentUserID, func(recipientURI string) any {
-        return mapper.PostToUpdateNote(&updatedStatus, &poster, poster.FollowersUri)
-    })
-
-    // 11. Return response
+    // 10. Return response
     util.WriteJSON(w, http.StatusOK, *mapper.PostToAPIWithMetadata(
         &info.Status,
         &info.Account,
@@ -638,3 +632,5 @@ func (s *Server) GetApiPosts(w http.ResponseWriter, r *http.Request) {
 
 	util.WriteJSON(w, http.StatusOK, apiLikes)
 }
+
+//
