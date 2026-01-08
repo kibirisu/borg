@@ -166,9 +166,9 @@ func (s *Server) PostApiAccountsIdFollow(w http.ResponseWriter, r *http.Request,
 	// APfollow := mapper.DBToFollow(follow, &follower, &followee)
 	followActivity := ap.NewActivity(nil)
 	actor := ap.NewActor(nil)
-	actor.SetURI(follower.Uri)
+	actor.SetLink(follower.Uri)
 	object := ap.NewActor(nil)
-	object.SetURI(followee.Uri)
+	object.SetLink(followee.Uri)
 	followActivity.SetObject(ap.Activity[any]{
 		ID:     follow.Uri,
 		Type:   "Follow",
@@ -399,7 +399,7 @@ func (s *Server) PostApiPosts(w http.ResponseWriter, r *http.Request) {
 	s.service.App.DeliverToFollowers(w, r, newPost.UserID, func(recipientURI string) any {
 		create := ap.NewCreateActivity(nil)
 		actor := ap.NewActor(nil)
-		actor.SetURI(poster.Uri)
+		actor.SetLink(poster.Uri)
 		note := ap.NewNote(nil)
 		note.SetObject(ap.Note{
 			ID:           status.Uri,

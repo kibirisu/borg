@@ -22,8 +22,8 @@ type store struct {
 	q  *db.Queries
 }
 
-func NewStore(url string) Store {
-	db, q := db.GetDB(context.Background(), url)
+func New(ctx context.Context, url string) Store {
+	db, q := db.GetDB(ctx, url)
 	return &store{db, q}
 }
 
@@ -45,6 +45,7 @@ func (s *store) Follows() FollowRepository {
 func (s *store) Statuses() StatusRepository {
 	return &statusRepository{s.q}
 }
+
 // Favourites implements Store.
 func (s *store) Favourites() FavouriteRepository {
 	return &favouriteRepository{s.q}
