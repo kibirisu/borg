@@ -37,6 +37,7 @@ type AppService interface {
 	GetPostByIdWithMetadata(context.Context, int) (*db.GetStatusByIdWithMetadataRow, error)
 	UpdatePost(context.Context, db.UpdateStatusParams) (db.Status, error)
 	GetPostComments(context.Context, int) ([]db.Status, error) 
+	UpdateAccount(ctx context.Context, params db.UpdateAccountParams) (db.Account, error)
 	// EW, idk if this should stay here
 	DeliverToFollowers(http.ResponseWriter, *http.Request, int, func(recipientURI string) any)
 }
@@ -219,9 +220,13 @@ func (s *appService) GetLocalPosts(ctx context.Context) ([]db.GetLocalStatusesRo
 }
 // GetPostComments implements AppService.
 func (s *appService) GetPostComments(ctx context.Context, id int) ([]db.Status, error) {
-    return s.store.Statuses().GetComments(ctx, id)
+    return s.store.Statuses().GetPostComments(ctx, id)
 }
 // UpdatePost implements AppService.
 func (s *appService) UpdatePost(ctx context.Context, params db.UpdateStatusParams) (db.Status, error) {
     return s.store.Statuses().Update(ctx, params)
+}
+// UpdateAccount implements AppService.
+func (s *appService) UpdateAccount(ctx context.Context, params db.UpdateAccountParams) (db.Account, error) {
+	return s.store.Accounts().Update(ctx, params)
 }
