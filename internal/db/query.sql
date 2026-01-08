@@ -132,3 +132,27 @@ WHERE f.target_account_id = $1;
 SELECT a.* FROM accounts a
 JOIN follows f ON a.id = f.account_id
 WHERE f.account_id = $1;
+
+-- name: GetStatusComments :many
+SELECT 
+    sqlc.embed(s),
+    sqlc.embed(a)
+FROM statuses s
+JOIN accounts a ON s.account_id = a.id
+WHERE s.in_reply_to_id = $1;
+
+-- name: UpdateStatus :one
+UPDATE statuses
+SET 
+    content = COALESCE($1, content),
+    updated_at = CURRENT_TIMESTAMP
+WHERE id = $2
+RETURNING *;
+
+-- name: UpdateAccount :one
+UPDATE accounts
+SET 
+    display_name = COALESCE($1, display_name),
+    updated_at = CURRENT_TIMESTAMP
+WHERE id = $2
+RETURNING *;

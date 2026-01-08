@@ -41,3 +41,26 @@ func NewShareToDB(share *api.NewShare) *db.CreateStatusParams {
 		ReblogOfID:  sql.NullInt32{ Valid: true, Int32: int32(share.PostID)},
 	}
 }
+
+func UpdatePostToDB(update *api.UpdatePost, id int) *db.UpdateStatusParams {
+    var content string
+    if update.Content != nil {
+        content = *update.Content
+    }
+    
+    return &db.UpdateStatusParams{
+        Content: content,
+        ID:      int32(id),
+    }
+}
+
+func UpdateUserToDB(update *api.UpdateUser, id int) *db.UpdateAccountParams {
+	var displayName sql.NullString
+	if update.Bio != nil {
+		displayName = sql.NullString{String: *update.Bio, Valid: true}
+	}
+	return &db.UpdateAccountParams{
+		DisplayName: displayName,
+		ID:          int32(id),
+	}
+}

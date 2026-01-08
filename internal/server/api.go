@@ -201,13 +201,73 @@ func (s *Server) GetApiUsersId(w http.ResponseWriter, r *http.Request, id int) {
 
 // PostApiUsers implements api.ServerInterface.
 func (s *Server) PostApiUsers(w http.ResponseWriter, r *http.Request) {
-	panic("unimplemented")
+    // 1. Decode the JSON payload specific to this endpoint
+	var body api.NewUser
+	if err := util.ReadJSON(r, &body); err != nil {
+		log.Println(err)
+		util.WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+    // 2. Map the payload to the AuthForm structure expected by the existing service
+	form := api.AuthForm{
+		Username: body.Username,
+		Password: body.Password,
+	}
+
+    // 3. Call the existing registration function
+	if err := s.service.App.Register(r.Context(), form); err != nil {
+		log.Println(err)
+		util.WriteError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
 }
+
 
 // PutApiUsersId implements api.ServerInterface.
 func (s *Server) PutApiUsersId(w http.ResponseWriter, r *http.Request, id int) {
-	panic("unimplemented")
-}
+	// 1. Authorization (pattern from PutApiPostsId, lines 435-440)
+	container, ok := r.Context().Value("token").(*tokenContainer)
+	if !ok || container == nil || container.id == nil {
+		util.WriteError(w, http.StatusUnauthorized, "User not authenticated")
+		return
+	}
+	currentUserID := *container.id
+
+	// 2. Check if user exists
+	account, err := s.service.App.GetAccountById(r.Context(), id)
+	if err != nil {
+		util.WriteError(w, http.StatusNotFound, "User not found")
+		return
+	}
+
+	// 3. Check ownership (only owner can update)
+	if id != currentUserID {
+		util.WriteError(w, http.StatusForbidden, "Forbidden")
+		return
+	}
+
+	// 4. Read request body
+	var update api.UpdateUser
+	if err := util.ReadJSON(r, &update); err != nil {
+		util.WriteError(w, http.StatusBadRequest, "Invalid request payload")
+		return
+	}
+
+	// 5. Map to DB params (Bio -> DisplayName, ignore IsAdmin)
+	updateParams := mapper.UpdateUserToDB(&update, id)
+
+	// 6. Update account
+	updatedAccount, err := s.service.App.UpdateAccount(r.Context(), *updateParams)
+	if err != nil {
+		util.WriteError(w, http.StatusInternalServerError, "Internal server error")
+		return
+	}
+
+	// 7. Return response (using AccountToAPI, same as GetApiUsersId)
+	util.WriteJSON(w, http.StatusOK, *mapper.AccountToAPI(&updatedAccount))
 
 // DeleteApiPostsId implements api.ServerInterface.
 func (s *Server) DeleteApiPostsId(w http.ResponseWriter, r *http.Request, id int) {
@@ -232,7 +292,21 @@ func (s *Server) GetApiPostsId(w http.ResponseWriter, r *http.Request, id int) {
 
 // GetApiPostsIdComments implements api.ServerInterface.
 func (s *Server) GetApiPostsIdComments(w http.ResponseWriter, r *http.Request, id int) {
-	panic("unimplemented")
+    comments, err := s.service.App.GetPostComments(r.Context(), id)
+    
+    if err != nil {
+        http.Error(w, "Database error", http.StatusInternalServerError)
+        return
+    }
+    
+    apiComments := make([]api.Comment, 0, len(comments))
+    
+    for _, comment := range comments {
+        converted := mapper.StatusToComment(&comment)
+        apiComments = append(apiComments, *converted)
+    }
+    
+    util.WriteJSON(w, http.StatusOK, apiComments)
 }
 
 // PostApiPostsIdComments implements api.ServerInterface.
@@ -425,7 +499,71 @@ func (s *Server) PostApiPosts(w http.ResponseWriter, r *http.Request) {
 
 // PutApiPostsId implements api.ServerInterface.
 func (s *Server) PutApiPostsId(w http.ResponseWriter, r *http.Request, id int) {
-	panic("unimplemented")
+    // 1. Authorization (pattern from PostApiPosts, lines 408–413)
+    container, ok := r.Context().Value("token").(*tokenContainer)
+    if !ok || container == nil || container.id == nil {
+        util.WriteError(w, http.StatusUnauthorized, "User not authenticated")
+        return
+    }
+    currentUserID := *container.id
+
+    // 2. Check if the post exists and get initial post data
+    post, err := s.service.App.GetPostById(r.Context(), id)
+    if err != nil {
+        util.WriteError(w, http.StatusNotFound, "Post not found")
+        return
+    }
+
+    // 3. Check ownership (critical security check)
+    if int(post.AccountID) != currentUserID {
+        util.WriteError(w, http.StatusForbidden, "Forbidden")
+        return
+    }
+
+    // 4. Read request body
+    var update api.UpdatePost
+    if err := util.ReadJSON(r, &update); err != nil {
+        util.WriteError(w, http.StatusBadRequest, "Invalid request payload")
+        return
+    }
+
+    // 5. Validate content - check if content is provided and not empty
+    if update.Content == nil || strings.TrimSpace(*update.Content) == "" {
+        util.WriteError(w, http.StatusBadRequest, "Content cannot be empty")
+        return
+    }
+
+    // 6. Get poster account for federation notifications
+    poster, err := s.service.App.GetAccountById(r.Context(), currentUserID)
+    if err != nil {
+        util.WriteError(w, http.StatusInternalServerError, "Internal server error")
+        return
+    }
+
+    // 7. Use mapper to convert update to DB params
+    updateParams := mapper.UpdatePostToDB(&update, id)
+
+    // 8. Update the post
+    updatedStatus, err := s.service.App.UpdatePost(r.Context(), *updateParams)
+    if err != nil {
+        util.WriteError(w, http.StatusInternalServerError, "Internal server error")
+        return
+    }
+
+    // 9. Fetch updated post with metadata for response
+    info, err := s.service.App.GetPostByIdWithMetadata(r.Context(), id)
+    if err != nil {
+        util.WriteError(w, http.StatusInternalServerError, "Internal server error")
+        return
+    }
+
+    // 10. Return response
+    util.WriteJSON(w, http.StatusOK, *mapper.PostToAPIWithMetadata(
+        &info.Status,
+        &info.Account,
+        int(info.LikeCount),
+        int(info.ShareCount),
+        int(info.CommentCount)))
 }
 
 // GetApiUsersIdPosts implements api.ServerInterface.
@@ -513,3 +651,5 @@ func (s *Server) GetApiPosts(w http.ResponseWriter, r *http.Request) {
 
 	util.WriteJSON(w, http.StatusOK, apiLikes)
 }
+
+//

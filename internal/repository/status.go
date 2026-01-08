@@ -15,6 +15,8 @@ type StatusRepository interface {
 	GetShares(context.Context, int) ([]db.Status, error)
 	GetLocalStatuses(context.Context) ([]db.GetLocalStatusesRow, error)
 	GetByIdWithMetadata(context.Context, int) (db.GetStatusByIdWithMetadataRow, error)
+	GetPostComments(context.Context, int) ([]db.Status, error)
+	Update(context.Context, db.UpdateStatusParams) (db.Status, error)
 }
 
 type statusRepository struct {
@@ -62,4 +64,12 @@ func (r *statusRepository) GetShares(ctx context.Context, id int) ([]db.Status, 
 // GetLocalStatuses implements StatusRepository.
 func (r *statusRepository) GetLocalStatuses(ctx context.Context) ([]db.GetLocalStatusesRow, error) {
 	return r.q.GetLocalStatuses(ctx)
+}
+// GetComments implements StatusRepository.
+func (r *statusRepository) GetPostComments(ctx context.Context, id int) ([]db.Status, error) {
+    return r.q.GetStatusComments(ctx, int32(id))
+}
+// Update implements StatusRepository.
+func (r *statusRepository) Update(ctx context.Context, params db.UpdateStatusParams) (db.Status, error) {
+    return r.q.UpdateStatus(ctx, params)
 }
