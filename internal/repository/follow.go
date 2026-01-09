@@ -9,6 +9,7 @@ import (
 type FollowRepository interface {
 	Create(context.Context, db.CreateFollowParams) (*db.Follow, error)
 	GetFollowerCollection(context.Context, string) (db.GetFollowerCollectionRow, error)
+	GetFollowingCollection(context.Context, string) (db.GetFollowingCollectionRow, error)
 }
 
 type followRepository struct {
@@ -35,4 +36,11 @@ func (r *followRepository) GetFollowerCollection(
 	username string,
 ) (db.GetFollowerCollectionRow, error) {
 	return r.q.GetFollowerCollection(ctx, username)
+}
+// GetFollowingCollection implements FollowRepository.
+func (r *followRepository) GetFollowingCollection(
+	ctx context.Context,
+	username string,
+) (db.GetFollowingCollectionRow, error) {
+	return r.q.GetFollowingCollection(ctx, username)
 }

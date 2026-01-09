@@ -1,6 +1,9 @@
 package ap
 
-import "github.com/kibirisu/borg/internal/domain"
+import (
+
+	"github.com/kibirisu/borg/internal/domain"
+)
 
 type Collectioner[T any] interface {
 	Objecter[Collection[T]]
@@ -213,12 +216,18 @@ func (a *actorCollectionPage) GetObject() CollectionPage[Actor] {
 // Subtle: this method shadows the method (collectionPage).SetObject of actorCollectionPage.collectionPage.
 func (a *actorCollectionPage) SetObject(page CollectionPage[Actor]) {
 	items := mapToRaw(page.Items)
+	var next domain.ObjectOrLink
+	if page.Next.GetRaw() != nil {
+		next = *page.Next.GetRaw()
+	} else {
+		next = domain.ObjectOrLink{}
+	}
 	a.raw = &domain.ObjectOrLink{
 		Object: &domain.Object{
 			ID:   page.ID,
 			Type: page.Type,
 			CollectionPage: &domain.CollectionPage{
-				Next:   *page.Next.GetRaw(),
+				Next:   next,
 				PartOf: *page.PartOf.GetRaw(),
 				Items:  items,
 			},

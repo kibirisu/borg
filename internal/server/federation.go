@@ -3,6 +3,7 @@ package server
 import (
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
 
@@ -15,6 +16,7 @@ func (s *Server) federationRoutes() func(chi.Router) {
 		r.Route("/user/{username}", func(r chi.Router) {
 			r.Get("/", s.handleGetActor)
 			r.Get("/followers", s.handleActorFollowers)
+			r.Get("/following", s.handleActorFollowing)
 			r.Post("/inbox", s.handleInbox)
 		})
 	}
@@ -32,7 +34,28 @@ func (s *Server) handleGetActor(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleActorFollowers(w http.ResponseWriter, r *http.Request) {
 	user := chi.URLParam(r, "username")
-	collection, err := s.service.Federation.GetActorFollowers(r.Context(), user)
+
+	var pagePtr *int = nil
+	pageParam, err := strconv.Atoi( r.URL.Query().Get("page") )
+	if err == nil {
+		pagePtr = &pageParam
+	}
+	collection, err := s.service.Federation.GetActorFollowers(r.Context(), user, pagePtr)
+	if err != nil {
+		util.WriteError(w, http.StatusNotFound, err.Error())
+		return
+	}
+	util.WriteActivityJSON(w, http.StatusOK, collection)
+}
+func (s *Server) handleActorFollowing(w http.ResponseWriter, r *http.Request) {
+	user := chi.URLParam(r, "username")
+
+	var pagePtr *int = nil
+	pageParam, err := strconv.Atoi( r.URL.Query().Get("page") )
+	if err == nil {
+		pagePtr = &pageParam
+	}
+	collection, err := s.service.Federation.GetActorFollowing(r.Context(), user, pagePtr)
 	if err != nil {
 		util.WriteError(w, http.StatusNotFound, err.Error())
 		return
