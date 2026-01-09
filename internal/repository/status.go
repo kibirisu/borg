@@ -46,7 +46,17 @@ func (r *statusRepository) GetLocalStatuses(ctx context.Context) ([]db.GetLocalS
 }
 // GetComments implements StatusRepository.
 func (r *statusRepository) GetPostComments(ctx context.Context, id int) ([]db.Status, error) {
-    return r.q.GetStatusComments(ctx, int32(id))
+    rows, err := r.q.GetStatusComments(ctx, sql.NullInt32{Int32: int32(id), Valid: true})
+    if err != nil {
+        return nil, err
+    }
+    
+    comments := make([]db.Status, 0, len(rows))
+    for _, row := range rows {
+        comments = append(comments, row.Status)
+    }
+    
+    return comments, nil
 }
 // Update implements StatusRepository.
 func (r *statusRepository) Update(ctx context.Context, params db.UpdateStatusParams) (db.Status, error) {
