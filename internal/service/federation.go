@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/kibirisu/borg/internal/ap"
 	"github.com/kibirisu/borg/internal/domain"
@@ -13,6 +14,7 @@ import (
 
 type FederationService interface {
 	GetLocalActor(context.Context, string) (*domain.Object, error)
+	GetActorFollowers(context.Context, string) (*domain.Object, error)
 	ProcessIncoming(context.Context, *domain.ObjectOrLink) (worker.Job, error)
 }
 
@@ -43,6 +45,26 @@ func (s *federationService) GetLocalActor(
 		Followers:         account.FollowersUri,
 	})
 	return actor.GetRaw().Object, nil
+}
+
+// GetActorFollowers implements FederationService.
+func (s *federationService) GetActorFollowers(
+	ctx context.Context,
+	username string,
+) (*domain.Object, error) {
+	data, err := s.store.Follows().GetFollowerCollection(ctx, username)
+	if err != nil {
+		return nil, err
+	}
+	collection := ap.NewActorCollection(nil)
+	page := ap.NewActorCollectionPage(nil)
+	page.SetLink(fmt.Sprintf("%s?page=1", data.FollowersUri))
+	collection.SetObject(ap.Collection[ap.Actor]{
+		ID:    data.FollowersUri,
+		Type:  "OrderedCollection",
+		First: page,
+	})
+	return collection.GetRaw().Object, nil
 }
 
 // ProcessInbox implements FederationService.

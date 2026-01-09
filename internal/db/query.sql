@@ -87,6 +87,11 @@ DO UPDATE SET
     updated_at = CURRENT_TIMESTAMP
 RETURNING *;
 
+-- name: GetFollowerCollection :one
+SELECT 
+    (SELECT followers_uri FROM accounts a WHERE a.username = $1),
+    (SELECT COUNT(*) FROM follows f JOIN accounts a ON f.target_account_id = a.id WHERE a.username = $1);
+
 -- name: CreateFollowRequest :exec
 INSERT INTO follow_requests (
     uri, account_id, target_account_id

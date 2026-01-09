@@ -81,6 +81,10 @@ func NewNoteCollection(from *domain.ObjectOrLink) NoteCollectioner {
 	return &noteCollection{collection{object{from}}}
 }
 
+func NewActorCollectionPage(from *domain.ObjectOrLink) ActorCollectionPager {
+	return &actorCollectionPage{collectionPage{object{from}}}
+}
+
 // GetObject implements Collectioner.
 // Subtle: this method shadows the method (object).GetObject of collection.object.
 func (c *collection) GetObject() Collection[any] {

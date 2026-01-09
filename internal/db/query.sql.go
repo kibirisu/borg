@@ -464,6 +464,24 @@ func (q *Queries) GetActorByURI(ctx context.Context, uri string) (Account, error
 	return i, err
 }
 
+const getFollowerCollection = `-- name: GetFollowerCollection :one
+SELECT 
+    (SELECT followers_uri FROM accounts a WHERE a.username = $1),
+    (SELECT COUNT(*) FROM follows f JOIN accounts a ON f.target_account_id = a.id WHERE a.username = $1)
+`
+
+type GetFollowerCollectionRow struct {
+	FollowersUri string
+	Count        int64
+}
+
+func (q *Queries) GetFollowerCollection(ctx context.Context, username string) (GetFollowerCollectionRow, error) {
+	row := q.db.QueryRowContext(ctx, getFollowerCollection, username)
+	var i GetFollowerCollectionRow
+	err := row.Scan(&i.FollowersUri, &i.Count)
+	return i, err
+}
+
 const getLocalStatuses = `-- name: GetLocalStatuses :many
 SELECT 
     s.id, s.created_at, s.updated_at, s.uri, s.url, s.local, s.content, s.account_id, s.in_reply_to_id, s.reblog_of_id,
