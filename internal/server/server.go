@@ -41,7 +41,6 @@ func New(ctx context.Context, conf *config.Config) *http.Server {
 	r.Use(middleware.Recoverer)
 	r.Use(preAuthMiddleware)
 	r.Group(server.federationRoutes())
-	r.Group(server.staticRoutes())
 
 	h := api.HandlerWithOptions(
 		server,
@@ -50,6 +49,7 @@ func New(ctx context.Context, conf *config.Config) *http.Server {
 			Middlewares: []api.MiddlewareFunc{server.createAuthMiddleware()},
 		},
 	)
+	r.Group(server.staticRoutes())
 
 	s := &http.Server{
 		Handler:           h,

@@ -3,17 +3,8 @@ import type { AppClient } from "../../lib/client";
 import NewPostForm from "./NewPostForm";
 
 export const loader = (client: AppClient) => async () => {
-  try {
-    const opts = client.$api.queryOptions("get", "/api/posts", {});
-    if (!opts) {
-      throw new Error("queryOptions returned undefined");
-    }
-    client.queryClient.prefetchQuery(opts);
-    return { opts };
-  } catch (error) {
-    console.error("Loader error:", error);
-    return { opts: undefined as any };
-  }
+  // Posts listing not implemented on backend yet; skip prefetch.
+  return { opts: undefined, disabled: true };
 };
 export default function MainFeed() {
   return (

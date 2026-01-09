@@ -5,9 +5,11 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 
 	"golang.org/x/crypto/bcrypt"
+	"github.com/google/uuid"
 
 	"github.com/kibirisu/borg/internal/api"
 	"github.com/kibirisu/borg/internal/config"
@@ -49,6 +51,7 @@ var _ AppService = (*appService)(nil)
 // Register implements AppService.
 func (s *appService) Register(ctx context.Context, form api.AuthForm) error {
 	uri := fmt.Sprintf("http://%s/users/%s", s.conf.ListenHost, form.Username)
+	log.Printf("register: creating actor username=%s uri=%s", form.Username, uri)
 	actor, err := s.store.Accounts().Create(ctx, db.CreateActorParams{
 		Username:    form.Username,
 		Uri:         uri,
@@ -59,18 +62,22 @@ func (s *appService) Register(ctx context.Context, form api.AuthForm) error {
 		Url:         fmt.Sprintf("http://%s/profiles/%s", s.conf.ListenHost, form.Username),
 	})
 	if err != nil {
+		log.Printf("register: failed to create actor username=%s err=%v", form.Username, err)
 		return err
 	}
 	hash, err := bcrypt.GenerateFromPassword([]byte(form.Password), bcrypt.DefaultCost)
 	if err != nil {
+		log.Printf("register: failed to hash password username=%s err=%v", form.Username, err)
 		return err
 	}
 	if err = s.store.Users().Create(ctx, db.CreateUserParams{
 		AccountID:    actor.ID,
 		PasswordHash: string(hash),
 	}); err != nil {
+		log.Printf("register: failed to create user username=%s err=%v", form.Username, err)
 		return err
 	}
+	log.Printf("register: user and actor created username=%s account_id=%d", form.Username, actor.ID)
 	return nil
 }
 
@@ -116,6 +123,13 @@ func (s *appService) CreateFollow(
 
 // AddNote implements AppService.
 func (s *appService) AddNote(ctx context.Context, note db.CreateStatusParams) (db.Status, error) {
+	// Generate unique URIs if not provided; required by DB constraints.
+	if note.Uri == "" {
+		note.Uri = fmt.Sprintf("http://%s/statuses/%s", s.conf.ListenHost, uuid.NewString())
+	}
+	if note.Url == "" {
+		note.Url = note.Uri
+	}
 	return s.store.Statuses().Create(ctx, note)
 }
 
