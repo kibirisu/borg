@@ -30,7 +30,7 @@ func (f *followActivity) GetObject() Activity[Actor] {
 // SetObject implements FollowActivitier.
 // Subtle: this method shadows the method (activity).SetObject of followActivity.activity.
 func (f *followActivity) SetObject(activity Activity[Actor]) {
-	*f.raw = domain.ObjectOrLink{
+	f.raw = &domain.ObjectOrLink{
 		Object: &domain.Object{
 			ID:             activity.ID,
 			Type:           activity.Type,

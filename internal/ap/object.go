@@ -78,7 +78,7 @@ func (o *object) SetNull() {
 // SetObject implements Objecter.
 func (o *object) SetObject(object any) {
 	obj := object.(Object)
-	*o.raw = domain.ObjectOrLink{
+	o.raw = &domain.ObjectOrLink{
 		Object: &domain.Object{
 			ID:   obj.ID,
 			Type: obj.Type,
@@ -88,7 +88,7 @@ func (o *object) SetObject(object any) {
 
 // SetLink implements Objecter.
 func (o *object) SetLink(link string) {
-	*o.raw = domain.ObjectOrLink{
+	o.raw = &domain.ObjectOrLink{
 		Link: &link,
 	}
 }

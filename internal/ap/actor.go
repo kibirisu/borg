@@ -45,7 +45,7 @@ func (a *actor) GetObject() Actor {
 // SetObject implements Actorer.
 // Subtle: this method shadows the method (object).SetObject of actor.object.
 func (a *actor) SetObject(actor Actor) {
-	*a.raw = domain.ObjectOrLink{
+	a.raw = &domain.ObjectOrLink{
 		Object: &domain.Object{
 			ID:   actor.ID,
 			Type: actor.Type,

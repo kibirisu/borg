@@ -30,7 +30,7 @@ func (a *acceptActivity) GetObject() Activity[Activity[Actor]] {
 // SetObject implements AcceptActivitier.
 // Subtle: this method shadows the method (activity).SetObject of acceptActivity.activity.
 func (a *acceptActivity) SetObject(activity Activity[Activity[Actor]]) {
-	*a.raw = domain.ObjectOrLink{
+	a.raw = &domain.ObjectOrLink{
 		Object: &domain.Object{
 			ID:             "",
 			Type:           "",

@@ -37,7 +37,7 @@ func (a *activity) GetObject() Activity[any] {
 // SetObject implements Activiter.
 // Subtle: this method shadows the method (object).SetObject of activity.object.
 func (a *activity) SetObject(activity Activity[any]) {
-	*a.raw = domain.ObjectOrLink{
+	a.raw = &domain.ObjectOrLink{
 		Object: &domain.Object{
 			ID:             activity.ID,
 			Type:           activity.Type,
