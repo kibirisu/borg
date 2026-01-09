@@ -216,7 +216,7 @@ func (s *Server) PutApiUsersId(w http.ResponseWriter, r *http.Request, id int) {
 	currentUserID := *container.id
 
 	// 2. Check if user exists
-	account, err := s.service.App.GetAccountById(r.Context(), id)
+	_, err := s.service.App.GetAccountById(r.Context(), id)
 	if err != nil {
 		util.WriteError(w, http.StatusNotFound, "User not found")
 		return
@@ -237,6 +237,7 @@ func (s *Server) PutApiUsersId(w http.ResponseWriter, r *http.Request, id int) {
 
 	// 5. Map to DB params (Bio -> DisplayName, ignore IsAdmin)
 	updateParams := mapper.UpdateUserToDB(&update, id)
+	
 
 	// 6. Update account
 	updatedAccount, err := s.service.App.UpdateAccount(r.Context(), *updateParams)
@@ -247,6 +248,7 @@ func (s *Server) PutApiUsersId(w http.ResponseWriter, r *http.Request, id int) {
 
 	// 7. Return response (using AccountToAPI, same as GetApiUsersId)
 	util.WriteJSON(w, http.StatusOK, *mapper.AccountToAPI(&updatedAccount))
+}
 
 // DeleteApiPostsId implements api.ServerInterface.
 func (s *Server) DeleteApiPostsId(w http.ResponseWriter, r *http.Request, id int) {
@@ -543,7 +545,7 @@ func (s *Server) PutApiPostsId(w http.ResponseWriter, r *http.Request, id int) {
     }
 
     // 6. Get poster account for federation notifications
-    poster, err := s.service.App.GetAccountById(r.Context(), currentUserID)
+    _, err = s.service.App.GetAccountById(r.Context(), currentUserID)
     if err != nil {
         util.WriteError(w, http.StatusInternalServerError, "Internal server error")
         return
@@ -553,7 +555,7 @@ func (s *Server) PutApiPostsId(w http.ResponseWriter, r *http.Request, id int) {
     updateParams := mapper.UpdatePostToDB(&update, id)
 
     // 8. Update the post
-    updatedStatus, err := s.service.App.UpdatePost(r.Context(), *updateParams)
+    _, err = s.service.App.UpdatePost(r.Context(), *updateParams)
     if err != nil {
         util.WriteError(w, http.StatusInternalServerError, "Internal server error")
         return
