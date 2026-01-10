@@ -325,6 +325,17 @@ func (s *federationService) processUndo(object *domain.ObjectOrLink) (worker.Job
 			}
 			return s.store.Favourites().DeleteByID(ctx, favourite.ID)
 		}, nil
+	case "Follow":
+		return func(ctx context.Context) error {
+			favourite, err := s.processor.FollowStatus(
+				ctx,
+				ap.NewFollowActivity(object.Object.ActivityObject),
+			)
+			if err != nil {
+				return err
+			}
+			return s.store.Follows().DeleteByID(ctx, favourite.ID)
+		}, nil
 	default:
 		return nil, errors.New("unsupported Activity type")
 	}
