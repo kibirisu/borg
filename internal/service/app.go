@@ -9,6 +9,7 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 
+	"github.com/google/uuid"
 	"github.com/kibirisu/borg/internal/api"
 	"github.com/kibirisu/borg/internal/config"
 	"github.com/kibirisu/borg/internal/db"
@@ -111,11 +112,20 @@ func (s *appService) CreateFollow(
 	ctx context.Context,
 	follow *db.CreateFollowParams,
 ) (*db.Follow, error) {
+	if follow.Uri == "" {
+		follow.Uri = fmt.Sprintf("http://%s/follows/%s", s.conf.ListenHost, uuid.NewString())
+	}
 	return s.store.Follows().Create(ctx, *follow)
 }
 
 // AddNote implements AppService.
 func (s *appService) AddNote(ctx context.Context, note db.CreateStatusParams) (db.Status, error) {
+	if note.Uri == "" {
+		note.Uri = fmt.Sprintf("http://%s/statuses/%s", s.conf.ListenHost, uuid.NewString())
+	}
+	if note.Url == "" {
+		note.Url = note.Uri
+	}
 	return s.store.Statuses().Create(ctx, note)
 }
 
@@ -142,6 +152,7 @@ func (s *appService) AddFavourite(
 	params := db.CreateFavouriteParams{
 		AccountID: int32(accountID),
 		StatusID:  int32(postID),
+		Uri:	   fmt.Sprintf("http://%s/likes/%s", s.conf.ListenHost, uuid.NewString()),
 	}
 	return s.store.Favourites().Create(ctx, params)
 }
@@ -196,7 +207,7 @@ func (s *appService) FollowAccount(
 	followee int,
 ) (*db.Follow, error) {
 	createParams := db.CreateFollowParams{
-		Uri:             "", // TODO
+		Uri:             fmt.Sprintf("http://%s/follows/%s", s.conf.ListenHost, uuid.NewString()),
 		AccountID:       int32(follower),
 		TargetAccountID: int32(followee),
 	}
