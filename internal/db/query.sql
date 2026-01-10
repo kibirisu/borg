@@ -108,7 +108,7 @@ INSERT INTO follow_requests (
 INSERT INTO statuses (
     url, local, content, account_id, in_reply_to_id, reblog_of_id, uri
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, 'placeholder'
+    $1, $2, $3, $4, $5, $6, $7
 )
 RETURNING *;
 
@@ -128,7 +128,7 @@ INSERT INTO favourites (
     status_id,
     uri
 ) VALUES (
-    $1, $2, 'placeholder'
+    $1, $2, $3
 )
 RETURNING *;
 
