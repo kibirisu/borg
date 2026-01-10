@@ -48,3 +48,21 @@ func (r *favouriteRepository) GetByURI(ctx context.Context, uri string) (db.Favo
 func (r *favouriteRepository) DeleteByID(ctx context.Context, id int32) error {
 	return r.q.DeleteFavouriteByID(ctx, id)
 }
+
+// GetByURI implements FavouriteRepository.
+func (r *favouriteRepository) GetByURI(ctx context.Context, uri string) (db.Favourite, error) {
+	return r.q.GetFavouriteByURI(ctx, uri)
+}
+
+// DeleteByID implements FavouriteRepository.
+func (r *favouriteRepository) DeleteByID(ctx context.Context, id int32) error {
+	return r.q.DeleteFavouriteByID(ctx, id)
+}
+
+// GetLikedPostsByUser implements FavouriteRepository.
+func (r *favouriteRepository) GetLikedPostsByUser(
+	ctx context.Context,
+	accountID int,
+) ([]db.GetLikedPostsByAccountIdRow, error) {
+	return r.q.GetLikedPostsByAccountId(ctx, int32(accountID))
+}

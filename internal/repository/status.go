@@ -74,6 +74,21 @@ func (r *statusRepository) DeleteByURI(context.Context, string) error {
 	panic("unimplemented")
 }
 // GetComments implements StatusRepository.
+func (r *statusRepository) GetComments(ctx context.Context, id int) ([]db.Status, error) {
+    rows, err := r.q.GetStatusComments(ctx, sql.NullInt32{Int32: int32(id), Valid: true})
+    if err != nil {
+        return nil, err
+    }
+    
+    comments := make([]db.Status, 0, len(rows))
+    for _, row := range rows {
+        comments = append(comments, row.Status)
+    }
+    
+    return comments, nil
+}
+
+// GetPostComments implements StatusRepository.
 func (r *statusRepository) GetPostComments(ctx context.Context, id int) ([]db.Status, error) {
     rows, err := r.q.GetStatusComments(ctx, sql.NullInt32{Int32: int32(id), Valid: true})
     if err != nil {
