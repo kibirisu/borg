@@ -18,6 +18,9 @@ func (s *Server) federationRoutes() func(chi.Router) {
 			r.Get("/followers", s.handleActorFollowers)
 			r.Get("/following", s.handleActorFollowing)
 			r.Post("/inbox", s.handleInbox)
+			r.Route("/statuses", func(r chi.Router) {
+                r.Get("/{id}", s.handleGetStatus) 
+            })
 		})
 	}
 }
@@ -30,6 +33,21 @@ func (s *Server) handleGetActor(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	util.WriteActivityJSON(w, http.StatusOK, actor)
+}
+func (s *Server) handleGetStatus(w http.ResponseWriter, r *http.Request) {
+	user := chi.URLParam(r, "username")
+    statusIDStr := chi.URLParam(r, "id")
+    id, err := strconv.Atoi(statusIDStr)
+    if err != nil {
+        http.Error(w, "Invalid status ID", http.StatusBadRequest)
+        return
+	}
+	status, err := s.service.Federation.GetActorStatus(r.Context(), user, id)
+	if err != nil {
+		util.WriteError(w, http.StatusNotFound, err.Error())
+		return
+	}
+	util.WriteActivityJSON(w, http.StatusOK, status)
 }
 
 func (s *Server) handleActorFollowers(w http.ResponseWriter, r *http.Request) {

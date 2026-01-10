@@ -14,6 +14,7 @@ type Processor interface {
 	LookupStatus(context.Context, ap.Noter) (db.Status, error)
 	AnnounceStatus(context.Context, ap.AnnounceActivitier) (db.Status, error)
 	AcceptFollow(context.Context, ap.FollowActivitier) error
+	LikeStatus(context.Context, ap.LikeActivitier) (db.Favourite, error)
 }
 
 type processor struct {

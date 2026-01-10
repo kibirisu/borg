@@ -17,6 +17,7 @@ type FederationService interface {
 	GetLocalActor(context.Context, string) (*domain.Object, error)
 	GetActorFollowers(context.Context, string, *int) (*domain.Object, error)
 	GetActorFollowing(context.Context, string, *int) (*domain.Object, error)
+	GetActorStatus(context.Context, string, int) (*domain.Object, error)
 	ProcessIncoming(context.Context, *domain.ObjectOrLink) (worker.Job, error)
 }
 
@@ -47,6 +48,49 @@ func (s *federationService) GetLocalActor(
 		Followers:         account.FollowersUri,
 	})
 	return actor.GetRaw().Object, nil
+}
+
+// GetActorStatus implements FederationService.
+func (s *federationService) GetActorStatus(
+	ctx context.Context,
+	username string,
+	postId int,
+) (*domain.Object, error) {
+	statusDB, err := s.store.Statuses().GetById(ctx, postId)
+	if err != nil {
+		return nil, err
+	}
+	reply := ap.NewNote(nil)
+	if statusDB.InReplyToID.Valid {
+		inreply, err := s.store.Statuses().GetById(ctx, int(statusDB.InReplyToID.Int32))
+		if err != nil {
+			return nil, err
+		}
+
+		reply.SetLink(inreply.Uri)
+	}
+	accountDB, err := s.store.Accounts().GetLocalByUsername(ctx, username)
+	if err != nil {
+		return nil, err
+	}
+	actor := ap.NewActor(nil)
+	actor.SetLink(accountDB.Uri)
+
+	note := ap.NewNote(nil)
+	collection := ap.NewNoteCollection(nil)
+	note.SetObject(ap.Note{
+		ID:           statusDB.Uri,
+		Type:         "Note",
+		Content:      statusDB.Content,
+		InReplyTo:    reply,
+		Published:    statusDB.CreatedAt,
+		AttributedTo: actor,
+		To:           []string{},
+		CC:           []string{accountDB.FollowersUri},
+		Replies:      collection,
+	})
+
+	return note.GetRaw().Object, nil
 }
 
 // GetActorFollowers implements FederationService.
@@ -165,6 +209,11 @@ func (s *federationService) ProcessIncoming(
 			_, err := s.processor.AnnounceStatus(ctx, ap.NewAnnounceActivity(object))
 			return err
 		}, nil
+	case "Like":
+		return func(ctx context.Context) error {
+			_, err := s.processor.LikeStatus(ctx, ap.NewLikeActivity(object))
+			return err
+		}, nil
 	case "Accept":
 		fallthrough
 	case "Undo":
@@ -185,7 +234,18 @@ func (s *federationService) processUndo(object *domain.ObjectOrLink) (worker.Job
 			if err != nil {
 				return err
 			}
-			return s.store.Statuses().DeleteByURI(ctx, status.Uri)
+			return s.store.Statuses().DeleteByID(ctx, status.ID)
+		}, nil
+	case "Like":
+		return func(ctx context.Context) error {
+			favourite, err := s.processor.LikeStatus(
+				ctx,
+				ap.NewLikeActivity(object.Object.ActivityObject),
+			)
+			if err != nil {
+				return err
+			}
+			return s.store.Favourites().DeleteByID(ctx, favourite.ID)
 		}, nil
 	default:
 		return nil, errors.New("unsupported Activity type")

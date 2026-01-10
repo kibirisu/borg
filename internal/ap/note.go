@@ -46,7 +46,7 @@ func (n *note) GetObject() Note {
 		AttributedTo: &actor{object{obj.Publication.AttributedTo}},
 		To:           obj.Publication.To,
 		CC:           obj.Publication.CC,
-		Replies:      &noteCollection{collection{object{&obj.Note.Replies}}},
+		Replies:      &noteCollection{collection{object{obj.Note.Replies}}},
 	}
 }
 
@@ -66,7 +66,7 @@ func (n *note) SetObject(note Note) {
 			Note: &domain.Note{
 				Content:   note.Content,
 				InReplyTo: note.InReplyTo.GetRaw(),
-				Replies:   *note.Replies.GetRaw(),
+				Replies:   note.Replies.GetRaw(),
 			},
 		},
 	}

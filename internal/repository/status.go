@@ -10,13 +10,12 @@ import (
 type StatusRepository interface {
 	Create(context.Context, db.CreateStatusParams) (db.Status, error)
 	Add(context.Context, db.AddStatusParams) error
-	AddFrom(context.Context, db.AddStatusFromParams) error
 	GetById(context.Context, int) (db.Status, error)
 	GetByURI(context.Context, string) (db.Status, error)
 	GetShares(context.Context, int) ([]db.Status, error)
 	GetLocalStatuses(context.Context) ([]db.GetLocalStatusesRow, error)
 	GetByIdWithMetadata(context.Context, int) (db.GetStatusByIdWithMetadataRow, error)
-	DeleteByURI(context.Context, string) error
+	DeleteByID(context.Context, int32) error
 }
 
 type statusRepository struct {
@@ -36,11 +35,6 @@ func (r *statusRepository) Create(
 // Add implements StatusRepository.
 func (r *statusRepository) Add(ctx context.Context, status db.AddStatusParams) error {
 	return r.q.AddStatus(ctx, status)
-}
-
-// AddFrom implements StatusRepository.
-func (r *statusRepository) AddFrom(ctx context.Context, status db.AddStatusFromParams) error {
-	return r.q.AddStatusFrom(ctx, status)
 }
 
 // GetById implements StatusRepository.
@@ -72,6 +66,6 @@ func (r *statusRepository) GetLocalStatuses(ctx context.Context) ([]db.GetLocalS
 }
 
 // DeleteByURI implements StatusRepository.
-func (r *statusRepository) DeleteByURI(context.Context, string) error {
-	panic("unimplemented")
+func (r *statusRepository) DeleteByID(ctx context.Context, id int32) error {
+	return r.q.DeleteStatusByID(ctx, id)
 }

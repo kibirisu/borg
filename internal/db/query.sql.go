@@ -39,35 +39,6 @@ func (q *Queries) AddStatus(ctx context.Context, arg AddStatusParams) error {
 	return err
 }
 
-const addStatusFrom = `-- name: AddStatusFrom :exec
-INSERT INTO statuses (
-    uri, url, content, account_id, in_reply_to_id, reblog_of_id
-) VALUES (
-    $1, $2, $3, (SELECT id FROM accounts a WHERE a.uri = $4), $5, $6
-)
-`
-
-type AddStatusFromParams struct {
-	Uri         string
-	Url         string
-	Content     string
-	Uri_2       string
-	InReplyToID sql.NullInt32
-	ReblogOfID  sql.NullInt32
-}
-
-func (q *Queries) AddStatusFrom(ctx context.Context, arg AddStatusFromParams) error {
-	_, err := q.db.ExecContext(ctx, addStatusFrom,
-		arg.Uri,
-		arg.Url,
-		arg.Content,
-		arg.Uri_2,
-		arg.InReplyToID,
-		arg.ReblogOfID,
-	)
-	return err
-}
-
 const authData = `-- name: AuthData :one
 SELECT a.id, u.password_hash FROM accounts a JOIN users u ON a.id = u.account_id WHERE a.username = $1
 `
@@ -136,23 +107,22 @@ func (q *Queries) CreateActor(ctx context.Context, arg CreateActorParams) (Accou
 
 const createFavourite = `-- name: CreateFavourite :one
 INSERT INTO favourites (
-    uri, 
     account_id, 
-    status_id
+    status_id,
+    uri
 ) VALUES (
-    $1, $2, $3
+    $1, $2, 'placeholder'
 )
 RETURNING id, created_at, updated_at, uri, account_id, status_id
 `
 
 type CreateFavouriteParams struct {
-	Uri       string
 	AccountID int32
 	StatusID  int32
 }
 
 func (q *Queries) CreateFavourite(ctx context.Context, arg CreateFavouriteParams) (Favourite, error) {
-	row := q.db.QueryRowContext(ctx, createFavourite, arg.Uri, arg.AccountID, arg.StatusID)
+	row := q.db.QueryRowContext(ctx, createFavourite, arg.AccountID, arg.StatusID)
 	var i Favourite
 	err := row.Scan(
 		&i.ID,
@@ -218,15 +188,14 @@ func (q *Queries) CreateFollowRequest(ctx context.Context, arg CreateFollowReque
 
 const createStatus = `-- name: CreateStatus :one
 INSERT INTO statuses (
-    uri, url, local, content, account_id, in_reply_to_id, reblog_of_id
+    url, local, content, account_id, in_reply_to_id, reblog_of_id, uri
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7
+    $1, $2, $3, $4, $5, $6, 'placeholder'
 )
 RETURNING id, created_at, updated_at, uri, url, local, content, account_id, in_reply_to_id, reblog_of_id
 `
 
 type CreateStatusParams struct {
-	Uri         string
 	Url         string
 	Local       sql.NullBool
 	Content     string
@@ -237,7 +206,6 @@ type CreateStatusParams struct {
 
 func (q *Queries) CreateStatus(ctx context.Context, arg CreateStatusParams) (Status, error) {
 	row := q.db.QueryRowContext(ctx, createStatus,
-		arg.Uri,
 		arg.Url,
 		arg.Local,
 		arg.Content,
@@ -276,6 +244,24 @@ type CreateUserParams struct {
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) error {
 	_, err := q.db.ExecContext(ctx, createUser, arg.AccountID, arg.PasswordHash)
+	return err
+}
+
+const deleteFavouriteByID = `-- name: DeleteFavouriteByID :exec
+DELETE FROM favourites WHERE id = $1
+`
+
+func (q *Queries) DeleteFavouriteByID(ctx context.Context, id int32) error {
+	_, err := q.db.ExecContext(ctx, deleteFavouriteByID, id)
+	return err
+}
+
+const deleteStatusByID = `-- name: DeleteStatusByID :exec
+DELETE FROM statuses WHERE id = $1
+`
+
+func (q *Queries) DeleteStatusByID(ctx context.Context, id int32) error {
+	_, err := q.db.ExecContext(ctx, deleteStatusByID, id)
 	return err
 }
 
@@ -460,6 +446,24 @@ func (q *Queries) GetActorByURI(ctx context.Context, uri string) (Account, error
 		&i.FollowersUri,
 		&i.FollowingUri,
 		&i.Url,
+	)
+	return i, err
+}
+
+const getFavouriteByURI = `-- name: GetFavouriteByURI :one
+SELECT id, created_at, updated_at, uri, account_id, status_id FROM favourites WHERE uri = $1
+`
+
+func (q *Queries) GetFavouriteByURI(ctx context.Context, uri string) (Favourite, error) {
+	row := q.db.QueryRowContext(ctx, getFavouriteByURI, uri)
+	var i Favourite
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Uri,
+		&i.AccountID,
+		&i.StatusID,
 	)
 	return i, err
 }
