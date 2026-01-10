@@ -12,6 +12,7 @@ import (
 type Processor interface {
 	LookupActor(context.Context, ap.Actorer) (db.Account, error)
 	LookupStatus(context.Context, ap.Noter) (db.Status, error)
+	AnnounceStatus(context.Context, ap.AnnounceActivitier) error
 	AcceptFollow(context.Context, ap.FollowActivitier) error
 }
 
