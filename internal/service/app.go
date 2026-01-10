@@ -140,7 +140,6 @@ func (s *appService) AddFavourite(
 	ctx context.Context, accountID int, postID int,
 ) (db.Favourite, error) {
 	params := db.CreateFavouriteParams{
-		Uri:       "TODO",
 		AccountID: int32(accountID),
 		StatusID:  int32(postID),
 	}

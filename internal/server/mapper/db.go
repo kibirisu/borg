@@ -9,7 +9,6 @@ import (
 
 func NewPostToDB(newPost *api.NewPost, isLocal bool) *db.CreateStatusParams {
 	return &db.CreateStatusParams{
-		Uri:         "",
 		Url:         "TODO",
 		Local:       sql.NullBool{Bool: isLocal, Valid: true},
 		Content:     newPost.Content,
@@ -20,7 +19,6 @@ func NewPostToDB(newPost *api.NewPost, isLocal bool) *db.CreateStatusParams {
 }
 func NewCommentToDB(comment *api.NewComment) *db.CreateStatusParams {
 	return &db.CreateStatusParams{
-		Uri: "TODO",
 		Url: "TODO",
 		Local: sql.NullBool{Bool: true, Valid: true},
 		Content:    comment.Content,
@@ -32,7 +30,6 @@ func NewCommentToDB(comment *api.NewComment) *db.CreateStatusParams {
 
 func NewShareToDB(share *api.NewShare) *db.CreateStatusParams {
 	return &db.CreateStatusParams{
-		Uri: "TODO",
 		Url: "TODO",
 		Local: sql.NullBool{Bool: true, Valid: true},
 		Content:    "",

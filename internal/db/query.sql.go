@@ -136,23 +136,22 @@ func (q *Queries) CreateActor(ctx context.Context, arg CreateActorParams) (Accou
 
 const createFavourite = `-- name: CreateFavourite :one
 INSERT INTO favourites (
-    uri, 
     account_id, 
-    status_id
+    status_id,
+    uri
 ) VALUES (
-    $1, $2, $3
+    $1, $2, 'placeholder'
 )
 RETURNING id, created_at, updated_at, uri, account_id, status_id
 `
 
 type CreateFavouriteParams struct {
-	Uri       string
 	AccountID int32
 	StatusID  int32
 }
 
 func (q *Queries) CreateFavourite(ctx context.Context, arg CreateFavouriteParams) (Favourite, error) {
-	row := q.db.QueryRowContext(ctx, createFavourite, arg.Uri, arg.AccountID, arg.StatusID)
+	row := q.db.QueryRowContext(ctx, createFavourite, arg.AccountID, arg.StatusID)
 	var i Favourite
 	err := row.Scan(
 		&i.ID,
@@ -218,15 +217,14 @@ func (q *Queries) CreateFollowRequest(ctx context.Context, arg CreateFollowReque
 
 const createStatus = `-- name: CreateStatus :one
 INSERT INTO statuses (
-    uri, url, local, content, account_id, in_reply_to_id, reblog_of_id
+    url, local, content, account_id, in_reply_to_id, reblog_of_id, uri
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7
+    $1, $2, $3, $4, $5, $6, 'placeholder'
 )
 RETURNING id, created_at, updated_at, uri, url, local, content, account_id, in_reply_to_id, reblog_of_id
 `
 
 type CreateStatusParams struct {
-	Uri         string
 	Url         string
 	Local       sql.NullBool
 	Content     string
@@ -237,7 +235,6 @@ type CreateStatusParams struct {
 
 func (q *Queries) CreateStatus(ctx context.Context, arg CreateStatusParams) (Status, error) {
 	row := q.db.QueryRowContext(ctx, createStatus,
-		arg.Uri,
 		arg.Url,
 		arg.Local,
 		arg.Content,

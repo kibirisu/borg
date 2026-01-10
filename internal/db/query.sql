@@ -106,9 +106,9 @@ INSERT INTO follow_requests (
 
 -- name: CreateStatus :one
 INSERT INTO statuses (
-    uri, url, local, content, account_id, in_reply_to_id, reblog_of_id
+    url, local, content, account_id, in_reply_to_id, reblog_of_id, uri
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7
+    $1, $2, $3, $4, $5, $6, 'placeholder'
 )
 RETURNING *;
 
@@ -128,11 +128,11 @@ INSERT INTO statuses (
 
 -- name: CreateFavourite :one
 INSERT INTO favourites (
-    uri, 
     account_id, 
-    status_id
+    status_id,
+    uri
 ) VALUES (
-    $1, $2, $3
+    $1, $2, 'placeholder'
 )
 RETURNING *;
 

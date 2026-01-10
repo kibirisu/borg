@@ -29,7 +29,6 @@ func (p *processor) AnnounceStatus(
 			return status, err
 		}
 		return p.store.Statuses().Create(ctx, db.CreateStatusParams{
-			Uri:       activityData.ID,
 			AccountID: actor.ID,
 			ReblogOfID: sql.NullInt32{
 				Int32: announcedStatus.ID,
