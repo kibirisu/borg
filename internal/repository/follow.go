@@ -10,6 +10,8 @@ type FollowRepository interface {
 	Create(context.Context, db.CreateFollowParams) (*db.Follow, error)
 	GetFollowerCollection(context.Context, string) (db.GetFollowerCollectionRow, error)
 	GetFollowingCollection(context.Context, string) (db.GetFollowingCollectionRow, error)
+	GetByUri(context.Context, string) (db.Follow, error)
+	DeleteByID(context.Context, int32) error
 }
 
 type followRepository struct {
@@ -44,4 +46,17 @@ func (r *followRepository) GetFollowingCollection(
 	username string,
 ) (db.GetFollowingCollectionRow, error) {
 	return r.q.GetFollowingCollection(ctx, username)
+}
+
+// GetByUri implements FollowRepository.
+func (r *followRepository) GetByUri(
+	ctx context.Context,
+	uri string,
+) (db.Follow, error) {
+	return r.q.GetFollowByURI(ctx, uri)
+}
+
+// DeleteByID implements FollowRepository.
+func (r *followRepository)DeleteByID(ctx context.Context, id int32) error {
+	return r.q.DeleteFollowByID(ctx, id)
 }

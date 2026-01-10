@@ -256,6 +256,15 @@ func (q *Queries) DeleteFavouriteByID(ctx context.Context, id int32) error {
 	return err
 }
 
+const deleteFollowByID = `-- name: DeleteFollowByID :exec
+DELETE FROM follows WHERE id = $1
+`
+
+func (q *Queries) DeleteFollowByID(ctx context.Context, id int32) error {
+	_, err := q.db.ExecContext(ctx, deleteFollowByID, id)
+	return err
+}
+
 const deleteStatusByID = `-- name: DeleteStatusByID :exec
 DELETE FROM statuses WHERE id = $1
 `
@@ -464,6 +473,24 @@ func (q *Queries) GetFavouriteByURI(ctx context.Context, uri string) (Favourite,
 		&i.Uri,
 		&i.AccountID,
 		&i.StatusID,
+	)
+	return i, err
+}
+
+const getFollowByURI = `-- name: GetFollowByURI :one
+SELECT id, created_at, updated_at, uri, account_id, target_account_id FROM follows WHERE uri = $1
+`
+
+func (q *Queries) GetFollowByURI(ctx context.Context, uri string) (Follow, error) {
+	row := q.db.QueryRowContext(ctx, getFollowByURI, uri)
+	var i Follow
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Uri,
+		&i.AccountID,
+		&i.TargetAccountID,
 	)
 	return i, err
 }
