@@ -160,6 +160,10 @@ func (s *federationService) ProcessIncoming(
 		return func(ctx context.Context) error {
 			return s.processor.AcceptFollow(ctx, ap.NewFollowActivity(object))
 		}, nil
+	case "Announce":
+		return func(ctx context.Context) error {
+			return s.processor.AnnounceStatus(ctx, ap.NewAnnounceActivity(object))
+		}, nil
 	case "Accept":
 		fallthrough
 	case "Undo":
