@@ -143,5 +143,5 @@ WHERE f.target_account_id = $1;
 
 -- name: GetAccountFollowing :many
 SELECT a.* FROM accounts a
-JOIN follows f ON a.id = f.account_id
+JOIN follows f ON a.id = f.target_account_id
 WHERE f.account_id = $1;

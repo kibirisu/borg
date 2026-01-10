@@ -376,7 +376,7 @@ func (q *Queries) GetAccountFollowers(ctx context.Context, targetAccountID int32
 
 const getAccountFollowing = `-- name: GetAccountFollowing :many
 SELECT a.id, a.created_at, a.updated_at, a.username, a.uri, a.display_name, a.domain, a.inbox_uri, a.outbox_uri, a.followers_uri, a.following_uri, a.url FROM accounts a
-JOIN follows f ON a.id = f.account_id
+JOIN follows f ON a.id = f.target_account_id
 WHERE f.account_id = $1
 `
 
