@@ -36,3 +36,11 @@ func (r *favouriteRepository) GetByPost(
 ) ([]db.Favourite, error) {
 	return r.q.GetStatusFavourites(ctx, int32(id))
 }
+
+// GetLikedPostsByUser implements FavouriteRepository.
+func (r *favouriteRepository) GetLikedPostsByUser(
+	ctx context.Context,
+	accountID int,
+) ([]db.GetLikedPostsByAccountIdRow, error) {
+	return r.q.GetLikedPostsByAccountId(ctx, int32(accountID))
+}

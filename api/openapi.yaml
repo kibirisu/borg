@@ -118,6 +118,24 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/User"
+  /api/users/{id}/liked-posts:
+    get:
+      summary: Get liked posts of the user with ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Post"
   /api/posts:
     get:
       summary: Get all posts
@@ -132,6 +150,9 @@ paths:
                   $ref: "#/components/schemas/Post"
     post:
       summary: Create a post
+      responses:
+        "200":
+          description: Created post
       requestBody:
         required: true
         content:
@@ -204,6 +225,9 @@ paths:
                   $ref: "#/components/schemas/Comment"
     post:
       summary: Create a post comment
+      responses:
+        "200":
+          description: Created comment
       parameters:
         - name: id
           in: path
@@ -238,6 +262,9 @@ paths:
                   $ref: "#/components/schemas/Like"
     post:
       summary: Create a post like
+      responses:
+        "200":
+          description: Created like
       parameters:
         - name: id
           in: path
@@ -272,6 +299,9 @@ paths:
                   $ref: "#/components/schemas/Share"
     post:
       summary: Create a post share
+      responses:
+        "200":  
+          description: Created share
       parameters:
         - name: id
           in: path
@@ -361,7 +391,7 @@ components:
   securitySchemes:
     BearerAuth:
       type: http
-      scheme: Bearer
+      scheme: bearer
       bearerFormat: JWT
   schemas:
     AuthForm:
