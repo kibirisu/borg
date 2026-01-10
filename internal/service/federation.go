@@ -165,6 +165,10 @@ func (s *federationService) ProcessIncoming(
 			_, err := s.processor.AnnounceStatus(ctx, ap.NewAnnounceActivity(object))
 			return err
 		}, nil
+	case "Like":
+		return func(ctx context.Context) error {
+			return s.processor.AcceptLike(ctx, ap.NewLikeActivity(object))
+		}, nil
 	case "Accept":
 		fallthrough
 	case "Undo":
