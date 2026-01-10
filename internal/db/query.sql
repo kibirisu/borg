@@ -141,6 +141,9 @@ SELECT * FROM follows WHERE uri LIKE '%' || $1::text;
 -- name: DeleteFavouriteByID :exec
 DELETE FROM favourites WHERE id = $1;
 
+-- name: DeleteFollowByID :exec
+DELETE FROM follows WHERE id = $1;
+
 -- name: GetAccountFollowers :many
 SELECT a.* FROM accounts a
 JOIN follows f ON a.id = f.account_id
