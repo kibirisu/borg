@@ -16,6 +16,7 @@ type StatusRepository interface {
 	GetShares(context.Context, int) ([]db.Status, error)
 	GetLocalStatuses(context.Context) ([]db.GetLocalStatusesRow, error)
 	GetByIdWithMetadata(context.Context, int) (db.GetStatusByIdWithMetadataRow, error)
+	DeleteByURI(context.Context, string) error
 }
 
 type statusRepository struct {
@@ -68,4 +69,9 @@ func (r *statusRepository) GetShares(ctx context.Context, id int) ([]db.Status, 
 // GetLocalStatuses implements StatusRepository.
 func (r *statusRepository) GetLocalStatuses(ctx context.Context) ([]db.GetLocalStatusesRow, error) {
 	return r.q.GetLocalStatuses(ctx)
+}
+
+// DeleteByURI implements StatusRepository.
+func (r *statusRepository) DeleteByURI(context.Context, string) error {
+	panic("unimplemented")
 }

@@ -162,12 +162,31 @@ func (s *federationService) ProcessIncoming(
 		}, nil
 	case "Announce":
 		return func(ctx context.Context) error {
-			return s.processor.AnnounceStatus(ctx, ap.NewAnnounceActivity(object))
+			_, err := s.processor.AnnounceStatus(ctx, ap.NewAnnounceActivity(object))
+			return err
 		}, nil
 	case "Accept":
 		fallthrough
 	case "Undo":
-		fallthrough
+		return s.processUndo(object)
+	default:
+		return nil, errors.New("unsupported Activity type")
+	}
+}
+
+func (s *federationService) processUndo(object *domain.ObjectOrLink) (worker.Job, error) {
+	switch object.Object.Type {
+	case "Announce":
+		return func(ctx context.Context) error {
+			status, err := s.processor.AnnounceStatus(
+				ctx,
+				ap.NewAnnounceActivity(object.Object.ActivityObject),
+			)
+			if err != nil {
+				return err
+			}
+			return s.store.Statuses().DeleteByURI(ctx, status.Uri)
+		}, nil
 	default:
 		return nil, errors.New("unsupported Activity type")
 	}
