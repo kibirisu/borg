@@ -262,8 +262,8 @@ func (n *noteCollectionPage) SetObject(page CollectionPage[Note]) {
 
 func mapToRaw[T any](objects []Objecter[T]) []domain.ObjectOrLink {
 	items := make([]domain.ObjectOrLink, len(objects))
-	for _, item := range objects {
-		items = append(items, *item.GetRaw())
+	for idx, item := range objects {
+		items[idx] = *item.GetRaw()
 	}
 	return items
 }
