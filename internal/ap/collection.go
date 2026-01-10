@@ -169,7 +169,7 @@ func (c *collectionPage) GetObject() CollectionPage[any] {
 	return CollectionPage[any]{
 		ID:     obj.ID,
 		Type:   obj.Type,
-		Next:   &collectionPage{object{&obj.CollectionPage.Next}},
+		Next:   &collectionPage{object{obj.CollectionPage.Next}},
 		PartOf: &collection{object{&obj.CollectionPage.PartOf}},
 		Items:  items,
 	}
@@ -184,7 +184,7 @@ func (c *collectionPage) SetObject(page CollectionPage[any]) {
 			ID:   page.ID,
 			Type: page.Type,
 			CollectionPage: &domain.CollectionPage{
-				Next:   *page.Next.GetRaw(),
+				Next:   page.Next.GetRaw(),
 				PartOf: *page.PartOf.GetRaw(),
 				Items:  items,
 			},
@@ -203,7 +203,7 @@ func (a *actorCollectionPage) GetObject() CollectionPage[Actor] {
 	return CollectionPage[Actor]{
 		ID:     obj.ID,
 		Type:   obj.Type,
-		Next:   &actorCollectionPage{collectionPage{object{&obj.CollectionPage.Next}}},
+		Next:   &actorCollectionPage{collectionPage{object{obj.CollectionPage.Next}}},
 		PartOf: &actorCollection{collection{object{&obj.CollectionPage.PartOf}}},
 		Items:  items,
 	}
@@ -218,7 +218,7 @@ func (a *actorCollectionPage) SetObject(page CollectionPage[Actor]) {
 			ID:   page.ID,
 			Type: page.Type,
 			CollectionPage: &domain.CollectionPage{
-				Next:   *page.Next.GetRaw(),
+				Next:   page.Next.GetRaw(),
 				PartOf: *page.PartOf.GetRaw(),
 				Items:  items,
 			},
@@ -237,7 +237,7 @@ func (n *noteCollectionPage) GetObject() CollectionPage[Note] {
 	return CollectionPage[Note]{
 		ID:     obj.ID,
 		Type:   obj.Type,
-		Next:   &noteCollectionPage{collectionPage{object{&obj.CollectionPage.Next}}},
+		Next:   &noteCollectionPage{collectionPage{object{obj.CollectionPage.Next}}},
 		PartOf: &noteCollection{collection{object{&obj.CollectionPage.PartOf}}},
 		Items:  items,
 	}
@@ -252,7 +252,7 @@ func (n *noteCollectionPage) SetObject(page CollectionPage[Note]) {
 			ID:   page.ID,
 			Type: page.Type,
 			CollectionPage: &domain.CollectionPage{
-				Next:   *page.Next.GetRaw(),
+				Next:   page.Next.GetRaw(),
 				PartOf: *page.PartOf.GetRaw(),
 				Items:  items,
 			},

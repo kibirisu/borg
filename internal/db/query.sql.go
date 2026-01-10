@@ -376,7 +376,7 @@ func (q *Queries) GetAccountFollowers(ctx context.Context, targetAccountID int32
 
 const getAccountFollowing = `-- name: GetAccountFollowing :many
 SELECT a.id, a.created_at, a.updated_at, a.username, a.uri, a.display_name, a.domain, a.inbox_uri, a.outbox_uri, a.followers_uri, a.following_uri, a.url FROM accounts a
-JOIN follows f ON a.id = f.account_id
+JOIN follows f ON a.id = f.target_account_id
 WHERE f.account_id = $1
 `
 
@@ -479,6 +479,24 @@ func (q *Queries) GetFollowerCollection(ctx context.Context, username string) (G
 	row := q.db.QueryRowContext(ctx, getFollowerCollection, username)
 	var i GetFollowerCollectionRow
 	err := row.Scan(&i.FollowersUri, &i.Count)
+	return i, err
+}
+
+const getFollowingCollection = `-- name: GetFollowingCollection :one
+SELECT 
+    (SELECT following_uri FROM accounts a WHERE a.username = $1),
+    (SELECT COUNT(*) FROM follows f JOIN accounts a ON f.account_id = a.id WHERE a.username = $1)
+`
+
+type GetFollowingCollectionRow struct {
+	FollowingUri string
+	Count        int64
+}
+
+func (q *Queries) GetFollowingCollection(ctx context.Context, username string) (GetFollowingCollectionRow, error) {
+	row := q.db.QueryRowContext(ctx, getFollowingCollection, username)
+	var i GetFollowingCollectionRow
+	err := row.Scan(&i.FollowingUri, &i.Count)
 	return i, err
 }
 
