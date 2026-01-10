@@ -135,8 +135,14 @@ RETURNING *;
 -- name: GetFavouriteByURI :one
 SELECT * FROM favourites WHERE uri = $1;
 
+-- name: GetFollowByURI :one
+SELECT * FROM follows WHERE uri = $1;
+
 -- name: DeleteFavouriteByID :exec
 DELETE FROM favourites WHERE id = $1;
+
+-- name: DeleteFollowByID :exec
+DELETE FROM follows WHERE id = $1;
 
 -- name: GetAccountFollowers :many
 SELECT a.* FROM accounts a
