@@ -8,7 +8,7 @@ import (
 	"github.com/kibirisu/borg/internal/db"
 )
 
-func (p *processor) AcceptLike(
+func (p *processor) LikeStatus(
 	ctx context.Context,
 	activity ap.LikeActivitier,
 ) (db.Favourite, error) {

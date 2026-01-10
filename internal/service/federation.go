@@ -211,7 +211,7 @@ func (s *federationService) ProcessIncoming(
 		}, nil
 	case "Like":
 		return func(ctx context.Context) error {
-			_, err := s.processor.AcceptLike(ctx, ap.NewLikeActivity(object))
+			_, err := s.processor.LikeStatus(ctx, ap.NewLikeActivity(object))
 			return err
 		}, nil
 	case "Accept":
@@ -235,6 +235,17 @@ func (s *federationService) processUndo(object *domain.ObjectOrLink) (worker.Job
 				return err
 			}
 			return s.store.Statuses().DeleteByURI(ctx, status.Uri)
+		}, nil
+	case "Like":
+		return func(ctx context.Context) error {
+			favourite, err := s.processor.LikeStatus(
+				ctx,
+				ap.NewLikeActivity(object.Object.ActivityObject),
+			)
+			if err != nil {
+				return err
+			}
+			return s.store.Favourites().DeleteByURI(ctx, favourite.Uri)
 		}, nil
 	default:
 		return nil, errors.New("unsupported Activity type")

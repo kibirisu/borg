@@ -9,7 +9,8 @@ import (
 type FavouriteRepository interface {
 	Create(context.Context, db.CreateFavouriteParams) (db.Favourite, error)
 	GetByURI(context.Context, string) (db.Favourite, error)
-	GetByPost(ctx context.Context, id int) ([]db.Favourite, error)
+	GetByPost(context.Context, int) ([]db.Favourite, error)
+	DeleteByURI(context.Context, string) error
 }
 
 type favouriteRepository struct {
@@ -41,4 +42,9 @@ func (r *favouriteRepository) GetByPost(
 // GetByURI implements FavouriteRepository.
 func (r *favouriteRepository) GetByURI(ctx context.Context, uri string) (db.Favourite, error) {
 	return r.q.GetFavouriteByURI(ctx, uri)
+}
+
+// DeleteByURI implements FavouriteRepository.
+func (r *favouriteRepository) DeleteByURI(context.Context, string) error {
+	panic("unimplemented")
 }
