@@ -74,13 +74,13 @@ func (s *federationService) GetActorFollowers(
 		}
 		page := ap.NewActorCollectionPage(nil)
 		page.SetObject(ap.CollectionPage[ap.Actor]{
-			ID:         fmt.Sprintf("%s?page=%d", data.FollowersUri, *pageSelection),
-			Type:       "OrderedCollectionPage",
-			PartOf:     ap.NewActorCollection(&domain.ObjectOrLink{Link: &data.FollowersUri}),
-			Items:		links,
-			Next:	ap.NewActorCollectionPage(nil),
+			ID:     fmt.Sprintf("%s?page=%d", data.FollowersUri, *pageSelection),
+			Type:   "OrderedCollectionPage",
+			PartOf: ap.NewActorCollection(&domain.ObjectOrLink{Link: &data.FollowersUri}),
+			Items:  links,
+			Next:   ap.NewActorCollectionPage(nil),
 		})
-		
+
 		return page.GetRaw().Object, nil
 	}
 	collection := ap.NewActorCollection(nil)
@@ -93,8 +93,9 @@ func (s *federationService) GetActorFollowers(
 	})
 	return collection.GetRaw().Object, nil
 }
+
 // GetActorFollowing implements FederationService.
-func (s *federationService) GetActorFollowing (
+func (s *federationService) GetActorFollowing(
 	ctx context.Context,
 	username string,
 	pageSelection *int,
@@ -104,24 +105,30 @@ func (s *federationService) GetActorFollowing (
 		return nil, err
 	}
 	local, err := s.store.Accounts().GetLocalByUsername(ctx, username)
+	if err != nil {
+		return nil, err
+	}
 	if pageSelection != nil {
-		following, _ := s.store.Accounts().GetFollowing(ctx, int(local.ID))
-		links := make([]ap.Objecter[ap.Actor], 0, len(following))
-		for _, acc := range following {
+		following, err := s.store.Accounts().GetFollowing(ctx, int(local.ID))
+		if err != nil {
+			return nil, err
+		}
+		links := make([]ap.Objecter[ap.Actor], len(following))
+		for idx, acc := range following {
 			actor := ap.NewActor(nil)
 			actor.SetLink(acc.Uri)
-			links = append(links, actor)
+			links[idx] = actor
 			log.Println(acc.Uri)
 		}
 		page := ap.NewActorCollectionPage(nil)
 		page.SetObject(ap.CollectionPage[ap.Actor]{
-			ID:         fmt.Sprintf("%s?page=%d", data.FollowingUri, *pageSelection),
-			Type:       "OrderedCollectionPage",
-			PartOf:     ap.NewActorCollection(&domain.ObjectOrLink{Link: &data.FollowingUri}),
-			Items:		links,
-			Next:	ap.NewActorCollectionPage(nil),
+			ID:     fmt.Sprintf("%s?page=%d", data.FollowingUri, *pageSelection),
+			Type:   "OrderedCollectionPage",
+			PartOf: ap.NewActorCollection(&domain.ObjectOrLink{Link: &data.FollowingUri}),
+			Items:  links,
+			Next:   ap.NewActorCollectionPage(nil),
 		})
-		
+
 		return page.GetRaw().Object, nil
 	}
 	collection := ap.NewActorCollection(nil)

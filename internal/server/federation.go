@@ -36,7 +36,7 @@ func (s *Server) handleActorFollowers(w http.ResponseWriter, r *http.Request) {
 	user := chi.URLParam(r, "username")
 
 	var pagePtr *int = nil
-	pageParam, err := strconv.Atoi( r.URL.Query().Get("page") )
+	pageParam, err := strconv.Atoi(r.URL.Query().Get("page"))
 	if err == nil {
 		pagePtr = &pageParam
 	}
@@ -47,11 +47,12 @@ func (s *Server) handleActorFollowers(w http.ResponseWriter, r *http.Request) {
 	}
 	util.WriteActivityJSON(w, http.StatusOK, collection)
 }
+
 func (s *Server) handleActorFollowing(w http.ResponseWriter, r *http.Request) {
 	user := chi.URLParam(r, "username")
 
 	var pagePtr *int = nil
-	pageParam, err := strconv.Atoi( r.URL.Query().Get("page") )
+	pageParam, err := strconv.Atoi(r.URL.Query().Get("page"))
 	if err == nil {
 		pagePtr = &pageParam
 	}

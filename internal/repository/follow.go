@@ -37,6 +37,7 @@ func (r *followRepository) GetFollowerCollection(
 ) (db.GetFollowerCollectionRow, error) {
 	return r.q.GetFollowerCollection(ctx, username)
 }
+
 // GetFollowingCollection implements FollowRepository.
 func (r *followRepository) GetFollowingCollection(
 	ctx context.Context,
