@@ -44,7 +44,7 @@ type Publication struct {
 type Note struct {
 	Content   string        `json:"content"`
 	InReplyTo *ObjectOrLink `json:"inReplyTo"`
-	Replies   *ObjectOrLink  `json:"replies,omitempty"`
+	Replies   *ObjectOrLink `json:"replies,omitempty"`
 }
 
 type Collection struct {

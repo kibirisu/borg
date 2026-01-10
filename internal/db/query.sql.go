@@ -461,6 +461,24 @@ func (q *Queries) GetActorByURI(ctx context.Context, uri string) (Account, error
 	return i, err
 }
 
+const getFavouriteByURI = `-- name: GetFavouriteByURI :one
+SELECT id, created_at, updated_at, uri, account_id, status_id FROM favourites WHERE uri = $1
+`
+
+func (q *Queries) GetFavouriteByURI(ctx context.Context, uri string) (Favourite, error) {
+	row := q.db.QueryRowContext(ctx, getFavouriteByURI, uri)
+	var i Favourite
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Uri,
+		&i.AccountID,
+		&i.StatusID,
+	)
+	return i, err
+}
+
 const getFollowerCollection = `-- name: GetFollowerCollection :one
 SELECT 
     (SELECT followers_uri FROM accounts a WHERE a.username = $1),

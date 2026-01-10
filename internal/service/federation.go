@@ -53,7 +53,7 @@ func (s *federationService) GetLocalActor(
 // GetActorStatus implements FederationService.
 func (s *federationService) GetActorStatus(
 	ctx context.Context,
-	username string, 
+	username string,
 	postId int,
 ) (*domain.Object, error) {
 	statusDB, err := s.store.Statuses().GetById(ctx, postId)
@@ -79,20 +79,20 @@ func (s *federationService) GetActorStatus(
 	note := ap.NewNote(nil)
 	collection := ap.NewNoteCollection(nil)
 	note.SetObject(ap.Note{
-		ID: statusDB.Uri,
-		Type: "Note",
-		Content: statusDB.Content,
-		InReplyTo: reply,
-		Published: statusDB.CreatedAt,
+		ID:           statusDB.Uri,
+		Type:         "Note",
+		Content:      statusDB.Content,
+		InReplyTo:    reply,
+		Published:    statusDB.CreatedAt,
 		AttributedTo: actor,
-		To: []string{},
-		CC: []string{accountDB.FollowersUri},
-		Replies: collection,
+		To:           []string{},
+		CC:           []string{accountDB.FollowersUri},
+		Replies:      collection,
 	})
-
 
 	return note.GetRaw().Object, nil
 }
+
 // GetActorFollowers implements FederationService.
 func (s *federationService) GetActorFollowers(
 	ctx context.Context,
@@ -211,7 +211,8 @@ func (s *federationService) ProcessIncoming(
 		}, nil
 	case "Like":
 		return func(ctx context.Context) error {
-			return s.processor.AcceptLike(ctx, ap.NewLikeActivity(object))
+			_, err := s.processor.AcceptLike(ctx, ap.NewLikeActivity(object))
+			return err
 		}, nil
 	case "Accept":
 		fallthrough

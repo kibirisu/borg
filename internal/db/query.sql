@@ -136,6 +136,9 @@ INSERT INTO favourites (
 )
 RETURNING *;
 
+-- name: GetFavouriteByURI :one
+SELECT * FROM favourites WHERE uri = $1;
+
 -- name: GetAccountFollowers :many
 SELECT a.* FROM accounts a
 JOIN follows f ON a.id = f.account_id

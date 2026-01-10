@@ -2,24 +2,35 @@ package processing
 
 import (
 	"context"
+	"errors"
 
 	"github.com/kibirisu/borg/internal/ap"
 	"github.com/kibirisu/borg/internal/db"
 )
 
-func (p *processor) AcceptLike(ctx context.Context, activity ap.LikeActivitier) error {
-	activityData := activity.GetObject()
-	likedAccount, err := p.LookupActor(ctx, activityData.Actor)
-	likedPost, err := p.LookupStatus(ctx, activityData.Object)
-	if err != nil {
-		return err
+func (p *processor) AcceptLike(
+	ctx context.Context,
+	activity ap.LikeActivitier,
+) (db.Favourite, error) {
+	uri := activity.GetURI()
+	if uri == "" {
+		return db.Favourite{}, errors.New("invalid object")
 	}
-	_, err = p.store.Favourites().Create(ctx, db.CreateFavouriteParams{
-		AccountID:  likedAccount.ID,
-		StatusID:	likedPost.ID,
-	})
+	favourite, err := p.store.Favourites().GetByURI(ctx, uri)
 	if err != nil {
-		return err
+		activityData := activity.GetObject()
+		likerAccount, err := p.LookupActor(ctx, activityData.Actor)
+		if err != nil {
+			return favourite, err
+		}
+		likedPost, err := p.LookupStatus(ctx, activityData.Object)
+		if err != nil {
+			return favourite, err
+		}
+		return p.store.Favourites().Create(ctx, db.CreateFavouriteParams{
+			AccountID: likerAccount.ID,
+			StatusID:  likedPost.ID,
+		})
 	}
-	return nil
+	return favourite, nil
 }

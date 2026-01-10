@@ -8,6 +8,7 @@ import (
 
 type FavouriteRepository interface {
 	Create(context.Context, db.CreateFavouriteParams) (db.Favourite, error)
+	GetByURI(context.Context, string) (db.Favourite, error)
 	GetByPost(ctx context.Context, id int) ([]db.Favourite, error)
 }
 
@@ -35,4 +36,9 @@ func (r *favouriteRepository) GetByPost(
 	id int,
 ) ([]db.Favourite, error) {
 	return r.q.GetStatusFavourites(ctx, int32(id))
+}
+
+// GetByURI implements FavouriteRepository.
+func (r *favouriteRepository) GetByURI(ctx context.Context, uri string) (db.Favourite, error) {
+	return r.q.GetFavouriteByURI(ctx, uri)
 }
