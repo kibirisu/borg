@@ -111,7 +111,7 @@ INSERT INTO favourites (
     status_id,
     uri
 ) VALUES (
-    $1, $2, 'placeholder'
+    $1, $2, $3
 )
 RETURNING id, created_at, updated_at, uri, account_id, status_id
 `
@@ -119,10 +119,11 @@ RETURNING id, created_at, updated_at, uri, account_id, status_id
 type CreateFavouriteParams struct {
 	AccountID int32
 	StatusID  int32
+	Uri       string
 }
 
 func (q *Queries) CreateFavourite(ctx context.Context, arg CreateFavouriteParams) (Favourite, error) {
-	row := q.db.QueryRowContext(ctx, createFavourite, arg.AccountID, arg.StatusID)
+	row := q.db.QueryRowContext(ctx, createFavourite, arg.AccountID, arg.StatusID, arg.Uri)
 	var i Favourite
 	err := row.Scan(
 		&i.ID,
@@ -190,7 +191,7 @@ const createStatus = `-- name: CreateStatus :one
 INSERT INTO statuses (
     url, local, content, account_id, in_reply_to_id, reblog_of_id, uri
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, 'placeholder'
+    $1, $2, $3, $4, $5, $6, $7
 )
 RETURNING id, created_at, updated_at, uri, url, local, content, account_id, in_reply_to_id, reblog_of_id
 `
@@ -202,6 +203,7 @@ type CreateStatusParams struct {
 	AccountID   int32
 	InReplyToID sql.NullInt32
 	ReblogOfID  sql.NullInt32
+	Uri         string
 }
 
 func (q *Queries) CreateStatus(ctx context.Context, arg CreateStatusParams) (Status, error) {
@@ -212,6 +214,7 @@ func (q *Queries) CreateStatus(ctx context.Context, arg CreateStatusParams) (Sta
 		arg.AccountID,
 		arg.InReplyToID,
 		arg.ReblogOfID,
+		arg.Uri,
 	)
 	var i Status
 	err := row.Scan(
