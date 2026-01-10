@@ -52,7 +52,7 @@ type Collection struct {
 }
 
 type CollectionPage struct {
-	Next   *ObjectOrLink   `json:"next,omitempty"`
+	Next   *ObjectOrLink  `json:"next,omitempty"`
 	PartOf ObjectOrLink   `json:"partOf"`
 	Items  []ObjectOrLink `json:"items"`
 }

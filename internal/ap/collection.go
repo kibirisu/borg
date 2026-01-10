@@ -1,9 +1,6 @@
 package ap
 
-import (
-
-	"github.com/kibirisu/borg/internal/domain"
-)
+import "github.com/kibirisu/borg/internal/domain"
 
 type Collectioner[T any] interface {
 	Objecter[Collection[T]]
