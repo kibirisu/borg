@@ -392,7 +392,7 @@ func (s *Server) PostApiPosts(w http.ResponseWriter, r *http.Request) {
 	newDBPost := mapper.NewPostToDB(&newPost, true)
 	status, err := s.service.App.AddNote(r.Context(), *newDBPost)
 	if err != nil {
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		http.Error(w, "Cannot add note" + err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -401,16 +401,18 @@ func (s *Server) PostApiPosts(w http.ResponseWriter, r *http.Request) {
 		actor := ap.NewActor(nil)
 		actor.SetLink(poster.Uri)
 		note := ap.NewNote(nil)
+		replies := ap.NewNoteCollection(nil)
+		replies.SetLink("YO MAMA TODO")
 		note.SetObject(ap.Note{
 			ID:           status.Uri,
 			Type:         "Note",
 			Content:      status.Content,
-			InReplyTo:    nil,
+			InReplyTo:    ap.NewNote(nil),
 			Published:    status.CreatedAt,
-			AttributedTo: nil,
+			AttributedTo: ap.NewActor(nil),
 			To:           []string{recipientURI},
 			CC:           []string{recipientURI},
-			Replies:      nil,
+			Replies:      replies,
 		})
 		create.SetObject(ap.Activity[ap.Note]{
 			ID:     "TODO",
