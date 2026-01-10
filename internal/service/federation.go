@@ -234,7 +234,7 @@ func (s *federationService) processUndo(object *domain.ObjectOrLink) (worker.Job
 			if err != nil {
 				return err
 			}
-			return s.store.Statuses().DeleteByURI(ctx, status.Uri)
+			return s.store.Statuses().DeleteByID(ctx, status.ID)
 		}, nil
 	case "Like":
 		return func(ctx context.Context) error {
@@ -245,7 +245,7 @@ func (s *federationService) processUndo(object *domain.ObjectOrLink) (worker.Job
 			if err != nil {
 				return err
 			}
-			return s.store.Favourites().DeleteByURI(ctx, favourite.Uri)
+			return s.store.Favourites().DeleteByID(ctx, favourite.ID)
 		}, nil
 	default:
 		return nil, errors.New("unsupported Activity type")

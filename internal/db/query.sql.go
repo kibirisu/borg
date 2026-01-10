@@ -39,35 +39,6 @@ func (q *Queries) AddStatus(ctx context.Context, arg AddStatusParams) error {
 	return err
 }
 
-const addStatusFrom = `-- name: AddStatusFrom :exec
-INSERT INTO statuses (
-    uri, url, content, account_id, in_reply_to_id, reblog_of_id
-) VALUES (
-    $1, $2, $3, (SELECT id FROM accounts a WHERE a.uri = $4), $5, $6
-)
-`
-
-type AddStatusFromParams struct {
-	Uri         string
-	Url         string
-	Content     string
-	Uri_2       string
-	InReplyToID sql.NullInt32
-	ReblogOfID  sql.NullInt32
-}
-
-func (q *Queries) AddStatusFrom(ctx context.Context, arg AddStatusFromParams) error {
-	_, err := q.db.ExecContext(ctx, addStatusFrom,
-		arg.Uri,
-		arg.Url,
-		arg.Content,
-		arg.Uri_2,
-		arg.InReplyToID,
-		arg.ReblogOfID,
-	)
-	return err
-}
-
 const authData = `-- name: AuthData :one
 SELECT a.id, u.password_hash FROM accounts a JOIN users u ON a.id = u.account_id WHERE a.username = $1
 `
@@ -273,6 +244,24 @@ type CreateUserParams struct {
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) error {
 	_, err := q.db.ExecContext(ctx, createUser, arg.AccountID, arg.PasswordHash)
+	return err
+}
+
+const deleteFavouriteByID = `-- name: DeleteFavouriteByID :exec
+DELETE FROM favourites WHERE id = $1
+`
+
+func (q *Queries) DeleteFavouriteByID(ctx context.Context, id int32) error {
+	_, err := q.db.ExecContext(ctx, deleteFavouriteByID, id)
+	return err
+}
+
+const deleteStatusByID = `-- name: DeleteStatusByID :exec
+DELETE FROM statuses WHERE id = $1
+`
+
+func (q *Queries) DeleteStatusByID(ctx context.Context, id int32) error {
+	_, err := q.db.ExecContext(ctx, deleteStatusByID, id)
 	return err
 }
 

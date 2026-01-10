@@ -112,19 +112,15 @@ INSERT INTO statuses (
 )
 RETURNING *;
 
--- name: AddStatusFrom :exec
-INSERT INTO statuses (
-    uri, url, content, account_id, in_reply_to_id, reblog_of_id
-) VALUES (
-    $1, $2, $3, (SELECT id FROM accounts a WHERE a.uri = $4), $5, $6
-);
-
 -- name: AddStatus :exec
 INSERT INTO statuses (
     uri, url, content, account_id, in_reply_to_id, reblog_of_id
 ) VALUES (
     $1, $2, $3, $4, $5, $6
 );
+
+-- name: DeleteStatusByID :exec
+DELETE FROM statuses WHERE id = $1;
 
 -- name: CreateFavourite :one
 INSERT INTO favourites (
@@ -138,6 +134,9 @@ RETURNING *;
 
 -- name: GetFavouriteByURI :one
 SELECT * FROM favourites WHERE uri = $1;
+
+-- name: DeleteFavouriteByID :exec
+DELETE FROM favourites WHERE id = $1;
 
 -- name: GetAccountFollowers :many
 SELECT a.* FROM accounts a
