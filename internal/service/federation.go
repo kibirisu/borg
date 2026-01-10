@@ -218,6 +218,8 @@ func (s *federationService) ProcessIncoming(
 		fallthrough
 	case "Undo":
 		return s.processUndo(object)
+	case "Delete":
+		return s.processDelete(object)
 	default:
 		return nil, errors.New("unsupported Activity type")
 	}
@@ -246,6 +248,24 @@ func (s *federationService) processUndo(object *domain.ObjectOrLink) (worker.Job
 				return err
 			}
 			return s.store.Favourites().DeleteByID(ctx, favourite.ID)
+		}, nil
+	default:
+		return nil, errors.New("unsupported Activity type")
+	}
+}
+
+func (s *federationService) processDelete(object *domain.ObjectOrLink) (worker.Job, error) {
+	switch object.Object.Type {
+	case "Note":
+		return func(ctx context.Context) error {
+			status, err := s.processor.LookupStatus(
+				ctx,
+				ap.NewNote(object.Object.ActivityObject),
+			)
+			if err != nil {
+				return err
+			}
+			return s.store.Statuses().DeleteByID(ctx, status.ID)
 		}, nil
 	default:
 		return nil, errors.New("unsupported Activity type")
