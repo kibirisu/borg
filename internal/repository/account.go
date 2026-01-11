@@ -16,6 +16,7 @@ type AccountRepository interface {
 	GetFollowing(context.Context, int) ([]db.Account, error)
 	GetPosts(context.Context, int) ([]db.GetStatusesByAccountIdRow , error)
 	UpdateAccount(context.Context, db.UpdateAccountParams) (db.Account, error)
+	GetTimelinePosts(context.Context, int) ([]db.GetTimelinePostsByAccountIdRow, error)
 }
 
 type accountRepository struct {
@@ -79,4 +80,11 @@ func (r *accountRepository) GetPosts(ctx context.Context, id int) ([]db.GetStatu
 // UpdateAccount implements AccountRepository.
 func (r *accountRepository) UpdateAccount(ctx context.Context, params db.UpdateAccountParams) (db.Account, error) {
 	return r.q.UpdateAccount(ctx, params)
+}
+// GetTimelinePosts implements AccountRepository.
+func (r *accountRepository) GetTimelinePosts(
+	ctx context.Context,
+	accountID int,
+) ([]db.GetTimelinePostsByAccountIdRow, error) {
+	return r.q.GetTimelinePostsByAccountId(ctx, int32(accountID))
 }
