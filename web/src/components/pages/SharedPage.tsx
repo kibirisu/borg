@@ -20,25 +20,17 @@ export default function SharedPage() {
   const { opts } = useLoaderData() as Awaited<
     ReturnType<ReturnType<typeof loader>>
   >;
-  if (!opts) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="grid grid-cols-[1fr_256px] gap-6">
-          <main className="px-6 py-6 space-y-6">
-            <section className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
-              <h1 className="text-2xl font-semibold text-gray-800">Shared</h1>
-              <p className="text-gray-500">
-                Posts feed is not available yet. Check back soon.
-              </p>
-            </section>
-          </main>
-          <Sidebar onPostClick={() => {}} />
-        </div>
-      </div>
-    );
-  }
+
+  const queryOptions =
+    opts ??
+    ({
+      queryKey: ["shared-feed-disabled"],
+      queryFn: async () => [] as components["schemas"]["Post"][],
+      enabled: false,
+    } satisfies Parameters<typeof useQuery>[0]);
+
   const { data, isPending } = useQuery<components["schemas"]["Post"][]>(
-    opts as any,
+    queryOptions as any,
   );
   const [isComposerOpen, setIsComposerOpen] = useState(false);
   const [selectedPost, setSelectedPost] = useState<PostPresentable | null>(
@@ -74,16 +66,28 @@ export default function SharedPage() {
           <section className="bg-white rounded-2xl border border-gray-200 p-4 space-y-4 min-h-[400px]">
             {isPending && <p className="text-center text-gray-500">Loading…</p>}
             {!isPending &&
+              opts &&
+              client &&
               data?.map((post: components["schemas"]["Post"]) => (
                 <PostItem
                   key={post.id}
                   post={{ data: post }}
-                  client={client!}
+                  client={client}
                   onSelect={handlePostSelect}
                 />
               ))}
-            {!isPending && !data?.length && (
+            {!isPending && opts && client && (!data || data.length === 0) && (
               <p className="text-center text-gray-500">Nothing shared yet.</p>
+            )}
+            {!opts && (
+              <p className="text-center text-gray-500">
+                Posts feed is not available yet. Check back soon.
+              </p>
+            )}
+            {!client && (
+              <p className="text-center text-gray-500">
+                Client is not ready yet. Please try again.
+              </p>
             )}
           </section>
         </main>

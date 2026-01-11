@@ -28,10 +28,19 @@ export default function Feed() {
     ReturnType<ReturnType<typeof loader>>
   >;
 
+  const queryOptions =
+    opts ??
+    ({
+      queryKey: ["posts-feed-disabled"],
+      queryFn: async () => [] as components["schemas"]["Post"][],
+      enabled: false,
+    } satisfies Parameters<typeof useQuery>[0]);
+
+  const { data, isPending } = useQuery(queryOptions as any);
+
   if (!opts || !client) {
     return null;
   }
-  const { data, isPending } = useQuery(opts);
 
   if (isPending) {
     return (

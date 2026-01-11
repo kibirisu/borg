@@ -54,11 +54,24 @@ export const commentsLoader =
  */
 export default function CommentView() {
   const client = useContext(ClientContext);
-  if (!client) return null;
   const { postOpts, commentOpts, postId } = useLoaderData() as Awaited<
     ReturnType<ReturnType<typeof loader>>
   >;
-  const postData = postOpts ? useSuspenseQuery(postOpts) : null;
+
+  const postQueryOptions =
+    postOpts ??
+    ({
+      queryKey: ["post-view-disabled", postId],
+      queryFn: async () => null,
+      // Suspense queries are always “enabled”; fallback keeps the shape but
+      // returns null immediately so UI can handle missing data.
+    } satisfies Parameters<typeof useSuspenseQuery>[0]);
+
+  const postData = useSuspenseQuery(postQueryOptions as any);
+
+  if (!client) {
+    return null;
+  }
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="w-full bg-white border border-gray-200 overflow-hidden divide-y divide-gray-200 shadow-sm">
@@ -98,6 +111,19 @@ export function CommentsFeed({
   postId?: number;
 }) {
   const client = useContext(ClientContext);
+
+  const queryOptions =
+    opts ??
+    ({
+      queryKey: ["comments-feed-disabled", _postId],
+      queryFn: async () => [] as components["schemas"]["Comment"][],
+      enabled: false,
+    } satisfies Parameters<typeof useQuery>[0]);
+
+  const { data, isPending } = useQuery<components["schemas"]["Comment"][]>(
+    queryOptions as any,
+  );
+
   if (!opts) {
     return (
       <div className="p-6 text-center text-gray-600">
@@ -105,10 +131,11 @@ export function CommentsFeed({
       </div>
     );
   }
-  const { data, isPending } =
-    useQuery<components["schemas"]["Comment"][]>(opts);
+
   if (isPending) {
-    return <></>;
+    return (
+      <div className="p-6 text-center text-gray-600">Loading comments…</div>
+    );
   }
   return (
     <div className="divide-y divide-gray-200">
