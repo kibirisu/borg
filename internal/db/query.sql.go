@@ -471,6 +471,24 @@ func (q *Queries) GetFavouriteByURI(ctx context.Context, uri string) (Favourite,
 	return i, err
 }
 
+const getFollowByURI = `-- name: GetFollowByURI :one
+SELECT id, created_at, updated_at, uri, account_id, target_account_id FROM follows WHERE uri = $1
+`
+
+func (q *Queries) GetFollowByURI(ctx context.Context, uri string) (Follow, error) {
+	row := q.db.QueryRowContext(ctx, getFollowByURI, uri)
+	var i Follow
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Uri,
+		&i.AccountID,
+		&i.TargetAccountID,
+	)
+	return i, err
+}
+
 const getFollowerCollection = `-- name: GetFollowerCollection :one
 SELECT 
     (SELECT followers_uri FROM accounts a WHERE a.username = $1),
