@@ -44,6 +44,7 @@ type AppService interface {
 	GetLikedPostsByUser(context.Context, int) ([]db.GetLikedPostsByAccountIdRow, error)
 	GetSharedPostsByUser(context.Context, int) ([]db.GetSharedPostsByAccountIdRow, error)
 	GetTimelinePosts(context.Context, int) ([]db.GetTimelinePostsByAccountIdRow, error)
+	UnfollowAccount(context.Context, int, int) error
 	// EW, idk if this should stay here
 	DeliverToFollowers(http.ResponseWriter, *http.Request, int, func(recipientURI string) any)
 }
@@ -295,4 +296,15 @@ func (s *appService) GetTimelinePosts(
 	accountID int,
 ) ([]db.GetTimelinePostsByAccountIdRow, error) {
 	return s.store.Accounts().GetTimelinePosts(ctx, accountID)
+}
+// UnfollowAccount implements AppService.
+func (s *appService) UnfollowAccount(
+	ctx context.Context,
+	follower int,
+	followee int,
+) error {
+	return s.store.Follows().Delete(ctx, db.DeleteFollowParams{
+		AccountID:       int32(follower),
+		TargetAccountID: int32(followee),
+	})
 }

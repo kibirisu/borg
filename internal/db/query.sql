@@ -213,3 +213,7 @@ JOIN statuses s ON s.account_id = f.target_account_id
 JOIN accounts a ON s.account_id = a.id
 WHERE f.account_id = $1 AND s.in_reply_to_id IS NULL
 ORDER BY s.created_at DESC;
+
+-- name: DeleteFollow :exec
+DELETE FROM follows 
+WHERE account_id = $1 AND target_account_id = $2;

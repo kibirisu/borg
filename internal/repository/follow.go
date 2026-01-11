@@ -8,6 +8,7 @@ import (
 
 type FollowRepository interface {
 	Create(context.Context, db.CreateFollowParams) (*db.Follow, error)
+	Delete(context.Context, db.DeleteFollowParams) error
 	GetFollowerCollection(context.Context, string) (db.GetFollowerCollectionRow, error)
 	GetFollowingCollection(context.Context, string) (db.GetFollowingCollectionRow, error)
 	GetByURI(context.Context, string) (db.Follow, error)
@@ -45,10 +46,4 @@ func (r *followRepository) GetFollowingCollection(
 	username string,
 ) (db.GetFollowingCollectionRow, error) {
 	return r.q.GetFollowingCollection(ctx, username)
-}
-
-func (r *followRepository) GetByURI(
-	ctx context.Context, uri string,
-) (db.Follow, error) {
-	return r.q.GetFollowByURI(ctx, uri)
 }

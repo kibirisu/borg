@@ -250,6 +250,21 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) error {
 	return err
 }
 
+const deleteFollow = `-- name: DeleteFollow :exec
+DELETE FROM follows 
+WHERE account_id = $1 AND target_account_id = $2
+`
+
+type DeleteFollowParams struct {
+	AccountID       int32
+	TargetAccountID int32
+}
+
+func (q *Queries) DeleteFollow(ctx context.Context, arg DeleteFollowParams) error {
+	_, err := q.db.ExecContext(ctx, deleteFollow, arg.AccountID, arg.TargetAccountID)
+	return err
+}
+
 const deleteStatus = `-- name: DeleteStatus :exec
 DELETE FROM statuses WHERE id = $1
 `

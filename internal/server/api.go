@@ -728,3 +728,29 @@ func (s *Server) GetApiUsersIdTimeline(w http.ResponseWriter, r *http.Request, i
 
 	util.WriteJSON(w, http.StatusOK, apiPosts)
 }
+
+// DeleteApiAccountsIdFollow implements api.ServerInterface.
+func (s *Server) DeleteApiAccountsIdFollow(w http.ResponseWriter, r *http.Request, id int) {
+	container, ok := r.Context().Value("token").(*tokenContainer)
+
+	if !ok || container == nil || container.id == nil {
+		util.WriteError(w, http.StatusUnauthorized, "User not authenticated")
+		return
+	}
+	currentUserID := *container.id
+	if currentUserID == id {
+		http.Error(w, "Tried to unfollow oneself", http.StatusBadRequest)
+		return
+	}
+
+	err := s.service.App.UnfollowAccount(r.Context(), currentUserID, id)
+	if err != nil {
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	// Na razie bez side efektów ActivityPub - zostawiamy puste
+	// W przyszłości tutaj będzie wysyłanie Undo activity
+
+	w.WriteHeader(http.StatusNoContent)
+}
