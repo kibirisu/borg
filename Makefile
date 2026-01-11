@@ -4,7 +4,7 @@ DIST_DIR := $(FRONTEND_DIR)/dist
 BIN_DIR := $(PWD)/bin
 TOOLS := air sqlc
 GO_BUILD_CMD := go build -o $(BIN_DIR)/$(APP_NAME) ./cmd/$(APP_NAME)
-DEV_DB_URL := postgres://borg:borg@localhost:5432/borg
+DEV_DB_URL ?= postgres://borg:borg@localhost:5432/borg
 AIR_ARGS := -build.cmd "$(GO_BUILD_CMD)" -build.bin "$(BIN_DIR)/$(APP_NAME)" -build.exclude_dir "bin,web"
 
 NODE_MODULES := $(FRONTEND_DIR)/node_modules
