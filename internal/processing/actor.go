@@ -8,6 +8,29 @@ import (
 	"github.com/kibirisu/borg/internal/ap"
 	"github.com/kibirisu/borg/internal/db"
 )
+func pop[T any](s *[]T) T {
+	lastIdx := len(*s) - 1
+	element := (*s)[lastIdx]
+	*s = (*s)[:lastIdx]
+	return element
+}
+
+func (p *processor) FetchActorCollectionPage(ctx context.Context, collectionUri string) (ap.ActorCollectionPager, error) {
+	col, err := p.client.Get(ctx, collectionUri)
+	if err != nil {
+		return ap.NewActorCollectionPage(nil), err
+	}
+	fetchedCollection := ap.NewActorCollection(col)
+	collectionData := fetchedCollection.GetObject()
+	pageUri := collectionData.First.GetURI()
+	// we assume only one page is used
+	colP, err := p.client.Get(ctx, pageUri)
+	if err != nil {
+		return ap.NewActorCollectionPage(nil), err
+	}
+	fetchedCollectionPage := ap.NewActorCollectionPage(colP)
+	return fetchedCollectionPage, nil
+}
 
 func (p *processor) LookupActor(ctx context.Context, object ap.Actorer) (db.Account, error) {
 	uri := object.GetURI()
