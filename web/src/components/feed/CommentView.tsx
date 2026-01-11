@@ -73,24 +73,22 @@ export default function CommentView() {
     return null;
   }
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="w-full bg-white border border-gray-200 overflow-hidden divide-y divide-gray-200 shadow-sm">
-        <div className="bg-white">
-          {postData && postData.data ? (
-            <PostItem
-              post={{ data: postData.data as components["schemas"]["Post"] }}
-              client={client}
-            />
-          ) : (
-            <div className="p-6 text-center text-gray-600">Post not found.</div>
-          )}
-        </div>
-        <div className="p-4 bg-gray-50">
-          <CommentForm />
-        </div>
-        <div className="bg-white">
-          <CommentsFeed opts={commentOpts} postId={postId} />
-        </div>
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <div className="w-full bg-white border border-gray-200 shadow-sm">
+        {postData && postData.data ? (
+          <PostItem
+            post={{ data: postData.data as components["schemas"]["Post"] }}
+            client={client}
+          />
+        ) : (
+          <div className="p-6 text-center text-gray-600">Post not found.</div>
+        )}
+      </div>
+      <div className="flex-1 overflow-y-auto bg-white border-x border-b border-gray-200">
+        <CommentsFeed opts={commentOpts} postId={postId} />
+      </div>
+      <div className="sticky bottom-0 bg-white border-x border-b border-gray-200">
+        <CommentForm />
       </div>
     </div>
   );
