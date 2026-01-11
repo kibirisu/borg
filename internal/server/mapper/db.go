@@ -2,12 +2,18 @@ package mapper
 
 import (
 	"database/sql"
+	"fmt"
+	"time"
 
 	"github.com/kibirisu/borg/internal/api"
 	"github.com/kibirisu/borg/internal/db"
 )
 
 func NewPostToDB(newPost *api.NewPost, isLocal bool) *db.CreateStatusParams {
+	// Generate unique URI using timestamp + userID
+	timestamp := time.Now().UnixNano()
+	uri := fmt.Sprintf("http://localhost:8080/statuses/%d-%d", newPost.UserID, timestamp)
+	url := fmt.Sprintf("http://localhost:8080/posts/%d-%d", newPost.UserID, timestamp)
 	return &db.CreateStatusParams{
 		Url:         "TODO",
 		Local:       sql.NullBool{Bool: isLocal, Valid: true},
