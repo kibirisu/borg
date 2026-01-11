@@ -14,7 +14,7 @@ type AccountRepository interface {
 	Create(context.Context, db.CreateActorParams) (db.Account, error)
 	GetFollowers(context.Context, int) ([]db.Account, error)
 	GetFollowing(context.Context, int) ([]db.Account, error)
-	GetPosts(context.Context, int) ([]db.GetStatusesByAccountIdRow , error)
+	GetPosts(context.Context, int) ([]db.GetStatusesByAccountIdRow, error)
 	UpdateAccount(context.Context, db.UpdateAccountParams) (db.Account, error)
 	GetTimelinePosts(context.Context, int) ([]db.GetTimelinePostsByAccountIdRow, error)
 }
@@ -67,20 +67,30 @@ func (r *accountRepository) GetFollowers(
 ) ([]db.Account, error) {
 	return r.q.GetAccountFollowers(ctx, int32(accountID))
 }
+
 // GetFollowing implements AccountRepository.
 func (r *accountRepository) GetFollowing(
 	ctx context.Context, accountID int,
 ) ([]db.Account, error) {
 	return r.q.GetAccountFollowing(ctx, int32(accountID))
 }
+
 // GetPosts implements AccountRepository.
-func (r *accountRepository) GetPosts(ctx context.Context, id int) ([]db.GetStatusesByAccountIdRow , error) {
+func (r *accountRepository) GetPosts(
+	ctx context.Context,
+	id int,
+) ([]db.GetStatusesByAccountIdRow, error) {
 	return r.q.GetStatusesByAccountId(ctx, int32(id))
 }
+
 // UpdateAccount implements AccountRepository.
-func (r *accountRepository) UpdateAccount(ctx context.Context, params db.UpdateAccountParams) (db.Account, error) {
+func (r *accountRepository) UpdateAccount(
+	ctx context.Context,
+	params db.UpdateAccountParams,
+) (db.Account, error) {
 	return r.q.UpdateAccount(ctx, params)
 }
+
 // GetTimelinePosts implements AccountRepository.
 func (r *accountRepository) GetTimelinePosts(
 	ctx context.Context,
@@ -88,3 +98,4 @@ func (r *accountRepository) GetTimelinePosts(
 ) ([]db.GetTimelinePostsByAccountIdRow, error) {
 	return r.q.GetTimelinePostsByAccountId(ctx, int32(accountID))
 }
+
