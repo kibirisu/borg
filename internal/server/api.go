@@ -2,13 +2,16 @@ package server
 
 import (
 	"database/sql"
+	"encoding/json/v2"
 	"errors"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/kibirisu/borg/internal/ap"
 	"github.com/kibirisu/borg/internal/api"
 	"github.com/kibirisu/borg/internal/db"
+	"github.com/kibirisu/borg/internal/domain"
 	"github.com/kibirisu/borg/internal/server/mapper"
 	"github.com/kibirisu/borg/internal/util"
 )
@@ -77,6 +80,25 @@ func (s *Server) GetApiAccountsLookup(
 		log.Printf("lookup: found local account %s", account.Username)
 		util.WriteJSON(w, http.StatusOK, mapper.AccountToAPI(account))
 	} else {
+		log.Printf("lookup: remote handle %s detected, checking local cache", acct)
+		account, err := s.service.App.GetAccount(r.Context(), db.GetAccountParams{
+			Username: handle.Username,
+			Domain: sql.NullString{
+				String: handle.Domain,
+				Valid:  true,
+			},
+		})
+		if err == nil {
+			log.Printf("lookup: remote account %s@%s found locally", handle.Username, handle.Domain)
+			util.WriteJSON(w, http.StatusOK, mapper.AccountToAPI(account))
+			return
+		}
+		if !errors.Is(err, sql.ErrNoRows) {
+			log.Println(err)
+			util.WriteError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+
 		client := http.Client{Timeout: 5 * time.Second}
 		webfingerURL := "http://" + handle.Domain + "/.well-known/webfinger?resource=acct:" + handle.Username + "@" + handle.Domain
 

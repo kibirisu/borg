@@ -2,6 +2,7 @@ import { useContext, useState } from "react";
 import { useLoaderData } from "react-router";
 import type { AppClient } from "../../lib/client";
 import ClientContext from "../../lib/client";
+import AppContext from "../../lib/state";
 import PostComposerOverlay from "../common/PostComposerOverlay";
 import Sidebar from "../common/Sidebar";
 
@@ -10,7 +11,8 @@ export const loader = (_client: AppClient) => async () => {
 };
 
 export default function LikesPage() {
-  const _client = useContext(ClientContext);
+  const client = useContext(ClientContext);
+  const appState = useContext(AppContext);
   useLoaderData();
   const [isComposerOpen, setIsComposerOpen] = useState(false);
   const [selectedPost, setSelectedPost] = useState<null>(null);
@@ -23,6 +25,22 @@ export default function LikesPage() {
   const closeComposer = () => {
     setIsComposerOpen(false);
     setSelectedPost(null);
+  };
+
+  const handleCreatePost = async (content: string) => {
+    const userId = appState?.userId ?? null;
+    if (!client || userId === null) {
+      throw new Error("User not authenticated");
+    }
+    await client.fetchClient.POST("/api/posts", {
+      body: { userID: userId, content },
+    });
+    await client.queryClient.invalidateQueries({
+      queryKey: ["user-posts", userId],
+    });
+    await client.queryClient.invalidateQueries({
+      queryKey: ["get", "/api/posts", {}],
+    });
   };
 
   return (
@@ -44,6 +62,7 @@ export default function LikesPage() {
         isOpen={isComposerOpen}
         onClose={closeComposer}
         replyTo={selectedPost}
+        onSubmit={handleCreatePost}
       />
     </div>
   );

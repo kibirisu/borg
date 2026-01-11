@@ -4,6 +4,7 @@ import { useLoaderData, useNavigate } from "react-router";
 import type { components } from "../../lib/api/v1";
 import type { AppClient } from "../../lib/client";
 import ClientContext from "../../lib/client";
+import AppContext from "../../lib/state";
 import PostComposerOverlay from "../common/PostComposerOverlay";
 import { PostItem, type PostPresentable } from "../common/PostItem";
 import Sidebar from "../common/Sidebar";
@@ -45,6 +46,7 @@ export const loader = (client: AppClient) => async () => {
 
 export default function ExplorePage() {
   const client = useContext(ClientContext);
+  const appState = useContext(AppContext);
   const navigate = useNavigate();
   const { opts } = useLoaderData() as Awaited<
     ReturnType<ReturnType<typeof loader>>
@@ -124,6 +126,22 @@ export default function ExplorePage() {
   const closeComposer = () => {
     setIsComposerOpen(false);
     setSelectedPost(null);
+  };
+
+  const handleCreatePost = async (content: string) => {
+    const userId = appState?.userId ?? null;
+    if (!client || userId === null) {
+      throw new Error("User not authenticated");
+    }
+    await client.fetchClient.POST("/api/posts", {
+      body: { userID: userId, content },
+    });
+    await client.queryClient.invalidateQueries({
+      queryKey: ["user-posts", userId],
+    });
+    await client.queryClient.invalidateQueries({
+      queryKey: ["get", "/api/posts", {}],
+    });
   };
 
   const onSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -238,6 +256,7 @@ export default function ExplorePage() {
         isOpen={isComposerOpen}
         onClose={closeComposer}
         replyTo={selectedPost}
+        onSubmit={handleCreatePost}
       />
     </div>
   );
