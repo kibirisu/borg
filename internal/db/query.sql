@@ -150,3 +150,15 @@ WHERE f.target_account_id = $1;
 SELECT a.* FROM accounts a
 JOIN follows f ON a.id = f.target_account_id
 WHERE f.account_id = $1;
+
+-- name: GetLikedPostsByAccountId :many
+SELECT 
+    sqlc.embed(s),
+    sqlc.embed(a),
+    (SELECT COUNT(*) FROM favourites f WHERE f.status_id = s.id) AS like_count,
+    (SELECT COUNT(*) FROM statuses r WHERE r.in_reply_to_id = s.id) AS comment_count,
+    (SELECT COUNT(*) FROM statuses b WHERE b.reblog_of_id = s.id) AS share_count
+FROM favourites f
+JOIN statuses s ON f.status_id = s.id
+JOIN accounts a ON s.account_id = a.id
+WHERE f.account_id = $1;

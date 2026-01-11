@@ -525,6 +525,76 @@ func (q *Queries) GetFollowingCollection(ctx context.Context, username string) (
 	return i, err
 }
 
+const getLikedPostsByAccountId = `-- name: GetLikedPostsByAccountId :many
+SELECT 
+    s.id, s.created_at, s.updated_at, s.uri, s.url, s.local, s.content, s.account_id, s.in_reply_to_id, s.reblog_of_id,
+    a.id, a.created_at, a.updated_at, a.username, a.uri, a.display_name, a.domain, a.inbox_uri, a.outbox_uri, a.followers_uri, a.following_uri, a.url,
+    (SELECT COUNT(*) FROM favourites f WHERE f.status_id = s.id) AS like_count,
+    (SELECT COUNT(*) FROM statuses r WHERE r.in_reply_to_id = s.id) AS comment_count,
+    (SELECT COUNT(*) FROM statuses b WHERE b.reblog_of_id = s.id) AS share_count
+FROM favourites f
+JOIN statuses s ON f.status_id = s.id
+JOIN accounts a ON s.account_id = a.id
+WHERE f.account_id = $1
+`
+
+type GetLikedPostsByAccountIdRow struct {
+	Status       Status
+	Account      Account
+	LikeCount    int64
+	CommentCount int64
+	ShareCount   int64
+}
+
+func (q *Queries) GetLikedPostsByAccountId(ctx context.Context, accountID int32) ([]GetLikedPostsByAccountIdRow, error) {
+	rows, err := q.db.QueryContext(ctx, getLikedPostsByAccountId, accountID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetLikedPostsByAccountIdRow
+	for rows.Next() {
+		var i GetLikedPostsByAccountIdRow
+		if err := rows.Scan(
+			&i.Status.ID,
+			&i.Status.CreatedAt,
+			&i.Status.UpdatedAt,
+			&i.Status.Uri,
+			&i.Status.Url,
+			&i.Status.Local,
+			&i.Status.Content,
+			&i.Status.AccountID,
+			&i.Status.InReplyToID,
+			&i.Status.ReblogOfID,
+			&i.Account.ID,
+			&i.Account.CreatedAt,
+			&i.Account.UpdatedAt,
+			&i.Account.Username,
+			&i.Account.Uri,
+			&i.Account.DisplayName,
+			&i.Account.Domain,
+			&i.Account.InboxUri,
+			&i.Account.OutboxUri,
+			&i.Account.FollowersUri,
+			&i.Account.FollowingUri,
+			&i.Account.Url,
+			&i.LikeCount,
+			&i.CommentCount,
+			&i.ShareCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getLocalStatuses = `-- name: GetLocalStatuses :many
 SELECT 
     s.id, s.created_at, s.updated_at, s.uri, s.url, s.local, s.content, s.account_id, s.in_reply_to_id, s.reblog_of_id,

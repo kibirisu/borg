@@ -118,6 +118,24 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/User"
+  /api/users/{id}/liked-posts:
+    get:
+      summary: Get liked posts of user with ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Post"
   /api/posts:
     get:
       summary: Get all posts

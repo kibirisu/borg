@@ -41,6 +41,7 @@ type AppService interface {
 	GetPostLikes(context.Context, int) ([]db.Favourite, error)
 	GetPostShares(context.Context, int) ([]db.Status, error)
 	GetPostByIDWithMetadata(context.Context, int) (*db.GetStatusByIdWithMetadataRow, error)
+	GetLikedPostsByAccountId(context.Context, int) ([]db.GetLikedPostsByAccountIdRow, error)
 	// EW, idk if this should stay here
 	DeliverToFollowers(http.ResponseWriter, *http.Request, int, func(recipientURI string) any)
 }
@@ -333,4 +334,11 @@ func (s *appService) GetPostByAccountID(
 
 func (s *appService) GetLocalPosts(ctx context.Context) ([]db.GetLocalStatusesRow, error) {
 	return s.store.Statuses().GetLocalStatuses(ctx)
+}
+
+func (s *appService) GetLikedPostsByAccountId(
+	ctx context.Context,
+	accountID int,
+) ([]db.GetLikedPostsByAccountIdRow, error) {
+	return s.store.Favourites().GetLikedPostsByAccountId(ctx, accountID)
 }
