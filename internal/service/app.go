@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 
 	"golang.org/x/crypto/bcrypt"
@@ -50,6 +51,7 @@ var _ AppService = (*appService)(nil)
 // Register implements AppService.
 func (s *appService) Register(ctx context.Context, form api.AuthForm) error {
 	uri := fmt.Sprintf("http://%s/users/%s", s.conf.ListenHost, form.Username)
+	log.Printf("register: creating actor username=%s uri=%s", form.Username, uri)
 	actor, err := s.store.Accounts().Create(ctx, db.CreateActorParams{
 		Username:    form.Username,
 		Uri:         uri,
@@ -60,18 +62,26 @@ func (s *appService) Register(ctx context.Context, form api.AuthForm) error {
 		Url:         fmt.Sprintf("http://%s/profiles/%s", s.conf.ListenHost, form.Username),
 	})
 	if err != nil {
+		log.Printf("register: failed to create actor username=%s err=%v", form.Username, err)
 		return err
 	}
 	hash, err := bcrypt.GenerateFromPassword([]byte(form.Password), bcrypt.DefaultCost)
 	if err != nil {
+		log.Printf("register: failed to hash password username=%s err=%v", form.Username, err)
 		return err
 	}
 	if err = s.store.Users().Create(ctx, db.CreateUserParams{
 		AccountID:    actor.ID,
 		PasswordHash: string(hash),
 	}); err != nil {
+		log.Printf("register: failed to create user username=%s err=%v", form.Username, err)
 		return err
 	}
+	log.Printf(
+		"register: user and actor created username=%s account_id=%d",
+		form.Username,
+		actor.ID,
+	)
 	return nil
 }
 
@@ -152,7 +162,7 @@ func (s *appService) AddFavourite(
 	params := db.CreateFavouriteParams{
 		AccountID: int32(accountID),
 		StatusID:  int32(postID),
-		Uri:	   fmt.Sprintf("http://%s/likes/%s", s.conf.ListenHost, uuid.NewString()),
+		Uri:       fmt.Sprintf("http://%s/likes/%s", s.conf.ListenHost, uuid.NewString()),
 	}
 	return s.store.Favourites().Create(ctx, params)
 }

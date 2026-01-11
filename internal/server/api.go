@@ -1,11 +1,14 @@
 package server
 
 import (
+	"database/sql"
+	"errors"
 	"log"
 	"net/http"
 
 	"github.com/kibirisu/borg/internal/ap"
 	"github.com/kibirisu/borg/internal/api"
+	"github.com/kibirisu/borg/internal/db"
 	"github.com/kibirisu/borg/internal/server/mapper"
 	"github.com/kibirisu/borg/internal/util"
 )
@@ -36,12 +39,15 @@ func (s *Server) PostAuthRegister(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		util.WriteError(w, http.StatusBadRequest, err.Error())
 	}
+	log.Printf("auth register: incoming request username=%s", form.Username)
 
 	if err := s.service.App.Register(r.Context(), form); err != nil {
 		log.Println(err)
 		util.WriteError(w, http.StatusInternalServerError, err.Error())
+		return
 	}
 
+	log.Printf("auth register: user %s created successfully", form.Username)
 	w.WriteHeader(http.StatusCreated)
 }
 
@@ -51,7 +57,69 @@ func (s *Server) GetApiAccountsLookup(
 	r *http.Request,
 	params api.GetApiAccountsLookupParams,
 ) {
-	panic("unimplemented")
+	acct := params.Acct
+	handle, err := util.ParseHandle(acct, s.conf.ListenHost)
+	if err != nil {
+		util.WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if handle.Local {
+		log.Printf("lookup: local handle %s detected", acct)
+		account, err := s.service.App.GetLocalAccount(r.Context(), handle.Username)
+		if err != nil {
+			log.Println(err)
+			util.WriteError(w, http.StatusNotFound, err.Error())
+			return
+		}
+		log.Printf("lookup: found local account %s", account.Username)
+		util.WriteJSON(w, http.StatusOK, mapper.AccountToAPI(account))
+		return
+	}
+
+	if handle.Domain == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	log.Printf("lookup: remote handle %s detected, checking local cache", acct)
+	account, err := s.service.App.GetAccount(
+		r.Context(),
+		db.GetAccountParams{
+			Username: handle.Username,
+			Domain:   sql.NullString{String: handle.Domain, Valid: true},
+		},
+	)
+	if err == nil {
+		log.Printf("lookup: remote account %s@%s found locally", handle.Username, handle.Domain)
+		util.WriteJSON(w, http.StatusOK, mapper.AccountToAPI(account))
+		return
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		log.Println(err)
+		util.WriteError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	log.Printf(
+		"lookup: remote account %s@%s not cached, performing WebFinger lookup",
+		handle.Username,
+		handle.Domain,
+	)
+	util.WriteError(w, http.StatusInternalServerError, "unimplemented")
+	// actor, err := s.service.Federation.processor.LookupActor(r.Context(), handle)
+	// if err != nil {
+	// 	log.Println(err)
+	// 	util.WriteError(w, http.StatusBadGateway, err.Error())
+	// 	return
+	// }
+	// if err != nil {
+	// 	log.Println(err)
+	// 	util.WriteError(w, http.StatusInternalServerError, err.Error())
+	// 	return
+	// }
+	// log.Printf("lookup: remote actor stored with username=%s domain=%s", row.Username, row.Domain.String)
+	// util.WriteJSON(w, http.StatusOK, mapper.AccountToAPI(row))
 }
 
 // PostApiAccountsIdFollow implements api.ServerInterface.
@@ -413,7 +481,7 @@ func (s *Server) GetApiPosts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	apiLikes := make([]api.Post, 0, len(posts))
+	apiLikes := make([]api.Post, 0, len(posts)) // i see smth bad right here...
 
 	for _, info := range posts {
 		converted := mapper.PostToAPIWithMetadata(&info.Status,

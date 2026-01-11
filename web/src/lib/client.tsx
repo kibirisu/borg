@@ -24,20 +24,22 @@ const createMiddleware = (
   token: RefObject<string | null>,
   setToken: Dispatch<SetStateAction<string | null>>,
 ): Middleware => {
+  const stripPrefix = (value: string) => value.replace(/^Bearer:\s*/i, "");
   return {
     async onRequest({ request }) {
       if (token.current) {
-        request.headers.set("Authorization", token.current);
+        request.headers.set("Authorization", `Bearer: ${token.current}`);
       }
       return request;
     },
 
     async onResponse({ response, schemaPath }) {
-      if (schemaPath === "/api/auth/login") {
-        const token = response.headers.get("Authorization");
-        if (token) {
-          localStorage.setItem("jwt", token);
-          setToken(token);
+      if (schemaPath === "/auth/login") {
+        const bearer = response.headers.get("Authorization");
+        if (bearer) {
+          const raw = stripPrefix(bearer);
+          localStorage.setItem("jwt", raw);
+          setToken(raw);
         }
       }
       return response;
@@ -56,14 +58,20 @@ interface Props {
 
 export const ClientProvider = ({ client, children }: Props) => {
   const context = useContext(AppContext);
-  const { token, tokenRef } = context!;
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: Probably linter is right but I dunno what i am doing
   useEffect(() => {
+    if (!context) {
+      return;
+    }
+    const { token, tokenRef } = context;
     const middleware = createMiddleware(tokenRef, token[1]);
     client.fetchClient.use(middleware);
     return () => client.fetchClient.eject(middleware);
-  }, []);
+  }, [client, context]);
+
+  if (!context) {
+    return null;
+  }
 
   return (
     <ClientContext.Provider value={client}>

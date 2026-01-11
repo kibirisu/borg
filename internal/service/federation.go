@@ -2,18 +2,25 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
+	"net/http"
+	"strings"
+	"time"
 
 	"github.com/kibirisu/borg/internal/ap"
+	"github.com/kibirisu/borg/internal/api"
 	"github.com/kibirisu/borg/internal/domain"
 	proc "github.com/kibirisu/borg/internal/processing"
 	repo "github.com/kibirisu/borg/internal/repository"
+	"github.com/kibirisu/borg/internal/util"
 	"github.com/kibirisu/borg/internal/worker"
 )
 
 type FederationService interface {
+	LookupRemoteActor(context.Context, *util.HandleInfo) (*domain.Actor, error)
 	GetLocalActor(context.Context, string) (*domain.Object, error)
 	GetActorFollowers(context.Context, string, *int) (*domain.Object, error)
 	GetActorFollowing(context.Context, string, *int) (*domain.Object, error)
@@ -93,6 +100,7 @@ func (s *federationService) GetStatus(
 
 	return note.GetRaw().Object, nil
 }
+
 // GetLike implements FederationService.
 func (s *federationService) GetLike(
 	ctx context.Context,
@@ -126,6 +134,7 @@ func (s *federationService) GetLike(
 
 	return like.GetRaw().Object, nil
 }
+
 // GetFollow implements FederationService.
 func (s *federationService) GetFollow(
 	ctx context.Context,
@@ -337,4 +346,90 @@ func (s *federationService) processDelete(object *domain.ObjectOrLink) (worker.J
 	default:
 		return nil, errors.New("unsupported Activity type")
 	}
+}
+
+func (s *federationService) LookupRemoteActor(
+	ctx context.Context,
+	handle *util.HandleInfo,
+) (*domain.Actor, error) {
+	if handle == nil {
+		return nil, errors.New("handle is required")
+	}
+	if handle.Domain == "" {
+		return nil, errors.New("handle domain is required")
+	}
+	account := fmt.Sprintf("%s@%s", handle.Username, handle.Domain)
+	resource := fmt.Sprintf("acct:%s", account)
+
+	client := http.Client{Timeout: 5 * time.Second}
+	webfingerURL := fmt.Sprintf("http://%s/.well-known/webfinger", handle.Domain)
+	log.Printf("lookup_remote: requesting WebFinger for %s at %s", account, webfingerURL)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, webfingerURL, nil)
+	if err != nil {
+		return nil, err
+	}
+	q := req.URL.Query()
+	q.Set("resource", resource)
+	req.URL.RawQuery = q.Encode()
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		resp.Body.Close()
+		log.Printf("lookup_remote: WebFinger request failed status=%s", resp.Status)
+		return nil, fmt.Errorf("webfinger lookup failed: %s", resp.Status)
+	}
+	var webfinger api.WebFingerResponse
+	if err := json.NewDecoder(resp.Body).Decode(&webfinger); err != nil {
+		resp.Body.Close()
+		return nil, err
+	}
+	resp.Body.Close()
+
+	actorURL, err := selectActorLink(webfinger.Links)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Printf("lookup_remote: fetching actor document from %s", actorURL)
+	req, err = http.NewRequestWithContext(ctx, http.MethodGet, actorURL, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err = client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		resp.Body.Close()
+		log.Printf("lookup_remote: actor request failed status=%s", resp.Status)
+		return nil, fmt.Errorf("actor lookup failed: %s", resp.Status)
+	}
+
+	var actor domain.Actor
+	if err := json.NewDecoder(resp.Body).Decode(&actor); err != nil {
+		resp.Body.Close()
+		return nil, err
+	}
+	resp.Body.Close()
+	return &actor, nil
+}
+
+func selectActorLink(links []api.WebFingerLink) (string, error) {
+	for _, link := range links {
+		if link.Rel == "self" && link.Href != "" {
+			if link.Type == "" || strings.Contains(link.Type, "activity+json") {
+				return link.Href, nil
+			}
+		}
+	}
+	for _, link := range links {
+		if link.Href != "" {
+			return link.Href, nil
+		}
+	}
+	return "", errors.New("webfinger response missing actor link")
 }
