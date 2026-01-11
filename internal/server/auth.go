@@ -14,11 +14,17 @@ import (
 	"github.com/kibirisu/borg/internal/api"
 )
 
+type ContextKey string
+
 type tokenContainer struct {
-	id *int
+	id       *int
+	username *string
 }
 
-var signingKey string
+var (
+	tokenContextKey ContextKey = "token"
+	signingKey      string
+)
 
 func (s *Server) createAuthMiddleware() func(http.Handler) http.Handler {
 	spec, err := api.GetSwagger()
@@ -38,7 +44,7 @@ func (s *Server) createAuthMiddleware() func(http.Handler) http.Handler {
 // chi provides similar already
 func preAuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := context.WithValue(r.Context(), "token", &tokenContainer{})
+		ctx := context.WithValue(r.Context(), tokenContextKey, &tokenContainer{})
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -55,26 +61,30 @@ func authFunc(ctx context.Context, ai *openapi3filter.AuthenticationInput) error
 	}
 
 	var container *tokenContainer
-	if val := ctx.Value("token"); val != nil {
+	if val := ctx.Value(tokenContextKey); val != nil {
 		container = val.(*tokenContainer)
 	}
-	_, err := jwt.Parse(token, func(t *jwt.Token) (any, error) {
-		claim, err := t.Claims.GetSubject()
-		if err != nil {
-			return nil, err
-		}
 
-		id, err := strconv.Atoi(claim)
-		if err != nil {
-			return nil, err
-		}
+	var claims struct {
+		jwt.RegisteredClaims
+		Name string `json:"name"`
+	}
 
-		if container != nil {
-			container.id = &id
-		}
-
+	_, err := jwt.ParseWithClaims(token, &claims, func(t *jwt.Token) (any, error) {
 		return []byte(signingKey), nil
-	}, jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}))
+	})
+	if err != nil {
+		return err
+	}
+	id, err := strconv.Atoi(claims.Subject)
+	if err != nil {
+		return err
+	}
 
-	return err
+	if container != nil {
+		container.id = &id
+		container.username = &claims.Name
+	}
+
+	return nil
 }

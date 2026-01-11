@@ -21,6 +21,7 @@ import (
 type AppService interface {
 	Register(context.Context, api.AuthForm) error
 	Login(context.Context, api.AuthForm) (string, error)
+	CreateStatus(context.Context, api.NewPost) error
 	GetAccountFollowers(context.Context, int) ([]db.Account, error)
 	GetAccountFollowing(context.Context, int) ([]db.Account, error)
 	GetLocalAccount(context.Context, string) (*db.Account, error)
@@ -99,6 +100,20 @@ func (s *appService) Login(ctx context.Context, form api.AuthForm) (string, erro
 		return "", err
 	}
 	return token, nil
+}
+
+// CreateStatus implements AppService.
+func (s *appService) CreateStatus(ctx context.Context, status api.NewPost) error {
+	_, _ = s.store.Statuses().Create(ctx, db.CreateStatusParams{
+		Local: sql.NullBool{
+			Bool:  true,
+			Valid: true,
+		},
+		Content:   status.Content,
+		AccountID: int32(status.UserID),
+		Uri:       "",
+	})
+	return nil
 }
 
 // GetLocalAccount implements AppService.
