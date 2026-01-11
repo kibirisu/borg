@@ -8,6 +8,35 @@ import PostComposerOverlay from "../common/PostComposerOverlay";
 import { PostItem, type PostPresentable } from "../common/PostItem";
 import Sidebar from "../common/Sidebar";
 
+function FoundUserItem({
+  account,
+}: {
+  account: components["schemas"]["Account"];
+}) {
+  const display = account.displayName || account.username;
+  const handle = account.acct || `@${account.username}`;
+  const initial = display?.slice(0, 1).toUpperCase() || "?";
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm">
+      <div className="flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 text-indigo-600 font-semibold">
+          {initial}
+        </div>
+        <div className="flex flex-col">
+          <a
+            href={`/profile/${account.id}`}
+            className="text-base font-semibold text-gray-900 hover:text-indigo-600"
+          >
+            {display}
+          </a>
+          <span className="text-sm text-gray-500">{handle}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export const loader = (client: AppClient) => async () => {
   const opts = client.$api.queryOptions("get", "/api/posts", {});
   await client.queryClient.ensureQueryData(opts);
@@ -56,9 +85,9 @@ export default function ExplorePage() {
   const handleSearch = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmed = searchTerm.trim();
-    const handlePattern = /^@[A-Za-z0-9._-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+    const handlePattern = /^@[A-Za-z0-9._-]+@[A-Za-z0-9.-]+$/;
     if (!handlePattern.test(trimmed)) {
-      setSearchError("Format must be @user@instance.com");
+      setSearchError("Format must be @user@instance");
       return;
     }
     if (!client) {
@@ -143,7 +172,7 @@ export default function ExplorePage() {
               <input
                 id="explore-search"
                 type="search"
-                placeholder="@user@instance.com"
+                placeholder="@user@instance"
                 className="block w-full rounded-xl border border-gray-200 bg-gray-50 p-3 pl-9 text-sm text-gray-900 placeholder:text-gray-500 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 focus:outline-none"
                 value={searchTerm}
                 onChange={onSearchChange}
@@ -179,43 +208,11 @@ export default function ExplorePage() {
             <p className="text-center text-sm text-red-600">{searchError}</p>
           )}
           {searchResult && (
-            <div className="max-w-md mx-auto bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-              <p className="text-sm font-medium text-gray-500">Search result</p>
-              <p className="text-lg font-semibold text-gray-900">
-                {searchResult.displayName || searchResult.username}
+            <div className="max-w-4xl mx-auto">
+              <p className="text-sm font-medium text-gray-500 mb-2">
+                Search result
               </p>
-              <p className="text-sm text-gray-500">
-                {searchResult.acct || `@${searchResult.username}`}
-              </p>
-              <a
-                href={searchResult.url}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-3 inline-flex items-center text-sm text-indigo-600 hover:text-indigo-800"
-              >
-                View profile
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4 ml-1"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={1.5}
-                  aria-hidden="true"
-                >
-                  <title>Open profile</title>
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M13.5 4.5H20m0 0v6.5m0-6.5L10.5 14"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M18 13.5V20H4v-14h6.5"
-                  />
-                </svg>
-              </a>
+              <FoundUserItem account={searchResult} />
             </div>
           )}
           <section className="bg-white rounded-2xl border border-gray-200 p-4 space-y-4 min-h-[400px]">

@@ -57,6 +57,8 @@ func (s *Server) GetApiAccountsLookup(
 	r *http.Request,
 	params api.GetApiAccountsLookupParams,
 ) {
+	// we must check if account is local or from other instance
+	// if from other instance we do webfinger lookup
 	acct := params.Acct
 	handle, err := util.ParseHandle(acct, s.conf.ListenHost)
 	if err != nil {
@@ -74,52 +76,115 @@ func (s *Server) GetApiAccountsLookup(
 		}
 		log.Printf("lookup: found local account %s", account.Username)
 		util.WriteJSON(w, http.StatusOK, mapper.AccountToAPI(account))
-		return
-	}
+	} else {
+		client := http.Client{Timeout: 5 * time.Second}
+		webfingerURL := "http://" + handle.Domain + "/.well-known/webfinger?resource=acct:" + handle.Username + "@" + handle.Domain
 
-	if handle.Domain == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
+		req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, webfingerURL, nil)
+		if err != nil {
+			log.Println(err)
+			util.WriteError(w, http.StatusBadRequest, err.Error())
+			return
+		}
 
-	log.Printf("lookup: remote handle %s detected, checking local cache", acct)
-	account, err := s.service.App.GetAccount(
-		r.Context(),
-		db.GetAccountParams{
-			Username: handle.Username,
-			Domain:   sql.NullString{String: handle.Domain, Valid: true},
-		},
-	)
-	if err == nil {
-		log.Printf("lookup: remote account %s@%s found locally", handle.Username, handle.Domain)
+		log.Printf("lookup: remote handle %s detected, querying webfinger %s", acct, webfingerURL)
+		resp, err := client.Do(req)
+		if err != nil {
+			log.Println(err)
+			util.WriteError(w, http.StatusBadGateway, err.Error())
+			return
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			util.WriteError(w, http.StatusBadGateway, "remote webfinger failed")
+			return
+		}
+
+		var wf api.WebFingerResponse
+		if err := json.UnmarshalRead(resp.Body, &wf); err != nil {
+			log.Println(err)
+			util.WriteError(w, http.StatusBadGateway, err.Error())
+			return
+		}
+
+		var actorURL string
+		for _, link := range wf.Links {
+			if link.Rel == "self" && link.Type == "application/activity+json" {
+				actorURL = link.Href
+				break
+			}
+		}
+		if actorURL == "" {
+			util.WriteError(w, http.StatusBadGateway, "actor link not found in webfinger response")
+			return
+		}
+
+		log.Printf("lookup: webfinger resolved actor %s", actorURL)
+		reqActor, err := http.NewRequestWithContext(r.Context(), http.MethodGet, actorURL, nil)
+		if err != nil {
+			log.Println(err)
+			util.WriteError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+
+		actorResp, err := client.Do(reqActor)
+		if err != nil {
+			log.Println(err)
+			util.WriteError(w, http.StatusBadGateway, err.Error())
+			return
+		}
+		defer actorResp.Body.Close()
+		if actorResp.StatusCode != http.StatusOK {
+			util.WriteError(w, http.StatusBadGateway, "remote actor fetch failed")
+			return
+		}
+
+		var object domain.ObjectOrLink
+		if err := json.UnmarshalRead(actorResp.Body, &object); err != nil {
+			log.Println(err)
+			util.WriteError(w, http.StatusBadGateway, err.Error())
+			return
+		}
+		actor := ap.NewActor(object.Object)
+		actorData := actor.GetObject()
+
+		params := db.CreateActorParams{
+			Username: actorData.PreferredUsername,
+			Uri:      actorData.ID,
+			Domain: sql.NullString{
+				String: handle.Domain,
+				Valid:  true,
+			},
+			DisplayName: sql.NullString{},
+			InboxUri:    actorData.Inbox,
+			OutboxUri:   actorData.Outbox,
+			FollowersUri: actorData.Followers,
+			FollowingUri: actorData.Following,
+			Url:          actorData.ID,
+		}
+
+		log.Printf("lookup: creating remote account %s@%s from actor %s", actorData.PreferredUsername, handle.Domain, actorData.ID)
+		account, err := s.service.App.AddRemoteAccount(r.Context(), &params)
+		if err != nil {
+			log.Println(err)
+			// If already exists, fetch the stored record.
+			existing, getErr := s.service.App.GetAccount(r.Context(), db.GetAccountParams{
+				Username: actorData.PreferredUsername,
+				Domain: sql.NullString{
+					String: handle.Domain,
+					Valid:  true,
+				},
+			})
+			if getErr != nil {
+				util.WriteError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+			util.WriteJSON(w, http.StatusOK, mapper.AccountToAPI(existing))
+			return
+		}
+
 		util.WriteJSON(w, http.StatusOK, mapper.AccountToAPI(account))
-		return
 	}
-	if !errors.Is(err, sql.ErrNoRows) {
-		log.Println(err)
-		util.WriteError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	log.Printf(
-		"lookup: remote account %s@%s not cached, performing WebFinger lookup",
-		handle.Username,
-		handle.Domain,
-	)
-	util.WriteError(w, http.StatusInternalServerError, "unimplemented")
-	// actor, err := s.service.Federation.processor.LookupActor(r.Context(), handle)
-	// if err != nil {
-	// 	log.Println(err)
-	// 	util.WriteError(w, http.StatusBadGateway, err.Error())
-	// 	return
-	// }
-	// if err != nil {
-	// 	log.Println(err)
-	// 	util.WriteError(w, http.StatusInternalServerError, err.Error())
-	// 	return
-	// }
-	// log.Printf("lookup: remote actor stored with username=%s domain=%s", row.Username, row.Domain.String)
-	// util.WriteJSON(w, http.StatusOK, mapper.AccountToAPI(row))
 }
 
 // PostApiAccountsIdFollow implements api.ServerInterface.

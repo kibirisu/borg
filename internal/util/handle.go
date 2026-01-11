@@ -17,7 +17,9 @@ func ParseHandle(raw string, localHost string) (*HandleInfo, error) {
 	if handle == "" {
 		return nil, errors.New("empty handle")
 	}
+	// Accept "@user@host" with optional leading "@".
 	handle = strings.TrimPrefix(handle, "@")
+
 	parts := strings.Split(handle, "@")
 	if len(parts) != 2 {
 		return nil, fmt.Errorf("invalid handle format: %s", raw)
