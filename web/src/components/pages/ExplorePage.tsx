@@ -87,9 +87,9 @@ export default function ExplorePage() {
   const handleSearch = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmed = searchTerm.trim();
-    const handlePattern = /^@[A-Za-z0-9._-]+@[A-Za-z0-9.-]+$/;
+    const handlePattern = /^@[A-Za-z0-9._-]+@[A-Za-z0-9.-]+(?::\d{2,5})?$/;
     if (!handlePattern.test(trimmed)) {
-      setSearchError("Format must be @user@instance");
+      setSearchError("Format must be @user@host or @user@host:port");
       return;
     }
     if (!client) {
@@ -190,7 +190,7 @@ export default function ExplorePage() {
               <input
                 id="explore-search"
                 type="search"
-                placeholder="@user@instance"
+                placeholder="@user@host:port"
                 className="block w-full rounded-xl border border-gray-200 bg-gray-50 p-3 pl-9 text-sm text-gray-900 placeholder:text-gray-500 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 focus:outline-none"
                 value={searchTerm}
                 onChange={onSearchChange}
@@ -247,7 +247,7 @@ export default function ExplorePage() {
               <p>
                 <span className="font-medium me-1">Warning!</span>
                 {searchError === "Error during fetching client."
-                  ? "Sorry, we coudn't find this profile. Are you sure you entered username and instance right?"
+                  ? "Sorry, we coudn't find this profile. Are you sure you entered the username and host correctly?"
                   : searchError}
               </p>
             </div>

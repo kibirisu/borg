@@ -63,7 +63,7 @@ func (s *Server) GetApiAccountsLookup(
 	// we must check if account is local or from other instance
 	// if from other instance we do webfinger lookup
 	acct := params.Acct
-	handle, err := util.ParseHandle(acct, s.conf.ListenHost)
+	handle, err := util.ParseHandle(acct, s.conf.ListenHost, s.conf.ListenPort)
 	if err != nil {
 		util.WriteError(w, http.StatusBadRequest, err.Error())
 		return
@@ -128,7 +128,7 @@ func (s *Server) GetApiAccountsLookup(
 			util.WriteError(w, http.StatusBadGateway, err.Error())
 			return
 		}
-		actor := ap.NewActor(object.Object)
+		actor := ap.NewActor(&object)
 		actorData := actor.GetObject()
 
 		params := db.CreateActorParams{
@@ -147,7 +147,7 @@ func (s *Server) GetApiAccountsLookup(
 		}
 
 		log.Printf("lookup: creating remote account %s@%s from actor %s", actorData.PreferredUsername, handle.Domain, actorData.ID)
-		account, err := s.service.App.AddRemoteAccount(r.Context(), &params)
+		account, err = s.service.App.AddRemoteAccount(r.Context(), &params)
 		if err != nil {
 			log.Println(err)
 			// If already exists, fetch the stored record.
