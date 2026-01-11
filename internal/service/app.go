@@ -43,6 +43,7 @@ type AppService interface {
 	GetPostByIDWithMetadata(context.Context, int) (*db.GetStatusByIdWithMetadataRow, error)
 	GetLikedPostsByAccountId(context.Context, int) ([]db.GetLikedPostsByAccountIdRow, error)
 	GetSharedPostsByAccountId(context.Context, int) ([]db.GetSharedPostsByAccountIdRow, error)
+	GetTimelinePostsByAccountId(context.Context, int) ([]db.GetTimelinePostsByAccountIdRow, error)
 	// EW, idk if this should stay here
 	DeliverToFollowers(http.ResponseWriter, *http.Request, int, func(recipientURI string) any)
 }
@@ -349,4 +350,11 @@ func (s *appService) GetSharedPostsByAccountId(
 	accountID int,
 ) ([]db.GetSharedPostsByAccountIdRow, error) {
 	return s.store.Statuses().GetSharedPostsByAccountId(ctx, accountID)
+}
+
+func (s *appService) GetTimelinePostsByAccountId(
+	ctx context.Context,
+	accountID int,
+) ([]db.GetTimelinePostsByAccountIdRow, error) {
+	return s.store.Statuses().GetTimelinePostsByAccountId(ctx, accountID)
 }
