@@ -69,7 +69,9 @@ const PostComposerOverlay = ({
         </button>
         <div className="space-y-4">
           <div>
-            <p className="text-2xl font-semibold text-gray-900">Share with others ❤️</p>
+            <p className="text-2xl font-semibold text-gray-900">
+              Share with others ❤️
+            </p>
             {replyTo && "username" in replyTo.data && replyTo.data.username && (
               <p className="text-sm text-gray-500">
                 Responding to{" "}
@@ -108,7 +110,7 @@ const PostComposerOverlay = ({
                       d="M15 9h.01M8.99 9H9m12 3a9 9 0 1 1-18 0 9 9 0 0 1 18 0ZM6.6 13a5.5 5.5 0 0 0 10.81 0H6.6Z"
                     />
                   </svg>
-                </IconButton>              
+                </IconButton>
               </div>
               <button
                 type="submit"

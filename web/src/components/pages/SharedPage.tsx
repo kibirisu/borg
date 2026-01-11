@@ -41,7 +41,9 @@ export default function SharedPage() {
     opts as any,
   );
   const [isComposerOpen, setIsComposerOpen] = useState(false);
-  const [selectedPost, setSelectedPost] = useState<PostPresentable | null>(null);
+  const [selectedPost, setSelectedPost] = useState<PostPresentable | null>(
+    null,
+  );
 
   const handlePostSelect = (post: PostPresentable) => {
     setSelectedPost(post);
@@ -70,9 +72,7 @@ export default function SharedPage() {
             </p>
           </section>
           <section className="bg-white rounded-2xl border border-gray-200 p-4 space-y-4 min-h-[400px]">
-            {isPending && (
-              <p className="text-center text-gray-500">Loading…</p>
-            )}
+            {isPending && <p className="text-center text-gray-500">Loading…</p>}
             {!isPending &&
               data?.map((post: components["schemas"]["Post"]) => (
                 <PostItem
@@ -83,9 +83,7 @@ export default function SharedPage() {
                 />
               ))}
             {!isPending && !data?.length && (
-              <p className="text-center text-gray-500">
-                Nothing shared yet.
-              </p>
+              <p className="text-center text-gray-500">Nothing shared yet.</p>
             )}
           </section>
         </main>

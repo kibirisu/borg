@@ -68,7 +68,9 @@ export default function NewPostForm() {
       <input type="hidden" name="userId" value={userId ?? ""} />
       <div className="flex-1 overflow-hidden">
         {!isAuthenticated && (
-          <p className="mb-2 text-sm text-gray-500">Sign in to create a post.</p>
+          <p className="mb-2 text-sm text-gray-500">
+            Sign in to create a post.
+          </p>
         )}
         {errors?.form && (
           <p className="mb-2 text-sm text-red-600">{errors.form}</p>

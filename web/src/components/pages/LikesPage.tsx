@@ -14,7 +14,9 @@ export default function LikesPage() {
   const client = useContext(ClientContext);
   useLoaderData();
   const [isComposerOpen, setIsComposerOpen] = useState(false);
-  const [selectedPost, setSelectedPost] = useState<PostPresentable | null>(null);
+  const [selectedPost, setSelectedPost] = useState<PostPresentable | null>(
+    null,
+  );
 
   const handlePostSelect = (post: PostPresentable) => {
     setSelectedPost(post);
@@ -38,8 +40,8 @@ export default function LikesPage() {
           <section className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
             <h1 className="text-2xl font-semibold text-gray-800">Likes</h1>
             <p className="text-gray-500">
-              Posts you have liked will appear here. For now we&apos;re showing a
-              general feed.
+              Posts you have liked will appear here. For now we&apos;re showing
+              a general feed.
             </p>
           </section>
           {/* Likes by post ID are handled via the form above; feed removed. */}

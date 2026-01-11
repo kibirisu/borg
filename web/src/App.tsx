@@ -29,7 +29,9 @@ const normalizeToken = (value: string | null) => {
 };
 
 const App = () => {
-  const [token, setToken] = useState(() => normalizeToken(localStorage.getItem("jwt")));
+  const [token, setToken] = useState(() =>
+    normalizeToken(localStorage.getItem("jwt")),
+  );
   const tokenRef = useRef(token);
   const decoded = useMemo(() => {
     return decodeToken(token);

@@ -83,9 +83,12 @@ const ErrorPage = () => {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
       <div className="max-w-md text-center space-y-3">
-        <p className="text-sm font-semibold text-gray-500">Something went wrong</p>
+        <p className="text-sm font-semibold text-gray-500">
+          Something went wrong
+        </p>
         <p className="text-gray-700">
-          We couldn&apos;t load this page. Please try again or return to the home page.
+          We couldn&apos;t load this page. Please try again or return to the
+          home page.
         </p>
         <div className="flex items-center justify-center gap-3">
           <Link

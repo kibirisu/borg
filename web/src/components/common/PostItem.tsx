@@ -144,7 +144,8 @@ export const PostItem = ({
                   }
                 }}
               >
-                <MessageCircle size={16} /> <span>{post.data.commentCount}</span>
+                <MessageCircle size={16} />{" "}
+                <span>{post.data.commentCount}</span>
               </button>
             )}
             {"shareCount" in post.data && (

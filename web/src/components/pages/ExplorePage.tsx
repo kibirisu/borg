@@ -23,32 +23,35 @@ export default function ExplorePage() {
   const { data, isPending } = useQuery(opts);
   const [searchTerm, setSearchTerm] = useState("");
   const [searchError, setSearchError] = useState("");
-  const [searchResult, setSearchResult] =
-    useState<components["schemas"]["Account"] | null>(null);
+  const [searchResult, setSearchResult] = useState<
+    components["schemas"]["Account"] | null
+  >(null);
   const [isComposerOpen, setIsComposerOpen] = useState(false);
-  const [selectedPost, setSelectedPost] = useState<PostPresentable | null>(null);
- 
+  const [selectedPost, setSelectedPost] = useState<PostPresentable | null>(
+    null,
+  );
+
   const lookupMutation = useMutation({
-  mutationFn: async (acct: string) => {
-    if (!client) {
-      throw new Error("Search client is not ready yet.");
-    }
+    mutationFn: async (acct: string) => {
+      if (!client) {
+        throw new Error("Search client is not ready yet.");
+      }
 
-    const response = await client.fetchClient.GET("/api/accounts/lookup", {
-      params: { query: { acct } },
-    });
+      const response = await client.fetchClient.GET("/api/accounts/lookup", {
+        params: { query: { acct } },
+      });
 
-    if (response.error) {
-      throw new Error( "Error during fetching client.");
-    }
+      if (response.error) {
+        throw new Error("Error during fetching client.");
+      }
 
-    if (!response.data) {
-      throw new Error("No user found for this handle.");
-    }
+      if (!response.data) {
+        throw new Error("No user found for this handle.");
+      }
 
-    return response.data;
-  },
-});
+      return response.data;
+    },
+  });
 
   const handleSearch = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -214,9 +217,7 @@ export default function ExplorePage() {
             </div>
           )}
           <section className="bg-white rounded-2xl border border-gray-200 p-4 space-y-4 min-h-[400px]">
-            {isPending && (
-              <p className="text-gray-500 text-center">Loading…</p>
-            )}
+            {isPending && <p className="text-gray-500 text-center">Loading…</p>}
             {!isPending &&
               data?.map((post: components["schemas"]["Post"]) => (
                 <PostItem
@@ -228,9 +229,7 @@ export default function ExplorePage() {
                 />
               ))}
             {!isPending && !data?.length && (
-              <p className="text-center text-gray-500">
-                Nothing posted yet.
-              </p>
+              <p className="text-center text-gray-500">Nothing posted yet.</p>
             )}
           </section>
         </main>

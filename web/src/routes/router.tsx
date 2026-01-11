@@ -16,12 +16,16 @@ import MainFeed, {
   loader as mainFeedLoader,
 } from "../components/feed/HomeFeedLayout";
 import { action as addPostAction } from "../components/feed/NewPostForm";
-import UserPage, { loader as userPageLoader } from "../components/pages/UserPage";
+import UserPage, {
+  loader as userPageLoader,
+} from "../components/pages/UserPage";
 import OtherUserPage from "../components/pages/OtherUserPage";
 import ExplorePage, {
   loader as exploreLoader,
 } from "../components/pages/ExplorePage";
-import LikesPage, { loader as likesLoader } from "../components/pages/LikesPage";
+import LikesPage, {
+  loader as likesLoader,
+} from "../components/pages/LikesPage";
 import SharedPage, {
   loader as sharedLoader,
 } from "../components/pages/SharedPage";
@@ -149,14 +153,15 @@ function ProfileChooser() {
   const { handle } = useParams();
   const appState = useContext(AppContext);
   const tokenUserId = appState?.userId;
-  console.log("[ProfileChooser] handle param", handle, "tokenUserId", tokenUserId);
+  console.log(
+    "[ProfileChooser] handle param",
+    handle,
+    "tokenUserId",
+    tokenUserId,
+  );
   const matchOwnProfile =
     tokenUserId !== null && handle === String(tokenUserId);
   const data = useLoaderData();
   // Provide loader data to the chosen component via context.
-  return matchOwnProfile ? (
-    <UserPage />
-  ) : (
-    <OtherUserPage />
-  );
+  return matchOwnProfile ? <UserPage /> : <OtherUserPage />;
 }

@@ -1,6 +1,11 @@
 import { useContext, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { type LoaderFunctionArgs, Outlet, useLoaderData, useNavigate } from "react-router";
+import {
+  type LoaderFunctionArgs,
+  Outlet,
+  useLoaderData,
+  useNavigate,
+} from "react-router";
 import type { AppClient } from "../../lib/client";
 import ClientContext from "../../lib/client";
 import AppContext from "../../lib/state";
@@ -207,9 +212,7 @@ export default function UserPage() {
                     />
                   ))
                 ) : (
-                  <div className="p-4 text-sm text-gray-500">
-                    No posts yet.
-                  </div>
+                  <div className="p-4 text-sm text-gray-500">No posts yet.</div>
                 )}
               </>
             )}

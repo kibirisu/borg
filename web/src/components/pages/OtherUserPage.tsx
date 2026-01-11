@@ -102,9 +102,11 @@ export default function OtherUserPage() {
     },
   });
 
-  const { data: posts, isPending: postsPending, isError: postsError } = useQuery<
-    components["schemas"]["Post"][]
-  >({
+  const {
+    data: posts,
+    isPending: postsPending,
+    isError: postsError,
+  } = useQuery<components["schemas"]["Post"][]>({
     queryKey: ["user-posts", userId, "other"],
     enabled: Boolean(client) && userId !== null,
     queryFn: async () => {
@@ -196,7 +198,11 @@ export default function OtherUserPage() {
                   isFollowed ? "btn-outline btn-secondary" : "btn-primary"
                 }`}
               >
-                {isFollowed ? "Unfollow" : followPending ? "Following…" : "Follow"}
+                {isFollowed
+                  ? "Unfollow"
+                  : followPending
+                    ? "Following…"
+                    : "Follow"}
               </button>
             </div>
             {followError && (
@@ -213,20 +219,18 @@ export default function OtherUserPage() {
                 Failed to load posts.
               </div>
             )}
-            {!postsPending && !postsError && posts && posts.length > 0 ? (
-              posts.map((post) => (
-                <PostItem
-                  key={post.id}
-                  post={{ data: post }}
-                  client={client!}
-                />
-              ))
-            ) : (
-              !postsPending &&
-              !postsError && (
-                <div className="p-4 text-sm text-gray-500">No posts yet.</div>
-              )
-            )}
+            {!postsPending && !postsError && posts && posts.length > 0
+              ? posts.map((post) => (
+                  <PostItem
+                    key={post.id}
+                    post={{ data: post }}
+                    client={client!}
+                  />
+                ))
+              : !postsPending &&
+                !postsError && (
+                  <div className="p-4 text-sm text-gray-500">No posts yet.</div>
+                )}
           </section>
         </main>
         <Sidebar />

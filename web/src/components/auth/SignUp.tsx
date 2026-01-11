@@ -81,7 +81,9 @@ export const SignUp = () => {
                   required
                   autoComplete="username"
                   aria-invalid={errors?.username ? true : undefined}
-                  aria-describedby={errors?.username ? "signup-username-error" : undefined}
+                  aria-describedby={
+                    errors?.username ? "signup-username-error" : undefined
+                  }
                   className="block w-full rounded-md bg-white px-3 py-1.5 text-base
                     text-gray-900 outline-1 -outline-offset-1 outline-gray-300
                     placeholder:text-gray-400
@@ -115,7 +117,9 @@ export const SignUp = () => {
                   required
                   autoComplete="new-password"
                   aria-invalid={errors?.password ? true : undefined}
-                  aria-describedby={errors?.password ? "signup-password-error" : undefined}
+                  aria-describedby={
+                    errors?.password ? "signup-password-error" : undefined
+                  }
                   className="block w-full rounded-md bg-white px-3 py-1.5 text-base
                     text-gray-900 outline-1 -outline-offset-1 outline-gray-300
                     placeholder:text-gray-400
