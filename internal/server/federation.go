@@ -19,15 +19,9 @@ func (s *Server) federationRoutes() func(chi.Router) {
 			r.Get("/following", s.handleActorFollowing)
 			r.Post("/inbox", s.handleInbox)
 		})
-		r.Route("/statuses", func(r chi.Router) {
-			r.Get("/{uuid}", s.handleGetStatus) 
-		})
-		r.Route("/likes", func(r chi.Router) {
-			r.Get("/{uuid}", s.handleGetLike) 
-		})
-		r.Route("/follows", func(r chi.Router) {
-			r.Get("/{uuid}", s.handleGetFollow) 
-		})
+		r.Get("/statuses/{id}", s.handleGetStatus)
+		r.Get("/likes/{id}", s.handleGetLike)
+		r.Get("/follow/{id}", s.handleGetFollow)
 	}
 }
 
@@ -40,8 +34,9 @@ func (s *Server) handleGetActor(w http.ResponseWriter, r *http.Request) {
 	}
 	util.WriteActivityJSON(w, http.StatusOK, actor)
 }
+
 func (s *Server) handleGetStatus(w http.ResponseWriter, r *http.Request) {
-	uri := chi.URLParam(r, "uuid")
+	uri := chi.URLParam(r, "id")
 	status, err := s.service.Federation.GetStatus(r.Context(), uri)
 	if err != nil {
 		util.WriteError(w, http.StatusNotFound, err.Error())
@@ -49,8 +44,9 @@ func (s *Server) handleGetStatus(w http.ResponseWriter, r *http.Request) {
 	}
 	util.WriteActivityJSON(w, http.StatusOK, status)
 }
+
 func (s *Server) handleGetLike(w http.ResponseWriter, r *http.Request) {
-	uri := chi.URLParam(r, "uuid")
+	uri := chi.URLParam(r, "id")
 	like, err := s.service.Federation.GetLike(r.Context(), uri)
 	if err != nil {
 		util.WriteError(w, http.StatusNotFound, err.Error())
@@ -58,8 +54,9 @@ func (s *Server) handleGetLike(w http.ResponseWriter, r *http.Request) {
 	}
 	util.WriteActivityJSON(w, http.StatusOK, like)
 }
+
 func (s *Server) handleGetFollow(w http.ResponseWriter, r *http.Request) {
-	uri := chi.URLParam(r, "uuid")
+	uri := chi.URLParam(r, "id")
 	follow, err := s.service.Federation.GetFollow(r.Context(), uri)
 	if err != nil {
 		util.WriteError(w, http.StatusNotFound, err.Error())
