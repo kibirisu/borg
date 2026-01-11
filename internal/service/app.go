@@ -38,7 +38,7 @@ type AppService interface {
 	GetPostShares(context.Context, int) ([]db.Status, error)
 	GetPostByIdWithMetadata(context.Context, int) (*db.GetStatusByIdWithMetadataRow, error)
 	UpdatePost(context.Context, db.UpdateStatusParams) (db.Status, error)
-	GetPostComments(context.Context, int) ([]db.Status, error) 
+	GetPostComments(context.Context, int) ([]db.Status, error)
 	UpdateAccount(ctx context.Context, params db.UpdateAccountParams) (db.Account, error)
 	DeletePost(context.Context, int) error
 	GetLikedPostsByUser(context.Context, int) ([]db.GetLikedPostsByAccountIdRow, error)
@@ -260,22 +260,33 @@ func (s *appService) GetPostByAccountId(
 func (s *appService) GetLocalPosts(ctx context.Context) ([]db.GetLocalStatusesRow, error) {
 	return s.store.Statuses().GetLocalStatuses(ctx)
 }
+
 // GetPostComments implements AppService.
 func (s *appService) GetPostComments(ctx context.Context, id int) ([]db.Status, error) {
-    return s.store.Statuses().GetPostComments(ctx, id)
+	return s.store.Statuses().GetPostComments(ctx, id)
 }
+
 // UpdatePost implements AppService.
-func (s *appService) UpdatePost(ctx context.Context, params db.UpdateStatusParams) (db.Status, error) {
-    return s.store.Statuses().Update(ctx, params)
+func (s *appService) UpdatePost(
+	ctx context.Context,
+	params db.UpdateStatusParams,
+) (db.Status, error) {
+	return s.store.Statuses().Update(ctx, params)
 }
+
 // UpdateAccount implements AppService.
-func (s *appService) UpdateAccount(ctx context.Context, params db.UpdateAccountParams) (db.Account, error) {
+func (s *appService) UpdateAccount(
+	ctx context.Context,
+	params db.UpdateAccountParams,
+) (db.Account, error) {
 	return s.store.Accounts().UpdateAccount(ctx, params)
 }
+
 // DeletePost implements AppService.
 func (s *appService) DeletePost(ctx context.Context, id int) error {
-    return s.store.Statuses().Delete(ctx, id)
+	return s.store.Statuses().Delete(ctx, id)
 }
+
 // GetLikedPostsByUser implements AppService.
 func (s *appService) GetLikedPostsByUser(
 	ctx context.Context,
@@ -283,6 +294,7 @@ func (s *appService) GetLikedPostsByUser(
 ) ([]db.GetLikedPostsByAccountIdRow, error) {
 	return s.store.Favourites().GetLikedPostsByUser(ctx, accountID)
 }
+
 // GetSharedPostsByUser implements AppService.
 func (s *appService) GetSharedPostsByUser(
 	ctx context.Context,
@@ -290,6 +302,7 @@ func (s *appService) GetSharedPostsByUser(
 ) ([]db.GetSharedPostsByAccountIdRow, error) {
 	return s.store.Statuses().GetSharedPostsByUser(ctx, accountID)
 }
+
 // GetTimelinePosts implements AppService.
 func (s *appService) GetTimelinePosts(
 	ctx context.Context,
@@ -308,3 +321,4 @@ func (s *appService) UnfollowAccount(
 		TargetAccountID: int32(followee),
 	})
 }
+
