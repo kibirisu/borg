@@ -1,13 +1,13 @@
-import { useContext, useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { type LoaderFunctionArgs, useLoaderData } from "react-router";
+import anonAvatar from "../../assets/Anonomous.jpg";
+import type { components } from "../../lib/api/v1";
 import type { AppClient } from "../../lib/client";
 import ClientContext from "../../lib/client";
 import AppContext from "../../lib/state";
-import Sidebar from "../common/Sidebar";
-import anonAvatar from "../../assets/Anonomous.jpg";
-import type { components } from "../../lib/api/v1";
 import { PostItem } from "../common/PostItem";
+import Sidebar from "../common/Sidebar";
 
 export const loader =
   (client: AppClient) =>

@@ -7,8 +7,8 @@ import {
 } from "react-router";
 import type { components } from "../../lib/api/v1";
 import type { AppClient } from "../../lib/client";
-import AppContext from "../../lib/state";
 import decodeToken from "../../lib/decode";
+import AppContext from "../../lib/state";
 
 export const action =
   (client: AppClient) =>

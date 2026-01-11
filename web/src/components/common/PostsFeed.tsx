@@ -7,8 +7,8 @@ import ClientContext from "../../lib/client";
 import { PostItem } from "./PostItem";
 
 export const loader =
-  (client: AppClient) =>
-  async ({ params }: LoaderFunctionArgs) => {
+  (_client: AppClient) =>
+  async (_args: LoaderFunctionArgs) => {
     // const userId = parseInt(String(params.handle));
     // const queryParams = { params: { path: { id: userId } } };
     // const opts = client.$api.queryOptions(
@@ -27,18 +27,34 @@ export default function Feed() {
     ReturnType<ReturnType<typeof loader>>
   >;
 
-  if (!opts) {
+  const queryOptions =
+    opts ??
+    ({
+      queryKey: ["posts-feed-disabled"],
+      queryFn: async () => [] as components["schemas"]["Post"][],
+      enabled: false,
+    } satisfies Parameters<typeof useQuery>[0]);
+
+  const { data, isPending } = useQuery<components["schemas"]["Post"][]>(
+    queryOptions,
+  );
+
+  if (!opts || !client) {
     return null;
   }
 
-  const { data, isPending } = useQuery<components["schemas"]["Post"][]>(opts);
   if (isPending) {
-    return <></>;
+    return (
+      <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+        <p className="text-sm text-gray-500">Loading feed…</p>
+      </div>
+    );
   }
+
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm divide-y">
       {data?.map((post: components["schemas"]["Post"]) => (
-        <PostItem key={post.id} post={{ data: post }} client={client!} />
+        <PostItem key={post.id} post={{ data: post }} client={client} />
       ))}
     </div>
   );

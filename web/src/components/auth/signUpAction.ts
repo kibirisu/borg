@@ -1,4 +1,4 @@
-import { redirect, type ActionFunctionArgs } from "react-router";
+import { type ActionFunctionArgs, redirect } from "react-router";
 import type { AppClient } from "../../lib/client";
 
 export function signUpAction(client: AppClient) {
@@ -35,8 +35,12 @@ export function signUpAction(client: AppClient) {
       return errors;
     }
 
-    const safeUsername = username!;
-    const safePassword = password!;
+    if (!username || !password) {
+      return errors;
+    }
+
+    const safeUsername = username;
+    const safePassword = password;
 
     const mutation = async () => {
       console.log("[signup] sending request", { username: safeUsername });

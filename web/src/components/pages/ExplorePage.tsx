@@ -1,11 +1,11 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useContext, useState } from "react";
 import { useLoaderData, useNavigate } from "react-router";
+import type { components } from "../../lib/api/v1";
 import type { AppClient } from "../../lib/client";
 import ClientContext from "../../lib/client";
-import type { components } from "../../lib/api/v1";
-import { PostItem, type PostPresentable } from "../common/PostItem";
 import PostComposerOverlay from "../common/PostComposerOverlay";
+import { PostItem, type PostPresentable } from "../common/PostItem";
 import Sidebar from "../common/Sidebar";
 
 export const loader = (client: AppClient) => async () => {

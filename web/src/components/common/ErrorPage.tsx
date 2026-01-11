@@ -1,5 +1,5 @@
-import { Link, isRouteErrorResponse, useRouteError } from "react-router";
 import { useState } from "react";
+import { isRouteErrorResponse, Link, useRouteError } from "react-router";
 
 const UnauthorizedBanner = () => {
   const [open, setOpen] = useState(true);
@@ -65,16 +65,30 @@ const UnauthorizedBanner = () => {
 const ErrorPage = () => {
   const error = useRouteError();
 
-  const status =
-    (isRouteErrorResponse(error) && error.status) ||
-    (error instanceof Response && error.status) ||
-    (typeof error === "object" && error !== null && "status" in error
-      ? Number((error as any).status)
-      : null) ||
-    (typeof error === "object" &&
-      error !== null &&
-      "response" in error &&
-      (error as any).response?.status);
+  const extractStatus = () => {
+    if (isRouteErrorResponse(error)) {
+      return error.status;
+    }
+    if (error instanceof Response) {
+      return error.status;
+    }
+    if (typeof error === "object" && error !== null) {
+      const errorWithStatus = error as { status?: unknown };
+      if (typeof errorWithStatus.status === "number") {
+        return errorWithStatus.status;
+      }
+      if ("response" in error) {
+        const responseStatus = (error as { response?: { status?: unknown } })
+          .response?.status;
+        if (typeof responseStatus === "number") {
+          return responseStatus;
+        }
+      }
+    }
+    return null;
+  };
+
+  const status = extractStatus();
 
   if (status === 401) {
     return <UnauthorizedBanner />;

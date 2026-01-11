@@ -1,7 +1,7 @@
+import { type ReactNode, useContext } from "react";
 import { NavLink } from "react-router";
-import { useContext, type ReactNode } from "react";
-import AppContext from "../../lib/state";
 import decodeToken from "../../lib/decode";
+import AppContext from "../../lib/state";
 
 type SidebarItem = {
   label: string;

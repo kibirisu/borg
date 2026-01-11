@@ -1,10 +1,18 @@
+import { Home } from "lucide-react";
 import { useContext } from "react";
 import {
   createBrowserRouter,
   createContext,
-  RouterContextProvider,
   RouterProvider as Provider,
+  RouterContextProvider,
+  useLoaderData,
+  useParams,
 } from "react-router";
+import { SignIn } from "../components/auth/SignIn";
+import { SignUp } from "../components/auth/SignUp";
+import { signInAction } from "../components/auth/signInAction";
+import { signUpAction } from "../components/auth/signUpAction";
+import ErrorPage from "../components/common/ErrorPage";
 import Feed, { loader as feedLoader } from "../components/common/PostsFeed";
 import { action as addCommentAction } from "../components/feed/CommentForm";
 import CommentView, {
@@ -16,33 +24,29 @@ import MainFeed, {
   loader as mainFeedLoader,
 } from "../components/feed/HomeFeedLayout";
 import { action as addPostAction } from "../components/feed/NewPostForm";
-import UserPage, {
-  loader as userPageLoader,
-} from "../components/pages/UserPage";
-import OtherUserPage from "../components/pages/OtherUserPage";
 import ExplorePage, {
   loader as exploreLoader,
 } from "../components/pages/ExplorePage";
 import LikesPage, {
   loader as likesLoader,
 } from "../components/pages/LikesPage";
+import OtherUserPage from "../components/pages/OtherUserPage";
 import SharedPage, {
   loader as sharedLoader,
 } from "../components/pages/SharedPage";
+import UserPage, {
+  loader as userPageLoader,
+} from "../components/pages/UserPage";
 import Root from "../components/Root";
-import ErrorPage from "../components/common/ErrorPage";
 import ClientContext, { type AppClient } from "../lib/client";
 import AppContext from "../lib/state";
-import { Home } from "lucide-react";
-import { SignIn } from "../components/auth/SignIn";
-import { SignUp } from "../components/auth/SignUp";
-import { signInAction } from "../components/auth/signInAction";
-import { signUpAction } from "../components/auth/signUpAction";
-import { useParams, useLoaderData } from "react-router";
 
 const RouterProvider = () => {
   const client = useContext(ClientContext);
-  return <Provider router={router(client!)} />;
+  if (!client) {
+    return null;
+  }
+  return <Provider router={router(client)} />;
 };
 
 export default RouterProvider;
@@ -161,7 +165,7 @@ function ProfileChooser() {
   );
   const matchOwnProfile =
     tokenUserId !== null && handle === String(tokenUserId);
-  const data = useLoaderData();
+  useLoaderData();
   // Provide loader data to the chosen component via context.
   return matchOwnProfile ? <UserPage /> : <OtherUserPage />;
 }

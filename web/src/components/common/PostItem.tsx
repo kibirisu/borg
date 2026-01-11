@@ -1,9 +1,9 @@
 import { Heart, MessageCircle, Repeat, Share2 } from "lucide-react";
+import { useContext } from "react";
 import ReactMarkdown from "react-markdown";
 import { Link } from "react-router";
 import type { components } from "../../lib/api/v1";
 import type { AppClient } from "../../lib/client";
-import { useContext } from "react";
 import AppContext from "../../lib/state";
 
 interface PostData {

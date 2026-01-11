@@ -2,8 +2,8 @@ import { useContext, useState } from "react";
 import { useLoaderData } from "react-router";
 import type { AppClient } from "../../lib/client";
 import ClientContext from "../../lib/client";
-import { PostItem, type PostPresentable } from "../common/PostItem";
 import PostComposerOverlay from "../common/PostComposerOverlay";
+import { PostItem, type PostPresentable } from "../common/PostItem";
 import Sidebar from "../common/Sidebar";
 
 export const loader = (client: AppClient) => async () => {

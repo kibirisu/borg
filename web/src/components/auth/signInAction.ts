@@ -27,8 +27,12 @@ export function signInAction(client: AppClient) {
       return errors;
     }
 
-    const safeUsername = username!;
-    const safePassword = password!;
+    if (!username || !password) {
+      return errors;
+    }
+
+    const safeUsername = username;
+    const safePassword = password;
 
     const mutation = async () => {
       return client.fetchClient.POST("/auth/login", {

@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import type { PostPresentable } from "./PostItem";
 
 interface PostComposerOverlayProps {
@@ -54,10 +54,18 @@ const PostComposerOverlay = ({
       role="dialog"
       aria-modal="true"
       onClick={onClose}
+      onKeyDown={(event) => {
+        if (event.key === "Escape") {
+          onClose();
+        }
+      }}
+      tabIndex={-1}
     >
       <div
         className="relative w-full max-w-2xl rounded-3xl bg-white p-6 shadow-2xl"
         onClick={(event) => event.stopPropagation()}
+        onKeyDown={(event) => event.stopPropagation()}
+        role="presentation"
       >
         <button
           type="button"
@@ -98,10 +106,12 @@ const PostComposerOverlay = ({
                 <IconButton label="Add emoji">
                   <svg
                     className="h-5 w-5"
+                    aria-hidden="true"
                     xmlns="http://www.w3.org/2000/svg"
                     fill="none"
                     viewBox="0 0 24 24"
                   >
+                    <title>Add emoji</title>
                     <path
                       stroke="currentColor"
                       strokeLinecap="round"
