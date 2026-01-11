@@ -58,11 +58,11 @@ func DeliverToEndpoint(endpoint string, payload any) {
 			return
 		}
 		req.Header.Set("Content-Type", "application/json")
-		client := &http.Client{}
+		var client http.Client
 		resp, err := client.Do(req)
 		if err != nil {
 			return
 		}
-		defer resp.Body.Close()
+		_ = resp.Body.Close()
 	}()
 }
