@@ -477,30 +477,18 @@ func (q *Queries) GetActorByURI(ctx context.Context, dollar_1 string) (Account, 
 	return i, err
 }
 
-const getFavouriteByURI = `-- name: GetFavouriteByURI :one
-SELECT id, created_at, updated_at, uri, account_id, status_id FROM favourites WHERE uri LIKE '%' || $1::text
+const getFollow = `-- name: GetFollow :one
+SELECT id, created_at, updated_at, uri, account_id, target_account_id FROM follows 
+WHERE account_id = $1 AND target_account_id = $2
 `
 
-func (q *Queries) GetFavouriteByURI(ctx context.Context, dollar_1 string) (Favourite, error) {
-	row := q.db.QueryRowContext(ctx, getFavouriteByURI, dollar_1)
-	var i Favourite
-	err := row.Scan(
-		&i.ID,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.Uri,
-		&i.AccountID,
-		&i.StatusID,
-	)
-	return i, err
+type GetFollowParams struct {
+	AccountID       int32
+	TargetAccountID int32
 }
 
-const getFollowByURI = `-- name: GetFollowByURI :one
-SELECT id, created_at, updated_at, uri, account_id, target_account_id FROM follows WHERE uri LIKE '%' || $1::text
-`
-
-func (q *Queries) GetFollowByURI(ctx context.Context, dollar_1 string) (Follow, error) {
-	row := q.db.QueryRowContext(ctx, getFollowByURI, dollar_1)
+func (q *Queries) GetFollow(ctx context.Context, arg GetFollowParams) (Follow, error) {
+	row := q.db.QueryRowContext(ctx, getFollow, arg.AccountID, arg.TargetAccountID)
 	var i Follow
 	err := row.Scan(
 		&i.ID,

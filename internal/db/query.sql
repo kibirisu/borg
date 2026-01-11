@@ -217,3 +217,7 @@ ORDER BY s.created_at DESC;
 -- name: DeleteFollow :exec
 DELETE FROM follows 
 WHERE account_id = $1 AND target_account_id = $2;
+
+-- name: GetFollow :one
+SELECT * FROM follows 
+WHERE account_id = $1 AND target_account_id = $2;
