@@ -22,7 +22,7 @@ type tokenContainer struct {
 }
 
 var (
-	tokenContextKey ContextKey = "token"
+	TokenContextKey ContextKey = "token"
 	signingKey      string
 )
 
@@ -44,7 +44,7 @@ func (s *Server) createAuthMiddleware() func(http.Handler) http.Handler {
 // chi provides similar already
 func preAuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := context.WithValue(r.Context(), tokenContextKey, &tokenContainer{})
+		ctx := context.WithValue(r.Context(), TokenContextKey, &tokenContainer{})
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -61,7 +61,7 @@ func authFunc(ctx context.Context, ai *openapi3filter.AuthenticationInput) error
 	}
 
 	var container *tokenContainer
-	if val := ctx.Value(tokenContextKey); val != nil {
+	if val := ctx.Value(TokenContextKey); val != nil {
 		container = val.(*tokenContainer)
 	}
 

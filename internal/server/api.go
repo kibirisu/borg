@@ -124,7 +124,7 @@ func (s *Server) GetApiAccountsLookup(
 
 // PostApiAccountsIdFollow implements api.ServerInterface.
 func (s *Server) PostApiAccountsIdFollow(w http.ResponseWriter, r *http.Request, id int) {
-	container, ok := r.Context().Value("token").(*tokenContainer)
+	container, ok := r.Context().Value(TokenContextKey).(*tokenContainer)
 
 	if !ok || container == nil || container.id == nil {
 		util.WriteError(w, http.StatusUnauthorized, "User not authenticated")
@@ -356,7 +356,7 @@ func (s *Server) PostApiPostsIdShares(w http.ResponseWriter, r *http.Request, id
 
 // PostApiPosts implements api.ServerInterface.
 func (s *Server) PostApiPosts(w http.ResponseWriter, r *http.Request) {
-	container, ok := r.Context().Value("token").(*tokenContainer)
+	container, ok := r.Context().Value(TokenContextKey).(*tokenContainer)
 	if !ok || container == nil || container.id == nil {
 		util.WriteError(w, http.StatusUnauthorized, "User not authenticated")
 		return
