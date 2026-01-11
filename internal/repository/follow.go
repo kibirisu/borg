@@ -46,6 +46,7 @@ func (r *followRepository) GetFollowingCollection(
 ) (db.GetFollowingCollectionRow, error) {
 	return r.q.GetFollowingCollection(ctx, username)
 }
+
 func (r *followRepository) GetByURI(
 	ctx context.Context, uri string,
 ) (db.Follow, error) {
