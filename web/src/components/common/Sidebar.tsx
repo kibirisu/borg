@@ -14,7 +14,14 @@ const items: SidebarItem[] = [
     label: "Home",
     to: "/",
     icon: (
-      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24">
+      <svg
+        role="img"
+        aria-label="Home"
+        className="w-5 h-5"
+        fill="none"
+        viewBox="0 0 24 24"
+      >
+        <title>Home</title>
         <path
           stroke="currentColor"
           strokeWidth="2"
@@ -29,7 +36,14 @@ const items: SidebarItem[] = [
     label: "Explore",
     to: "/explore",
     icon: (
-      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24">
+      <svg
+        role="img"
+        aria-label="Explore"
+        className="w-5 h-5"
+        fill="none"
+        viewBox="0 0 24 24"
+      >
+        <title>Explore</title>
         <path
           stroke="currentColor"
           strokeWidth="2"
@@ -51,7 +65,14 @@ const items: SidebarItem[] = [
     label: "Notifications",
     to: "/notifications",
     icon: (
-      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24">
+      <svg
+        role="img"
+        aria-label="Notifications"
+        className="w-5 h-5"
+        fill="none"
+        viewBox="0 0 24 24"
+      >
+        <title>Notifications</title>
         <path
           stroke="currentColor"
           strokeWidth="2"
@@ -66,7 +87,14 @@ const items: SidebarItem[] = [
     label: "Likes",
     to: "/likes",
     icon: (
-      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24">
+      <svg
+        role="img"
+        aria-label="Likes"
+        className="w-5 h-5"
+        fill="none"
+        viewBox="0 0 24 24"
+      >
+        <title>Likes</title>
         <path
           stroke="currentColor"
           strokeWidth="2"
@@ -81,7 +109,14 @@ const items: SidebarItem[] = [
     label: "Shared",
     to: "/shared",
     icon: (
-      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24">
+      <svg
+        role="img"
+        aria-label="Shared"
+        className="w-5 h-5"
+        fill="none"
+        viewBox="0 0 24 24"
+      >
+        <title>Shared</title>
         <path
           stroke="currentColor"
           strokeWidth="2"
@@ -103,7 +138,14 @@ const items: SidebarItem[] = [
     label: "Profile",
     to: "/profile",
     icon: (
-      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24">
+      <svg
+        role="img"
+        aria-label="Profile"
+        className="w-5 h-5"
+        fill="none"
+        viewBox="0 0 24 24"
+      >
+        <title>Profile</title>
         <path
           stroke="currentColor"
           strokeWidth="2"
@@ -125,7 +167,14 @@ const items: SidebarItem[] = [
     label: "More",
     to: "/more",
     icon: (
-      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24">
+      <svg
+        role="img"
+        aria-label="More"
+        className="w-5 h-5"
+        fill="none"
+        viewBox="0 0 24 24"
+      >
+        <title>More</title>
         <circle cx="5" cy="12" r="1.5" fill="currentColor" />
         <circle cx="12" cy="12" r="1.5" fill="currentColor" />
         <circle cx="19" cy="12" r="1.5" fill="currentColor" />

@@ -3,25 +3,17 @@ import { useLoaderData } from "react-router";
 import type { AppClient } from "../../lib/client";
 import ClientContext from "../../lib/client";
 import PostComposerOverlay from "../common/PostComposerOverlay";
-import { PostItem, type PostPresentable } from "../common/PostItem";
 import Sidebar from "../common/Sidebar";
 
-export const loader = (client: AppClient) => async () => {
+export const loader = (_client: AppClient) => async () => {
   return {};
 };
 
 export default function LikesPage() {
-  const client = useContext(ClientContext);
+  const _client = useContext(ClientContext);
   useLoaderData();
   const [isComposerOpen, setIsComposerOpen] = useState(false);
-  const [selectedPost, setSelectedPost] = useState<PostPresentable | null>(
-    null,
-  );
-
-  const handlePostSelect = (post: PostPresentable) => {
-    setSelectedPost(post);
-    setIsComposerOpen(true);
-  };
+  const [selectedPost, setSelectedPost] = useState<null>(null);
 
   const openComposerForNewPost = () => {
     setSelectedPost(null);

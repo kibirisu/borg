@@ -2,7 +2,7 @@ import { Outlet } from "react-router";
 import type { AppClient } from "../../lib/client";
 import NewPostForm from "./NewPostForm";
 
-export const loader = (client: AppClient) => async () => {
+export const loader = (_client: AppClient) => async () => {
   // Posts listing not implemented on backend yet; skip prefetch.
   return { opts: undefined, disabled: true };
 };

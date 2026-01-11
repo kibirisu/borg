@@ -64,8 +64,8 @@ const PostComposerOverlay = ({
       <div
         className="relative w-full max-w-2xl rounded-3xl bg-white p-6 shadow-2xl"
         onClick={(event) => event.stopPropagation()}
-        onKeyDown={(event) => event.stopPropagation()}
         role="presentation"
+        tabIndex={-1}
       >
         <button
           type="button"

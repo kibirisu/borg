@@ -7,18 +7,19 @@ import ClientContext from "../../lib/client";
 import { PostItem } from "./PostItem";
 
 export const loader =
-  (_client: AppClient) =>
-  async (_args: LoaderFunctionArgs) => {
-    // const userId = parseInt(String(params.handle));
-    // const queryParams = { params: { path: { id: userId } } };
-    // const opts = client.$api.queryOptions(
-    //   "get",
-    //   "/api/users/{id}/posts",
-    //   queryParams,
-    // );
-    // await client.queryClient.ensureQueryData(opts);
-    // return { opts };
-    return { opts: undefined };
+  (client: AppClient) =>
+  async ({ params }: LoaderFunctionArgs) => {
+    const handle = params.handle;
+    const userId = handle ? Number(handle) : NaN;
+    if (!handle || Number.isNaN(userId)) {
+      return { opts: undefined };
+    }
+
+    const opts = client.$api.queryOptions("get", "/api/users/{id}/posts", {
+      params: { path: { id: userId } },
+    });
+    await client.queryClient.ensureQueryData(opts);
+    return { opts };
   };
 
 export default function Feed() {
@@ -27,21 +28,10 @@ export default function Feed() {
     ReturnType<ReturnType<typeof loader>>
   >;
 
-  const queryOptions =
-    opts ??
-    ({
-      queryKey: ["posts-feed-disabled"],
-      queryFn: async () => [] as components["schemas"]["Post"][],
-      enabled: false,
-    } satisfies Parameters<typeof useQuery>[0]);
-
-  const { data, isPending } = useQuery<components["schemas"]["Post"][]>(
-    queryOptions,
-  );
-
   if (!opts || !client) {
     return null;
   }
+  const { data, isPending } = useQuery(opts);
 
   if (isPending) {
     return (

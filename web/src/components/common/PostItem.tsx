@@ -87,6 +87,14 @@ export const PostItem = ({
     <div
       className="border-b border-gray-200 p-4 hover:bg-gray-50 transition-colors cursor-pointer"
       onClick={handleSelect}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          handleSelect();
+        }
+      }}
     >
       <div className="flex space-x-3">
         <div className="flex-1">

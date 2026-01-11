@@ -1,4 +1,8 @@
-import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
+import {
+  type UseQueryOptions,
+  useQuery,
+  useSuspenseQuery,
+} from "@tanstack/react-query";
 import { useContext } from "react";
 import { type LoaderFunctionArgs, useLoaderData } from "react-router";
 import type { components } from "../../lib/api/v1";
@@ -50,6 +54,7 @@ export const commentsLoader =
  */
 export default function CommentView() {
   const client = useContext(ClientContext);
+  if (!client) return null;
   const { postOpts, commentOpts, postId } = useLoaderData() as Awaited<
     ReturnType<ReturnType<typeof loader>>
   >;
@@ -59,7 +64,10 @@ export default function CommentView() {
       <div className="w-full bg-white border border-gray-200 overflow-hidden divide-y divide-gray-200 shadow-sm">
         <div className="bg-white">
           {postData && postData.data ? (
-            <PostItem post={{ data: postData.data as any }} client={client!} />
+            <PostItem
+              post={{ data: postData.data as components["schemas"]["Post"] }}
+              client={client}
+            />
           ) : (
             <div className="p-6 text-center text-gray-600">Post not found.</div>
           )}
@@ -77,9 +85,16 @@ export default function CommentView() {
 
 export function CommentsFeed({
   opts,
-  postId,
+  postId: _postId,
 }: {
-  opts?: any;
+  opts?:
+    | UseQueryOptions<
+        components["schemas"]["Comment"][],
+        any,
+        components["schemas"]["Comment"][],
+        any
+      >
+    | any;
   postId?: number;
 }) {
   const client = useContext(ClientContext);
@@ -90,9 +105,8 @@ export function CommentsFeed({
       </div>
     );
   }
-  const { data, isPending } = useQuery<components["schemas"]["Comment"][]>(
-    opts as any,
-  );
+  const { data, isPending } =
+    useQuery<components["schemas"]["Comment"][]>(opts);
   if (isPending) {
     return <></>;
   }
