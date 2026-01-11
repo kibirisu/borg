@@ -117,13 +117,13 @@ func (s *appService) CreateStatus(
 	status api.NewPost,
 	login LoginData,
 ) (worker.Job, error) {
-	uri := fmt.Sprintf(
-		"http://%s:%s/user/%s/statuses/%s",
+	actorURI := fmt.Sprintf(
+		"http://%s:%s/user/%s",
 		s.conf.ListenHost,
 		s.conf.ListenPort,
 		login.Username,
-		uuid.New(),
 	)
+	statusURI := fmt.Sprintf("%s/statuses/%s", actorURI, uuid.New())
 	createdStatus, err := s.store.Statuses().Create(ctx, db.CreateStatusParams{
 		Local: sql.NullBool{
 			Bool:  true,
@@ -131,21 +131,14 @@ func (s *appService) CreateStatus(
 		},
 		Content:   status.Content,
 		AccountID: int32(login.ID),
-		Uri:       uri,
+		Uri:       statusURI,
 	})
 	if err != nil {
 		return nil, err
 	}
 	return func(ctx context.Context) error {
 		actor := ap.NewActor(nil)
-		actor.SetLink(
-			fmt.Sprintf(
-				"http://%s:%s/user/%s",
-				s.conf.ListenHost,
-				s.conf.ListenPort,
-				login.Username,
-			),
-		)
+		actor.SetLink(actorURI)
 		status := ap.NewNote(nil)
 		replies := ap.NewNoteCollection(nil)
 		page := ap.NewNoteCollectionPage(nil)
@@ -157,7 +150,7 @@ func (s *appService) CreateStatus(
 			Items:  []ap.Objecter[ap.Note]{},
 		})
 		replies.SetObject(ap.Collection[ap.Note]{
-			ID:    fmt.Sprintf("%s/replies", uri),
+			ID:    fmt.Sprintf("%s/replies", statusURI),
 			Type:  "Collection",
 			First: nil,
 		})
@@ -172,14 +165,7 @@ func (s *appService) CreateStatus(
 			CC:           []string{},
 			Replies:      replies,
 		})
-		create := ap.NewCreateActivity(nil)
-		create.SetObject(ap.Activity[ap.Note]{
-			ID:     "",
-			Type:   "Create",
-			Actor:  actor,
-			Object: status,
-		})
-		return s.prcessor.Propagate(ctx, create.(ap.Activiter[any]))
+		return s.prcessor.PropagateStatus(ctx, status)
 	}, nil
 }
 
