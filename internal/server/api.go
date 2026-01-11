@@ -685,3 +685,24 @@ func (s *Server) GetApiUsersIdLikedPosts(w http.ResponseWriter, r *http.Request,
 	util.WriteJSON(w, http.StatusOK, apiPosts)
 }
 
+// GetApiUsersIdSharedPosts implements api.ServerInterface.
+func (s *Server) GetApiUsersIdSharedPosts(w http.ResponseWriter, r *http.Request, id int) {
+	posts, err := s.service.App.GetSharedPostsByUser(r.Context(), id)
+	if err != nil {
+		http.Error(w, "Failed to fetch shared posts", http.StatusInternalServerError)
+		return
+	}
+
+	apiPosts := make([]api.Post, 0, len(posts))
+
+	for _, info := range posts {
+		converted := mapper.PostToAPIWithMetadata(&info.Status,
+			&info.Account,
+			int(info.LikeCount),
+			int(info.ShareCount),
+			int(info.CommentCount))
+		apiPosts = append(apiPosts, *converted)
+	}
+
+	util.WriteJSON(w, http.StatusOK, apiPosts)
+}

@@ -42,6 +42,7 @@ type AppService interface {
 	UpdateAccount(ctx context.Context, params db.UpdateAccountParams) (db.Account, error)
 	DeletePost(context.Context, int) error
 	GetLikedPostsByUser(context.Context, int) ([]db.GetLikedPostsByAccountIdRow, error)
+	GetSharedPostsByUser(context.Context, int) ([]db.GetSharedPostsByAccountIdRow, error)
 	// EW, idk if this should stay here
 	DeliverToFollowers(http.ResponseWriter, *http.Request, int, func(recipientURI string) any)
 }
@@ -279,4 +280,12 @@ func (s *appService) GetLikedPostsByUser(
 	accountID int,
 ) ([]db.GetLikedPostsByAccountIdRow, error) {
 	return s.store.Favourites().GetLikedPostsByUser(ctx, accountID)
+}
+
+// GetSharedPostsByUser implements AppService.
+func (s *appService) GetSharedPostsByUser(
+	ctx context.Context,
+	accountID int,
+) ([]db.GetSharedPostsByAccountIdRow, error) {
+	return s.store.Statuses().GetSharedPostsByUser(ctx, accountID)
 }

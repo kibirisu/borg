@@ -11,6 +11,8 @@ type FavouriteRepository interface {
 	GetByURI(context.Context, string) (db.Favourite, error)
 	GetByPost(context.Context, int) ([]db.Favourite, error)
 	DeleteByID(context.Context, int32) error
+	GetByPost(ctx context.Context, id int) ([]db.Favourite, error)
+	GetLikedPostsByUser(ctx context.Context, accountID int) ([]db.GetLikedPostsByAccountIdRow, error)
 }
 
 type favouriteRepository struct {

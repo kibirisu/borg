@@ -20,7 +20,9 @@ type StatusRepository interface {
 	GetPostComments(context.Context, int) ([]db.Status, error)
 	Update(context.Context, db.UpdateStatusParams) (db.Status, error)
 	Delete(context.Context, int) error
+	GetSharedPostsByUser(context.Context, int) ([]db.GetSharedPostsByAccountIdRow, error)
 }
+
 
 type statusRepository struct {
 	q *db.Queries
@@ -109,4 +111,11 @@ func (r *statusRepository) Update(ctx context.Context, params db.UpdateStatusPar
 // Delete implements StatusRepository.:
 func (r *statusRepository) Delete(ctx context.Context, id int) error {
     return r.q.DeleteStatus(ctx, int32(id))
+}
+// GetSharedPostsByUser implements StatusRepository.
+func (r *statusRepository) GetSharedPostsByUser(
+	ctx context.Context,
+	accountID int,
+) ([]db.GetSharedPostsByAccountIdRow, error) {
+	return r.q.GetSharedPostsByAccountId(ctx, int32(accountID))
 }
