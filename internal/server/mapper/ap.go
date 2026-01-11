@@ -43,8 +43,14 @@ func ActorToAccountCreate(account *domain.ActorOld, domain string) *db.CreateAct
 }
 
 func DBToFollow(follow *db.Follow, follower *db.Account, followee *db.Account) *domain.Follow {
-	followerURI, _ := json.Marshal(follower.Uri)
-	followedURI, _ := json.Marshal(followee.Uri)
+	followerURI, err := json.Marshal(follower.Uri)
+	if err != nil {
+		return nil
+	}
+	followedURI, err := json.Marshal(followee.Uri)
+	if err != nil {
+		return nil
+	}
 	return &domain.Follow{
 		ID:     follow.Uri,
 		Type:   "Follow",
@@ -54,8 +60,14 @@ func DBToFollow(follow *db.Follow, follower *db.Account, followee *db.Account) *
 }
 
 func DBToFavourite(fav *db.Favourite, liker *db.Account, post *db.Status) *domain.Like {
-	likerURI, _ := json.Marshal(liker.Uri)
-	postURI, _ := json.Marshal(post.Uri)
+	likerURI, err := json.Marshal(liker.Uri)
+	if err != nil {
+		return nil
+	}
+	postURI, err := json.Marshal(post.Uri)
+	if err != nil {
+		return nil
+	}
 
 	return &domain.Like{
 		ID:     fav.Uri,
@@ -77,14 +89,14 @@ func ToCreate(data []byte) (*domain.Create, error) {
 	return &f, err
 }
 
-func PostToCreateNote(post *db.Status, poster *db.Account, followersUri string) *domain.Create {
+func PostToCreateNote(post *db.Status, poster *db.Account, followersURI string) *domain.Create {
 	note := domain.NoteOld{
 		ID:           post.Uri,
 		Type:         "Note",
 		Published:    post.CreatedAt,
 		AttributedTo: poster.Uri,
 		Content:      post.Content,
-		To:           []string{followersUri},
+		To:           []string{followersURI},
 	}
 	noteBytes, err := json.Marshal(note)
 	if err != nil {
