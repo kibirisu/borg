@@ -41,7 +41,7 @@ func (s *Server) handleGetActor(w http.ResponseWriter, r *http.Request) {
 	util.WriteActivityJSON(w, http.StatusOK, actor)
 }
 func (s *Server) handleGetStatus(w http.ResponseWriter, r *http.Request) {
-	uri := r.URL.Path
+	uri := chi.URLParam(r, "uuid")
 	status, err := s.service.Federation.GetStatus(r.Context(), uri)
 	if err != nil {
 		util.WriteError(w, http.StatusNotFound, err.Error())
@@ -50,7 +50,7 @@ func (s *Server) handleGetStatus(w http.ResponseWriter, r *http.Request) {
 	util.WriteActivityJSON(w, http.StatusOK, status)
 }
 func (s *Server) handleGetLike(w http.ResponseWriter, r *http.Request) {
-	uri := r.URL.Path
+	uri := chi.URLParam(r, "uuid")
 	like, err := s.service.Federation.GetLike(r.Context(), uri)
 	if err != nil {
 		util.WriteError(w, http.StatusNotFound, err.Error())
@@ -59,7 +59,7 @@ func (s *Server) handleGetLike(w http.ResponseWriter, r *http.Request) {
 	util.WriteActivityJSON(w, http.StatusOK, like)
 }
 func (s *Server) handleGetFollow(w http.ResponseWriter, r *http.Request) {
-	uri := r.URL.Path
+	uri := chi.URLParam(r, "uuid")
 	follow, err := s.service.Federation.GetFollow(r.Context(), uri)
 	if err != nil {
 		util.WriteError(w, http.StatusNotFound, err.Error())

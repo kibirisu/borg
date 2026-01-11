@@ -430,11 +430,11 @@ func (q *Queries) GetActor(ctx context.Context, username string) (Account, error
 }
 
 const getActorByURI = `-- name: GetActorByURI :one
-SELECT id, created_at, updated_at, username, uri, display_name, domain, inbox_uri, outbox_uri, followers_uri, following_uri, url FROM accounts WHERE uri = $1
+SELECT id, created_at, updated_at, username, uri, display_name, domain, inbox_uri, outbox_uri, followers_uri, following_uri, url FROM accounts WHERE uri LIKE '%' || $1::text
 `
 
-func (q *Queries) GetActorByURI(ctx context.Context, uri string) (Account, error) {
-	row := q.db.QueryRowContext(ctx, getActorByURI, uri)
+func (q *Queries) GetActorByURI(ctx context.Context, dollar_1 string) (Account, error) {
+	row := q.db.QueryRowContext(ctx, getActorByURI, dollar_1)
 	var i Account
 	err := row.Scan(
 		&i.ID,
@@ -454,11 +454,11 @@ func (q *Queries) GetActorByURI(ctx context.Context, uri string) (Account, error
 }
 
 const getFavouriteByURI = `-- name: GetFavouriteByURI :one
-SELECT id, created_at, updated_at, uri, account_id, status_id FROM favourites WHERE uri = $1
+SELECT id, created_at, updated_at, uri, account_id, status_id FROM favourites WHERE uri LIKE '%' || $1::text
 `
 
-func (q *Queries) GetFavouriteByURI(ctx context.Context, uri string) (Favourite, error) {
-	row := q.db.QueryRowContext(ctx, getFavouriteByURI, uri)
+func (q *Queries) GetFavouriteByURI(ctx context.Context, dollar_1 string) (Favourite, error) {
+	row := q.db.QueryRowContext(ctx, getFavouriteByURI, dollar_1)
 	var i Favourite
 	err := row.Scan(
 		&i.ID,
@@ -472,11 +472,11 @@ func (q *Queries) GetFavouriteByURI(ctx context.Context, uri string) (Favourite,
 }
 
 const getFollowByURI = `-- name: GetFollowByURI :one
-SELECT id, created_at, updated_at, uri, account_id, target_account_id FROM follows WHERE uri = $1
+SELECT id, created_at, updated_at, uri, account_id, target_account_id FROM follows WHERE uri LIKE '%' || $1::text
 `
 
-func (q *Queries) GetFollowByURI(ctx context.Context, uri string) (Follow, error) {
-	row := q.db.QueryRowContext(ctx, getFollowByURI, uri)
+func (q *Queries) GetFollowByURI(ctx context.Context, dollar_1 string) (Follow, error) {
+	row := q.db.QueryRowContext(ctx, getFollowByURI, dollar_1)
 	var i Follow
 	err := row.Scan(
 		&i.ID,
@@ -670,11 +670,11 @@ func (q *Queries) GetStatusByIdWithMetadata(ctx context.Context, id int32) (GetS
 }
 
 const getStatusByURI = `-- name: GetStatusByURI :one
-SELECT id, created_at, updated_at, uri, url, local, content, account_id, in_reply_to_id, reblog_of_id FROM statuses WHERE uri = $1
+SELECT id, created_at, updated_at, uri, url, local, content, account_id, in_reply_to_id, reblog_of_id FROM statuses WHERE uri LIKE '%' || $1::text
 `
 
-func (q *Queries) GetStatusByURI(ctx context.Context, uri string) (Status, error) {
-	row := q.db.QueryRowContext(ctx, getStatusByURI, uri)
+func (q *Queries) GetStatusByURI(ctx context.Context, dollar_1 string) (Status, error) {
+	row := q.db.QueryRowContext(ctx, getStatusByURI, dollar_1)
 	var i Status
 	err := row.Scan(
 		&i.ID,

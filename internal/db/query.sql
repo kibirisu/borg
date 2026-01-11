@@ -2,7 +2,7 @@
 SELECT * FROM accounts WHERE username = $1 AND domain IS NULL;
 
 -- name: GetActorByURI :one
-SELECT * FROM accounts WHERE uri = $1;
+SELECT * FROM accounts WHERE uri LIKE '%' || $1::text;
 
 -- name: AuthData :one
 SELECT a.id, u.password_hash FROM accounts a JOIN users u ON a.id = u.account_id WHERE a.username = $1;
@@ -42,7 +42,7 @@ WHERE a.domain is null and s.in_reply_to_id is null;
 SELECT * FROM statuses WHERE id = $1;
 
 -- name: GetStatusByURI :one
-SELECT * FROM statuses WHERE uri = $1;
+SELECT * FROM statuses WHERE uri LIKE '%' || $1::text;
 
 -- name: GetStatusByIdWithMetadata :one
 SELECT 
@@ -133,10 +133,10 @@ INSERT INTO favourites (
 RETURNING *;
 
 -- name: GetFavouriteByURI :one
-SELECT * FROM favourites WHERE uri = $1;
+SELECT * FROM favourites WHERE uri LIKE '%' || $1::text;
 
 -- name: GetFollowByURI :one
-SELECT * FROM follows WHERE uri = $1;
+SELECT * FROM follows WHERE uri LIKE '%' || $1::text;
 
 -- name: DeleteFavouriteByID :exec
 DELETE FROM favourites WHERE id = $1;
