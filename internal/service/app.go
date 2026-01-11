@@ -118,6 +118,12 @@ func (s *appService) CreateFollow(ctx context.Context, follow *db.CreateFollowPa
 
 // AddNote implements AppService.
 func (s *appService) AddNote(ctx context.Context, note db.CreateStatusParams) (db.Status, error) {
+	if note.Uri == "" {
+		note.Uri = fmt.Sprintf("http://%s/statuses/%s", s.conf.ListenHost, uuid.NewString())
+	}
+	if note.Url == "" {
+		note.Url = fmt.Sprintf("http://%s/statuses/%s", s.conf.ListenHost, uuid.NewString())
+	}
 	return s.store.Statuses().Create(ctx, note)
 }
 
