@@ -336,7 +336,7 @@ paths:
     post:
       summary: Create a post share
       responses:
-        "200":  
+        "200":
           description: Created share
       parameters:
         - name: id
@@ -440,7 +440,7 @@ components:
   securitySchemes:
     BearerAuth:
       type: http
-      scheme: bearer
+      scheme: Bearer
       bearerFormat: JWT
   schemas:
     AuthForm:
