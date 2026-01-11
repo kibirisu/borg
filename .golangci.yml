@@ -31,7 +31,12 @@ linters:
     revive:
       rules:
         - name: var-naming
-          exclude: ["**/internal/server/server.go", "**/internal/api/**"]
+          exclude:
+            [
+              "**/internal/server/api.go",
+              "**/internal/api/**",
+              "**/internal/util/**",
+            ]
   exclusions:
     generated: lax
 formatters:

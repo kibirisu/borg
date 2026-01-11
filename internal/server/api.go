@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/kibirisu/borg/internal/ap"
 	"github.com/kibirisu/borg/internal/api"
 	"github.com/kibirisu/borg/internal/db"
 	"github.com/kibirisu/borg/internal/server/mapper"
@@ -56,8 +57,6 @@ func (s *Server) GetApiAccountsLookup(
 	r *http.Request,
 	params api.GetApiAccountsLookupParams,
 ) {
-	// // we must check if account is local or from other instance
-	// // if from other instance we do webfinger lookup
 	acct := params.Acct
 	handle, err := util.ParseHandle(acct, s.conf.ListenHost)
 	if err != nil {
@@ -102,7 +101,11 @@ func (s *Server) GetApiAccountsLookup(
 		return
 	}
 
-	log.Printf("lookup: remote account %s@%s not cached, performing WebFinger lookup", handle.Username, handle.Domain)
+	log.Printf(
+		"lookup: remote account %s@%s not cached, performing WebFinger lookup",
+		handle.Username,
+		handle.Domain,
+	)
 	util.WriteError(w, http.StatusInternalServerError, "unimplemented")
 	// actor, err := s.service.Federation.processor.LookupActor(r.Context(), handle)
 	// if err != nil {
@@ -122,12 +125,12 @@ func (s *Server) GetApiAccountsLookup(
 // PostApiAccountsIdFollow implements api.ServerInterface.
 func (s *Server) PostApiAccountsIdFollow(w http.ResponseWriter, r *http.Request, id int) {
 	container, ok := r.Context().Value("token").(*tokenContainer)
-    
-    if !ok || container == nil || container.id == nil {
-        util.WriteError(w, http.StatusUnauthorized, "User not authenticated")
-        return
-    }
-    currentUserID := *container.id
+
+	if !ok || container == nil || container.id == nil {
+		util.WriteError(w, http.StatusUnauthorized, "User not authenticated")
+		return
+	}
+	currentUserID := *container.id
 	if currentUserID == id {
 		http.Error(w, "Tried to follow oneself", http.StatusBadRequest)
 		return
@@ -139,12 +142,23 @@ func (s *Server) PostApiAccountsIdFollow(w http.ResponseWriter, r *http.Request,
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
-	APfollow := mapper.DBToFollow(follow, &follower, &followee)
+	// APfollow := mapper.DBToFollow(follow, &follower, &followee)
+	followActivity := ap.NewActivity(nil)
+	actor := ap.NewActor(nil)
+	actor.SetLink(follower.Uri)
+	object := ap.NewActor(nil)
+	object.SetLink(followee.Uri)
+	followActivity.SetObject(ap.Activity[any]{
+		ID:     follow.Uri,
+		Type:   "Follow",
+		Actor:  actor,
+		Object: object.(ap.Objecter[any]),
+	})
 	log.Println(followee.InboxUri)
 	if follower.Domain != followee.Domain {
-		util.DeliverToEndpoint(followee.InboxUri, APfollow)
+		util.DeliverToEndpoint(followee.InboxUri, followActivity.GetRaw())
 	}
-	util.WriteJSON(w, http.StatusCreated, nil);
+	util.WriteJSON(w, http.StatusCreated, nil)
 }
 
 // DeleteApiUsersId implements api.ServerInterface.
@@ -154,7 +168,14 @@ func (s *Server) DeleteApiUsersId(w http.ResponseWriter, r *http.Request, id int
 
 // GetApiUsersId implements api.ServerInterface.
 func (s *Server) GetApiUsersId(w http.ResponseWriter, r *http.Request, id int) {
-	panic("unimplemented")
+	user, err := s.service.App.GetAccountById(r.Context(), id)
+	if err != nil {
+		http.Error(w, "Database error", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	util.WriteJSON(w, http.StatusOK, *mapper.AccountToAPI(&user))
 }
 
 // PostApiUsers implements api.ServerInterface.
@@ -174,7 +195,18 @@ func (s *Server) DeleteApiPostsId(w http.ResponseWriter, r *http.Request, id int
 
 // GetApiPostsId implements api.ServerInterface.
 func (s *Server) GetApiPostsId(w http.ResponseWriter, r *http.Request, id int) {
-	panic("unimplemented")
+	info, err := s.service.App.GetPostByIdWithMetadata(r.Context(), id)
+	if err != nil {
+		http.Error(w, "Database error", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	util.WriteJSON(w, http.StatusOK, *mapper.PostToAPIWithMetadata(&info.Status,
+		&info.Account,
+		int(info.LikeCount),
+		int(info.ShareCount),
+		int(info.CommentCount)))
 }
 
 // GetApiPostsIdComments implements api.ServerInterface.
@@ -184,27 +216,142 @@ func (s *Server) GetApiPostsIdComments(w http.ResponseWriter, r *http.Request, i
 
 // PostApiPostsIdComments implements api.ServerInterface.
 func (s *Server) PostApiPostsIdComments(w http.ResponseWriter, r *http.Request, id int) {
-	panic("unimplemented")
+	var comment api.NewComment
+	if err := util.ReadJSON(r, &comment); err != nil {
+		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+		return
+	}
+	currentUserID := comment.UserID
+
+	commenter, err := s.service.App.GetAccountById(r.Context(), currentUserID)
+	parentPost, err := s.service.App.GetPostById(r.Context(), id)
+	if err != nil {
+		http.Error(w, "Parent post not found", http.StatusNotFound)
+		return
+	}
+
+	dbComment := mapper.NewCommentToDB(&comment)
+	status, err := s.service.App.AddNote(r.Context(), *dbComment)
+	if err != nil {
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	parentAuthor, _ := s.service.App.GetAccountById(r.Context(), int(parentPost.AccountID))
+
+	s.service.App.DeliverToFollowers(w, r, currentUserID, func(recipientURI string) any {
+		return mapper.PostToCreateNote(&status, &commenter, parentAuthor.FollowersUri)
+	})
+
+	if commenter.Domain != parentAuthor.Domain {
+		APComment := mapper.PostToCreateNote(&status, &commenter, parentAuthor.Uri)
+		util.DeliverToEndpoint(parentAuthor.InboxUri, APComment)
+	}
+
+	util.WriteJSON(w, http.StatusCreated, nil)
 }
 
 // GetApiPostsIdLikes implements api.ServerInterface.
 func (s *Server) GetApiPostsIdLikes(w http.ResponseWriter, r *http.Request, id int) {
-	panic("unimplemented")
+	likes, err := s.service.App.GetPostLikes(r.Context(), id)
+	if err != nil {
+		http.Error(w, "Database error", http.StatusInternalServerError)
+		return
+	}
+	apiLikes := make([]api.Like, 0, len(likes))
+
+	for _, like := range likes {
+		converted := mapper.LikeToAPI(&like)
+		apiLikes = append(apiLikes, *converted)
+	}
+
+	util.WriteJSON(w, http.StatusOK, apiLikes)
 }
 
 // PostApiPostsIdLikes implements api.ServerInterface.
 func (s *Server) PostApiPostsIdLikes(w http.ResponseWriter, r *http.Request, id int) {
-	panic("unimplemented")
+	var newLike api.NewLike
+	if err := util.ReadJSON(r, &newLike); err != nil {
+		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+		return
+	}
+	currentUserID := newLike.UserID
+
+	liker, err := s.service.App.GetAccountById(r.Context(), currentUserID)
+	post, err := s.service.App.GetPostById(r.Context(), id)
+	if err != nil {
+		http.Error(w, "Post not found", http.StatusNotFound)
+		return
+	}
+
+	like, err := s.service.App.AddFavourite(r.Context(), currentUserID, id)
+	if err != nil {
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	APLike := mapper.DBToFavourite(&like, &liker, post)
+
+	author, err := s.service.App.GetAccountById(r.Context(), int(post.AccountID))
+	if err == nil && liker.Domain != author.Domain {
+		util.DeliverToEndpoint(author.InboxUri, APLike)
+	}
+
+	util.WriteJSON(w, http.StatusCreated, nil)
 }
 
 // GetApiPostsIdShares implements api.ServerInterface.
 func (s *Server) GetApiPostsIdShares(w http.ResponseWriter, r *http.Request, id int) {
-	panic("unimplemented")
+	shares, err := s.service.App.GetPostShares(r.Context(), id)
+	if err != nil {
+		http.Error(w, "Database error", http.StatusInternalServerError)
+		return
+	}
+	apiShares := make([]api.Post, 0, len(shares))
+
+	for _, share := range shares {
+		converted := mapper.PostToAPI(&share)
+		apiShares = append(apiShares, *converted)
+	}
+
+	util.WriteJSON(w, http.StatusOK, apiShares)
 }
 
 // PostApiPostsIdShares implements api.ServerInterface.
 func (s *Server) PostApiPostsIdShares(w http.ResponseWriter, r *http.Request, id int) {
-	panic("unimplemented")
+	var newShare api.NewShare
+	if err := util.ReadJSON(r, &newShare); err != nil {
+		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+		return
+	}
+	currentUserID := newShare.UserID
+
+	sharer, err := s.service.App.GetAccountById(r.Context(), currentUserID)
+	post, err := s.service.App.GetPostById(r.Context(), id)
+	if err != nil {
+		http.Error(w, "Post not found", http.StatusNotFound)
+		return
+	}
+	status := mapper.NewShareToDB(&newShare)
+
+	share, err := s.service.App.AddNote(r.Context(), *status)
+	if err != nil {
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	author, err := s.service.App.GetAccountById(r.Context(), int(post.AccountID))
+	if err == nil && sharer.Domain != author.Domain {
+		APAnnounce := mapper.PostToCreateNote(&share, &sharer, author.Uri)
+		util.DeliverToEndpoint(author.InboxUri, APAnnounce)
+	}
+
+	s.service.App.DeliverToFollowers(w, r, currentUserID, func(recipientURI string) any {
+		APAnnounce := mapper.PostToCreateNote(&share, &sharer, author.FollowersUri)
+		return APAnnounce
+	})
+
+	util.WriteJSON(w, http.StatusCreated, nil)
 }
 
 // PostApiPosts implements api.ServerInterface.
@@ -218,7 +365,6 @@ func (s *Server) PostApiPosts(w http.ResponseWriter, r *http.Request) {
 	poster, err := s.service.App.GetAccountById(r.Context(), currentUserID)
 	var newPost api.NewPost
 	if err := util.ReadJSON(r, &newPost); err != nil {
-		log.Printf("[PostApiPosts] failed to parse payload: %v", err)
 		http.Error(w, "Invalid request payload", http.StatusBadRequest)
 		return
 	}
@@ -265,7 +411,24 @@ func (s *Server) PutApiPostsId(w http.ResponseWriter, r *http.Request, id int) {
 
 // GetApiUsersIdPosts implements api.ServerInterface.
 func (s *Server) GetApiUsersIdPosts(w http.ResponseWriter, r *http.Request, id int) {
-	panic("unimplemented")
+	posts, err := s.service.App.GetPostByAccountId(r.Context(), id)
+	if err != nil {
+		http.Error(w, "Post not found", http.StatusNotFound)
+		return
+	}
+
+	apiLikes := make([]api.Post, 0, len(posts))
+
+	for _, info := range posts {
+		converted := mapper.PostToAPIWithMetadata(&info.Status,
+			&info.Account,
+			int(info.LikeCount),
+			int(info.ShareCount),
+			int(info.CommentCount))
+		apiLikes = append(apiLikes, *converted)
+	}
+
+	util.WriteJSON(w, http.StatusOK, apiLikes)
 }
 
 // PostApiAuthRegister implements api.ServerInterface.
@@ -280,15 +443,54 @@ func (s *Server) PostApiAuthLogin(w http.ResponseWriter, r *http.Request) {
 
 // GetApiUsersIdFollowers implements api.ServerInterface.
 func (s *Server) GetApiUsersIdFollowers(w http.ResponseWriter, r *http.Request, id int) {
-	panic("unimplemented")
+	followers, err := s.service.App.GetAccountFollowers(r.Context(), id)
+	if err != nil {
+		http.Error(w, "Failed to fetch followers", http.StatusInternalServerError)
+		return
+	}
+
+	apiFollowers := make([]api.Account, 0, len(followers))
+	for _, follower := range followers {
+		apiFollowers = append(apiFollowers, *mapper.AccountToAPI(&follower))
+	}
+
+	util.WriteJSON(w, http.StatusOK, apiFollowers)
 }
 
 // GetApiUsersIdFollowing implements api.ServerInterface.
 func (s *Server) GetApiUsersIdFollowing(w http.ResponseWriter, r *http.Request, id int) {
-	panic("unimplemented")
+	following, err := s.service.App.GetAccountFollowing(r.Context(), id)
+	if err != nil {
+		http.Error(w, "Failed to fetch following", http.StatusInternalServerError)
+		return
+	}
+
+	apiFollowers := make([]api.Account, 0, len(following))
+	for _, follower := range following {
+		apiFollowers = append(apiFollowers, *mapper.AccountToAPI(&follower))
+	}
+
+	util.WriteJSON(w, http.StatusOK, apiFollowers)
 }
 
 // GetApiPosts implements api.ServerInterface.
 func (s *Server) GetApiPosts(w http.ResponseWriter, r *http.Request) {
-	panic("unimplemented")
+	posts, err := s.service.App.GetLocalPosts(r.Context())
+	if err != nil {
+		http.Error(w, "Database error "+err.Error(), http.StatusNotFound)
+		return
+	}
+
+	apiLikes := make([]api.Post, 0, len(posts)) // i see smth bad right here...
+
+	for _, info := range posts {
+		converted := mapper.PostToAPIWithMetadata(&info.Status,
+			&info.Account,
+			int(info.LikeCount),
+			int(info.ShareCount),
+			int(info.CommentCount))
+		apiLikes = append(apiLikes, *converted)
+	}
+
+	util.WriteJSON(w, http.StatusOK, apiLikes)
 }

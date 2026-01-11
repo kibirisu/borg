@@ -1,8 +1,12 @@
 package service
 
 import (
+	"context"
+
 	"github.com/kibirisu/borg/internal/config"
+	proc "github.com/kibirisu/borg/internal/processing"
 	"github.com/kibirisu/borg/internal/repository"
+	"github.com/kibirisu/borg/internal/transport"
 )
 
 type Container struct {
@@ -10,10 +14,11 @@ type Container struct {
 	Federation FederationService
 }
 
-func NewContainer(conf *config.Config) *Container {
-	store := repository.NewStore(conf.DatabaseURL)
+func NewContainer(ctx context.Context, conf *config.Config) *Container {
+	store := repository.New(ctx, conf.DatabaseURL)
+	proc := proc.New(store, transport.New())
 	return &Container{
-		App:        NewAppService(store, conf),
-		Federation: NewFederationService(store),
+		App:        &appService{store, conf},
+		Federation: &federationService{store, proc},
 	}
 }

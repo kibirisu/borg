@@ -9,8 +9,8 @@ import (
 	"github.com/kibirisu/borg/internal/domain"
 )
 
-func AccountToActor(account *db.Account) *domain.Actor {
-	return &domain.Actor{
+func AccountToActor(account *db.Account) *domain.ActorOld {
+	return &domain.ActorOld{
 		Context:           "https://www.w3.org/ns/activitystreams",
 		ID:                account.Uri,
 		Type:              "Person",
@@ -22,7 +22,7 @@ func AccountToActor(account *db.Account) *domain.Actor {
 	}
 }
 
-func ActorToAccountCreate(account *domain.Actor, domain string) *db.CreateActorParams {
+func ActorToAccountCreate(account *domain.ActorOld, domain string) *db.CreateActorParams {
 	return &db.CreateActorParams{
 		Username: account.PreferredUsername,
 		Uri:      account.ID,
@@ -41,15 +41,40 @@ func ActorToAccountCreate(account *domain.Actor, domain string) *db.CreateActorP
 		Url:          "", // TODO
 	}
 }
+
 func DBToFollow(follow *db.Follow, follower *db.Account, followee *db.Account) *domain.Follow {
-	followerURI, _ := json.Marshal(follower.Uri)
-	followedURI, _ := json.Marshal(followee.Uri)
+	followerURI, err := json.Marshal(follower.Uri)
+	if err != nil {
+		return nil
+	}
+	followedURI, err := json.Marshal(followee.Uri)
+	if err != nil {
+		return nil
+	}
 	return &domain.Follow{
-		ID: follow.Uri,
-		Type: "Follow",
+		ID:     follow.Uri,
+		Type:   "Follow",
 		Actor:  json.RawMessage(followerURI),
 		Object: json.RawMessage(followedURI),
-	};
+	}
+}
+
+func DBToFavourite(fav *db.Favourite, liker *db.Account, post *db.Status) *domain.Like {
+	likerURI, err := json.Marshal(liker.Uri)
+	if err != nil {
+		return nil
+	}
+	postURI, err := json.Marshal(post.Uri)
+	if err != nil {
+		return nil
+	}
+
+	return &domain.Like{
+		ID:     fav.Uri,
+		Type:   "Like",
+		Actor:  json.RawMessage(likerURI),
+		Object: json.RawMessage(postURI),
+	}
 }
 
 func ToFollow(data []byte) (*domain.Follow, error) {
@@ -64,18 +89,14 @@ func ToCreate(data []byte) (*domain.Create, error) {
 	return &f, err
 }
 
-func PostToCreateNote(post *db.Status, poster *db.Account, receiverURIs []string) *domain.Create {
-	if len(receiverURIs) == 0 {
-		receiverURIs = []string{"https://www.w3.org/ns/activitystreams#Public"}
-	}
-
-	note := domain.Note{
+func PostToCreateNote(post *db.Status, poster *db.Account, followersURI string) *domain.Create {
+	note := domain.NoteOld{
 		ID:           post.Uri,
 		Type:         "Note",
 		Published:    post.CreatedAt,
 		AttributedTo: poster.Uri,
 		Content:      post.Content,
-		To:           receiverURIs,
+		To:           []string{followersURI},
 	}
 	noteBytes, err := json.Marshal(note)
 	if err != nil {
@@ -92,5 +113,5 @@ func PostToCreateNote(post *db.Status, poster *db.Account, receiverURIs []string
 		Actor:  json.RawMessage(actorBytes),
 		Object: json.RawMessage(noteBytes),
 	}
-	return &activity;
+	return &activity
 }
