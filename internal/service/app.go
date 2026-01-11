@@ -11,17 +11,20 @@ import (
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 
+	"github.com/kibirisu/borg/internal/ap"
 	"github.com/kibirisu/borg/internal/api"
 	"github.com/kibirisu/borg/internal/config"
 	"github.com/kibirisu/borg/internal/db"
+	proc "github.com/kibirisu/borg/internal/processing"
 	repo "github.com/kibirisu/borg/internal/repository"
 	"github.com/kibirisu/borg/internal/util"
+	"github.com/kibirisu/borg/internal/worker"
 )
 
 type AppService interface {
 	Register(context.Context, api.AuthForm) error
 	Login(context.Context, api.AuthForm) (string, error)
-	CreateStatus(context.Context, api.NewPost) error
+	CreateStatus(context.Context, api.NewPost, LoginData) (worker.Job, error)
 	GetAccountFollowers(context.Context, int) ([]db.Account, error)
 	GetAccountFollowing(context.Context, int) ([]db.Account, error)
 	GetLocalAccount(context.Context, string) (*db.Account, error)
@@ -43,8 +46,14 @@ type AppService interface {
 }
 
 type appService struct {
-	store repo.Store
-	conf  *config.Config
+	store    repo.Store
+	prcessor proc.Processor
+	conf     *config.Config
+}
+
+type LoginData struct {
+	ID       int
+	Username string
 }
 
 var _ AppService = (*appService)(nil)
@@ -103,17 +112,75 @@ func (s *appService) Login(ctx context.Context, form api.AuthForm) (string, erro
 }
 
 // CreateStatus implements AppService.
-func (s *appService) CreateStatus(ctx context.Context, status api.NewPost) error {
-	_, _ = s.store.Statuses().Create(ctx, db.CreateStatusParams{
+func (s *appService) CreateStatus(
+	ctx context.Context,
+	status api.NewPost,
+	login LoginData,
+) (worker.Job, error) {
+	uri := fmt.Sprintf(
+		"http://%s:%s/user/%s/statuses/%s",
+		s.conf.ListenHost,
+		s.conf.ListenPort,
+		login.Username,
+		uuid.New(),
+	)
+	createdStatus, err := s.store.Statuses().Create(ctx, db.CreateStatusParams{
 		Local: sql.NullBool{
 			Bool:  true,
 			Valid: true,
 		},
 		Content:   status.Content,
-		AccountID: int32(status.UserID),
-		Uri:       "",
+		AccountID: int32(login.ID),
+		Uri:       uri,
 	})
-	return nil
+	if err != nil {
+		return nil, err
+	}
+	return func(ctx context.Context) error {
+		actor := ap.NewActor(nil)
+		actor.SetLink(
+			fmt.Sprintf(
+				"http://%s:%s/user/%s",
+				s.conf.ListenHost,
+				s.conf.ListenPort,
+				login.Username,
+			),
+		)
+		status := ap.NewNote(nil)
+		replies := ap.NewNoteCollection(nil)
+		page := ap.NewNoteCollectionPage(nil)
+		page.SetObject(ap.CollectionPage[ap.Note]{
+			ID:     "None",
+			Type:   "CollectionPage",
+			Next:   ap.NewNoteCollectionPage(nil),
+			PartOf: replies,
+			Items:  []ap.Objecter[ap.Note]{},
+		})
+		replies.SetObject(ap.Collection[ap.Note]{
+			ID:    fmt.Sprintf("%s/replies", uri),
+			Type:  "Collection",
+			First: nil,
+		})
+		status.SetObject(ap.Note{
+			ID:           createdStatus.Uri,
+			Type:         "Note",
+			Content:      createdStatus.Content,
+			InReplyTo:    ap.NewNote(nil),
+			Published:    createdStatus.CreatedAt,
+			AttributedTo: actor,
+			To:           []string{},
+			CC:           []string{},
+			Replies:      replies,
+		})
+		create := ap.NewCreateActivity(nil)
+		create.SetObject(ap.Activity[ap.Note]{
+			ID:     "",
+			Type:   "Create",
+			Actor:  actor,
+			Object: status,
+		})
+		return s.prcessor.Propagate(ctx, create.(ap.Activiter[any]))
+	}, nil
 }
 
 // GetLocalAccount implements AppService.
