@@ -10,11 +10,11 @@ import (
 type StatusRepository interface {
 	Create(context.Context, db.CreateStatusParams) (db.Status, error)
 	Add(context.Context, db.AddStatusParams) error
-	GetById(context.Context, int) (db.Status, error)
+	GetByID(context.Context, int) (db.Status, error)
 	GetByURI(context.Context, string) (db.Status, error)
 	GetShares(context.Context, int) ([]db.Status, error)
 	GetLocalStatuses(context.Context) ([]db.GetLocalStatusesRow, error)
-	GetByIdWithMetadata(context.Context, int) (db.GetStatusByIdWithMetadataRow, error)
+	GetByIDWithMetadata(context.Context, int) (db.GetStatusByIdWithMetadataRow, error)
 	DeleteByID(context.Context, int32) error
 }
 
@@ -38,7 +38,7 @@ func (r *statusRepository) Add(ctx context.Context, status db.AddStatusParams) e
 }
 
 // GetById implements StatusRepository.
-func (r *statusRepository) GetById(ctx context.Context, id int) (db.Status, error) {
+func (r *statusRepository) GetByID(ctx context.Context, id int) (db.Status, error) {
 	return r.q.GetStatusById(ctx, int32(id))
 }
 
@@ -48,7 +48,7 @@ func (r *statusRepository) GetByURI(ctx context.Context, uri string) (db.Status,
 }
 
 // GetById implements StatusRepository.
-func (r *statusRepository) GetByIdWithMetadata(
+func (r *statusRepository) GetByIDWithMetadata(
 	ctx context.Context,
 	id int,
 ) (db.GetStatusByIdWithMetadataRow, error) {

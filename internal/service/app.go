@@ -8,9 +8,9 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/google/uuid"
 	"github.com/kibirisu/borg/internal/api"
 	"github.com/kibirisu/borg/internal/config"
 	"github.com/kibirisu/borg/internal/db"
@@ -29,14 +29,14 @@ type AppService interface {
 	AddNote(context.Context, db.CreateStatusParams) (db.Status, error)
 	AddFavourite(context.Context, int, int) (db.Favourite, error)
 	FollowAccount(context.Context, int, int) (*db.Follow, error)
-	GetAccountById(context.Context, int) (db.Account, error)
+	GetAccountByID(context.Context, int) (db.Account, error)
 	GetAccount(context.Context, db.GetAccountParams) (*db.Account, error)
 	GetLocalPosts(context.Context) ([]db.GetLocalStatusesRow, error)
-	GetPostByAccountId(context.Context, int) ([]db.GetStatusesByAccountIdRow, error)
-	GetPostById(context.Context, int) (*db.Status, error)
+	GetPostByAccountID(context.Context, int) ([]db.GetStatusesByAccountIdRow, error)
+	GetPostByID(context.Context, int) (*db.Status, error)
 	GetPostLikes(context.Context, int) ([]db.Favourite, error)
 	GetPostShares(context.Context, int) ([]db.Status, error)
-	GetPostByIdWithMetadata(context.Context, int) (*db.GetStatusByIdWithMetadataRow, error)
+	GetPostByIDWithMetadata(context.Context, int) (*db.GetStatusByIdWithMetadataRow, error)
 	// EW, idk if this should stay here
 	DeliverToFollowers(http.ResponseWriter, *http.Request, int, func(recipientURI string) any)
 }
@@ -148,11 +148,11 @@ func (s *appService) GetAccount(
 	return &res, err
 }
 
-// GetAccountById implements AppService.
-func (s *appService) GetAccountById(
+// GetAccountByID implements AppService.
+func (s *appService) GetAccountByID(
 	ctx context.Context, accountID int,
 ) (db.Account, error) {
-	return s.store.Accounts().GetById(ctx, accountID)
+	return s.store.Accounts().GetByID(ctx, accountID)
 }
 
 // AddFavourite implements AppService.
@@ -181,11 +181,11 @@ func (s *appService) GetAccountFollowing(
 	return s.store.Accounts().GetFollowing(ctx, accountID)
 }
 
-func (s *appService) GetPostByIdWithMetadata(
+func (s *appService) GetPostByIDWithMetadata(
 	ctx context.Context,
 	id int,
 ) (*db.GetStatusByIdWithMetadataRow, error) {
-	status, err := s.store.Statuses().GetByIdWithMetadata(ctx, id)
+	status, err := s.store.Statuses().GetByIDWithMetadata(ctx, id)
 	if err != nil {
 		return nil, err
 	} else {
@@ -193,8 +193,8 @@ func (s *appService) GetPostByIdWithMetadata(
 	}
 }
 
-func (s *appService) GetPostById(ctx context.Context, id int) (*db.Status, error) {
-	status, err := s.store.Statuses().GetById(ctx, id)
+func (s *appService) GetPostByID(ctx context.Context, id int) (*db.Status, error) {
+	status, err := s.store.Statuses().GetByID(ctx, id)
 	if err != nil {
 		return nil, err
 	} else {
@@ -242,7 +242,7 @@ func (s *appService) DeliverToFollowers(
 	}
 }
 
-func (s *appService) GetPostByAccountId(
+func (s *appService) GetPostByAccountID(
 	ctx context.Context,
 	id int,
 ) ([]db.GetStatusesByAccountIdRow, error) {

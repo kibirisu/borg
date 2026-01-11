@@ -70,14 +70,14 @@ func (s *federationService) GetStatus(
 	}
 	reply := ap.NewNote(nil)
 	if statusDB.InReplyToID.Valid {
-		inreply, err := s.store.Statuses().GetById(ctx, int(statusDB.InReplyToID.Int32))
+		inreply, err := s.store.Statuses().GetByID(ctx, int(statusDB.InReplyToID.Int32))
 		if err != nil {
 			return nil, err
 		}
 
 		reply.SetLink(inreply.Uri)
 	}
-	accountDB, err := s.store.Accounts().GetById(ctx, int(statusDB.AccountID))
+	accountDB, err := s.store.Accounts().GetByID(ctx, int(statusDB.AccountID))
 	if err != nil {
 		return nil, err
 	}
@@ -110,11 +110,11 @@ func (s *federationService) GetLike(
 	if err != nil {
 		return nil, err
 	}
-	accountDB, err := s.store.Accounts().GetById(ctx, int(likeDB.AccountID))
+	accountDB, err := s.store.Accounts().GetByID(ctx, int(likeDB.AccountID))
 	if err != nil {
 		return nil, err
 	}
-	postDB, err := s.store.Statuses().GetById(ctx, int(likeDB.StatusID))
+	postDB, err := s.store.Statuses().GetByID(ctx, int(likeDB.StatusID))
 	if err != nil {
 		return nil, err
 	}
@@ -144,11 +144,11 @@ func (s *federationService) GetFollow(
 	if err != nil {
 		return nil, err
 	}
-	followerDB, err := s.store.Accounts().GetById(ctx, int(followDB.AccountID))
+	followerDB, err := s.store.Accounts().GetByID(ctx, int(followDB.AccountID))
 	if err != nil {
 		return nil, err
 	}
-	followeeDB, err := s.store.Accounts().GetById(ctx, int(followDB.TargetAccountID))
+	followeeDB, err := s.store.Accounts().GetByID(ctx, int(followDB.TargetAccountID))
 	if err != nil {
 		return nil, err
 	}

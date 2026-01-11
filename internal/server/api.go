@@ -135,8 +135,8 @@ func (s *Server) PostApiAccountsIdFollow(w http.ResponseWriter, r *http.Request,
 		http.Error(w, "Tried to follow oneself", http.StatusBadRequest)
 		return
 	}
-	follower, err := s.service.App.GetAccountById(r.Context(), currentUserID)
-	followee, err := s.service.App.GetAccountById(r.Context(), id)
+	follower, err := s.service.App.GetAccountByID(r.Context(), currentUserID)
+	followee, err := s.service.App.GetAccountByID(r.Context(), id)
 	follow, err := s.service.App.FollowAccount(r.Context(), currentUserID, id)
 	if err != nil {
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -168,7 +168,7 @@ func (s *Server) DeleteApiUsersId(w http.ResponseWriter, r *http.Request, id int
 
 // GetApiUsersId implements api.ServerInterface.
 func (s *Server) GetApiUsersId(w http.ResponseWriter, r *http.Request, id int) {
-	user, err := s.service.App.GetAccountById(r.Context(), id)
+	user, err := s.service.App.GetAccountByID(r.Context(), id)
 	if err != nil {
 		http.Error(w, "Database error", http.StatusInternalServerError)
 		return
@@ -195,7 +195,7 @@ func (s *Server) DeleteApiPostsId(w http.ResponseWriter, r *http.Request, id int
 
 // GetApiPostsId implements api.ServerInterface.
 func (s *Server) GetApiPostsId(w http.ResponseWriter, r *http.Request, id int) {
-	info, err := s.service.App.GetPostByIdWithMetadata(r.Context(), id)
+	info, err := s.service.App.GetPostByIDWithMetadata(r.Context(), id)
 	if err != nil {
 		http.Error(w, "Database error", http.StatusInternalServerError)
 		return
@@ -223,8 +223,8 @@ func (s *Server) PostApiPostsIdComments(w http.ResponseWriter, r *http.Request, 
 	}
 	currentUserID := comment.UserID
 
-	commenter, err := s.service.App.GetAccountById(r.Context(), currentUserID)
-	parentPost, err := s.service.App.GetPostById(r.Context(), id)
+	commenter, err := s.service.App.GetAccountByID(r.Context(), currentUserID)
+	parentPost, err := s.service.App.GetPostByID(r.Context(), id)
 	if err != nil {
 		http.Error(w, "Parent post not found", http.StatusNotFound)
 		return
@@ -237,7 +237,7 @@ func (s *Server) PostApiPostsIdComments(w http.ResponseWriter, r *http.Request, 
 		return
 	}
 
-	parentAuthor, _ := s.service.App.GetAccountById(r.Context(), int(parentPost.AccountID))
+	parentAuthor, _ := s.service.App.GetAccountByID(r.Context(), int(parentPost.AccountID))
 
 	s.service.App.DeliverToFollowers(w, r, currentUserID, func(recipientURI string) any {
 		return mapper.PostToCreateNote(&status, &commenter, parentAuthor.FollowersUri)
@@ -277,8 +277,8 @@ func (s *Server) PostApiPostsIdLikes(w http.ResponseWriter, r *http.Request, id 
 	}
 	currentUserID := newLike.UserID
 
-	liker, err := s.service.App.GetAccountById(r.Context(), currentUserID)
-	post, err := s.service.App.GetPostById(r.Context(), id)
+	liker, err := s.service.App.GetAccountByID(r.Context(), currentUserID)
+	post, err := s.service.App.GetPostByID(r.Context(), id)
 	if err != nil {
 		http.Error(w, "Post not found", http.StatusNotFound)
 		return
@@ -292,7 +292,7 @@ func (s *Server) PostApiPostsIdLikes(w http.ResponseWriter, r *http.Request, id 
 
 	APLike := mapper.DBToFavourite(&like, &liker, post)
 
-	author, err := s.service.App.GetAccountById(r.Context(), int(post.AccountID))
+	author, err := s.service.App.GetAccountByID(r.Context(), int(post.AccountID))
 	if err == nil && liker.Domain != author.Domain {
 		util.DeliverToEndpoint(author.InboxUri, APLike)
 	}
@@ -326,8 +326,8 @@ func (s *Server) PostApiPostsIdShares(w http.ResponseWriter, r *http.Request, id
 	}
 	currentUserID := newShare.UserID
 
-	sharer, err := s.service.App.GetAccountById(r.Context(), currentUserID)
-	post, err := s.service.App.GetPostById(r.Context(), id)
+	sharer, err := s.service.App.GetAccountByID(r.Context(), currentUserID)
+	post, err := s.service.App.GetPostByID(r.Context(), id)
 	if err != nil {
 		http.Error(w, "Post not found", http.StatusNotFound)
 		return
@@ -340,7 +340,7 @@ func (s *Server) PostApiPostsIdShares(w http.ResponseWriter, r *http.Request, id
 		return
 	}
 
-	author, err := s.service.App.GetAccountById(r.Context(), int(post.AccountID))
+	author, err := s.service.App.GetAccountByID(r.Context(), int(post.AccountID))
 	if err == nil && sharer.Domain != author.Domain {
 		APAnnounce := mapper.PostToCreateNote(&share, &sharer, author.Uri)
 		util.DeliverToEndpoint(author.InboxUri, APAnnounce)
@@ -362,7 +362,7 @@ func (s *Server) PostApiPosts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	currentUserID := *container.id
-	poster, err := s.service.App.GetAccountById(r.Context(), currentUserID)
+	poster, err := s.service.App.GetAccountByID(r.Context(), currentUserID)
 	var newPost api.NewPost
 	if err := util.ReadJSON(r, &newPost); err != nil {
 		http.Error(w, "Invalid request payload", http.StatusBadRequest)
@@ -411,7 +411,7 @@ func (s *Server) PutApiPostsId(w http.ResponseWriter, r *http.Request, id int) {
 
 // GetApiUsersIdPosts implements api.ServerInterface.
 func (s *Server) GetApiUsersIdPosts(w http.ResponseWriter, r *http.Request, id int) {
-	posts, err := s.service.App.GetPostByAccountId(r.Context(), id)
+	posts, err := s.service.App.GetPostByAccountID(r.Context(), id)
 	if err != nil {
 		http.Error(w, "Post not found", http.StatusNotFound)
 		return
