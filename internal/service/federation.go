@@ -10,11 +10,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kibirisu/borg/internal/ap"
 	"github.com/kibirisu/borg/internal/api"
-	"github.com/kibirisu/borg/internal/db"
 	"github.com/kibirisu/borg/internal/domain"
 	repo "github.com/kibirisu/borg/internal/repository"
 	"github.com/kibirisu/borg/internal/util"
+	"github.com/kibirisu/borg/internal/worker"
 )
 
 type FederationService interface {
@@ -133,8 +134,6 @@ func (s *federationService) LookupRemoteActor(
 		return nil, err
 	}
 	resp.Body.Close()
-
-	log.Printf("lookup_remote: actor %s retrieved successfully", actor.ID)
 	return &actor, nil
 }
 
