@@ -31,55 +31,29 @@ func (p *processor) FetchActorCollectionPage(ctx context.Context, collectionUri 
 	fetchedCollectionPage := ap.NewActorCollectionPage(colP)
 	return fetchedCollectionPage, nil
 }
-func (p *processor) LookupFollowers(ctx context.Context, account ap.Actorer) ([]db.Account, []db.Follow, error) {
-	type ActorOrigin struct {
-		Actor		ap.Actorer
-		FollowerOf	int32
+func (p *processor) LookupFollowers(ctx context.Context, account db.Account, actor ap.Actor) error {
+	followersUri := actor.Followers
+	page, err := p.FetchActorCollectionPage(ctx, followersUri)
+	if err != nil {
+		return err
 	}
-	accounts := make([]db.Account, 0)
-	follows := make([]db.Follow, 0)
-	toProcess := make([]ActorOrigin, 0)
-	toProcess = append(toProcess, ActorOrigin{account, -1})
-	for len(toProcess) > 0 {
-		cur := pop(&toProcess)
-		actorURI := cur.Actor.GetURI()
-		// skip if already in db (so theoretically already resolved)
-		_, err := p.store.Accounts().GetByURI(ctx, actorURI)
-		if err == nil {
-			continue
-		}
-		// fetch actor that hasnt yet been processed
-		acc, err := p.LookupActor(ctx, cur.Actor)
+	for _, follower := range page.GetObject().Items {
+		// this will recursively call lookupfollowers for other accounts
+		dbFollower, err := p.LookupActor(ctx, follower)
 		if err != nil {
-			continue
+			return err
 		}
-		accounts = append(accounts, acc)
-		// if it wasnt root account (first one searched) then add the follow to parent
-		if cur.FollowerOf != -1 {
-			param := db.CreateFollowParams {
-				AccountID:			acc.ID,
-				TargetAccountID:	cur.FollowerOf, 
-			}
-			follow, err := p.store.Follows().Create(ctx, param)
-			if err == nil {
-				follows = append(follows, *follow)
-			}
+		params := db.CreateFollowParams {
+			AccountID: dbFollower.ID,
+			TargetAccountID: account.ID,
 		}
-		// add this account followers as well
-		followersUri := cur.Actor.GetObject().Followers
-		page, err := p.FetchActorCollectionPage(ctx, followersUri)
+		_, err = p.store.Follows().Create(ctx, params)
 		if err != nil {
-			continue
-		}
-		for _, follower := range page.GetObject().Items {
-			toProcess = append(toProcess, ActorOrigin{
-				Actor:      follower, 
-				FollowerOf: acc.ID,
-			})
+			return err
 		}
 	}
 
-	return accounts, follows, nil
+	return nil
 }
 
 func (p *processor) LookupActor(ctx context.Context, object ap.Actorer) (db.Account, error) {
@@ -106,6 +80,10 @@ func (p *processor) LookupActor(ctx context.Context, object ap.Actorer) (db.Acco
 			FollowersUri: actorData.Followers,
 			FollowingUri: actorData.Following,
 		})
+		if err != nil {
+			return account, err
+		}
+		err = p.LookupFollowers(ctx, account, actorData)
 		if err != nil {
 			return account, err
 		}
