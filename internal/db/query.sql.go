@@ -111,7 +111,7 @@ INSERT INTO favourites (
     status_id,
     uri
 ) VALUES (
-    $1, $2, 'placeholder'
+    $1, $2, $3
 )
 RETURNING id, created_at, updated_at, uri, account_id, status_id
 `
@@ -119,10 +119,11 @@ RETURNING id, created_at, updated_at, uri, account_id, status_id
 type CreateFavouriteParams struct {
 	AccountID int32
 	StatusID  int32
+	Uri       string
 }
 
 func (q *Queries) CreateFavourite(ctx context.Context, arg CreateFavouriteParams) (Favourite, error) {
-	row := q.db.QueryRowContext(ctx, createFavourite, arg.AccountID, arg.StatusID)
+	row := q.db.QueryRowContext(ctx, createFavourite, arg.AccountID, arg.StatusID, arg.Uri)
 	var i Favourite
 	err := row.Scan(
 		&i.ID,
@@ -190,7 +191,7 @@ const createStatus = `-- name: CreateStatus :one
 INSERT INTO statuses (
     url, local, content, account_id, in_reply_to_id, reblog_of_id, uri
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, 'placeholder'
+    $1, $2, $3, $4, $5, $6, $7
 )
 RETURNING id, created_at, updated_at, uri, url, local, content, account_id, in_reply_to_id, reblog_of_id
 `
@@ -202,6 +203,7 @@ type CreateStatusParams struct {
 	AccountID   int32
 	InReplyToID sql.NullInt32
 	ReblogOfID  sql.NullInt32
+	Uri         string
 }
 
 func (q *Queries) CreateStatus(ctx context.Context, arg CreateStatusParams) (Status, error) {
@@ -212,6 +214,7 @@ func (q *Queries) CreateStatus(ctx context.Context, arg CreateStatusParams) (Sta
 		arg.AccountID,
 		arg.InReplyToID,
 		arg.ReblogOfID,
+		arg.Uri,
 	)
 	var i Status
 	err := row.Scan(
@@ -427,11 +430,11 @@ func (q *Queries) GetActor(ctx context.Context, username string) (Account, error
 }
 
 const getActorByURI = `-- name: GetActorByURI :one
-SELECT id, created_at, updated_at, username, uri, display_name, domain, inbox_uri, outbox_uri, followers_uri, following_uri, url FROM accounts WHERE uri = $1
+SELECT id, created_at, updated_at, username, uri, display_name, domain, inbox_uri, outbox_uri, followers_uri, following_uri, url FROM accounts WHERE uri LIKE '%' || $1::text
 `
 
-func (q *Queries) GetActorByURI(ctx context.Context, uri string) (Account, error) {
-	row := q.db.QueryRowContext(ctx, getActorByURI, uri)
+func (q *Queries) GetActorByURI(ctx context.Context, dollar_1 string) (Account, error) {
+	row := q.db.QueryRowContext(ctx, getActorByURI, dollar_1)
 	var i Account
 	err := row.Scan(
 		&i.ID,
@@ -451,11 +454,11 @@ func (q *Queries) GetActorByURI(ctx context.Context, uri string) (Account, error
 }
 
 const getFavouriteByURI = `-- name: GetFavouriteByURI :one
-SELECT id, created_at, updated_at, uri, account_id, status_id FROM favourites WHERE uri = $1
+SELECT id, created_at, updated_at, uri, account_id, status_id FROM favourites WHERE uri LIKE '%' || $1::text
 `
 
-func (q *Queries) GetFavouriteByURI(ctx context.Context, uri string) (Favourite, error) {
-	row := q.db.QueryRowContext(ctx, getFavouriteByURI, uri)
+func (q *Queries) GetFavouriteByURI(ctx context.Context, dollar_1 string) (Favourite, error) {
+	row := q.db.QueryRowContext(ctx, getFavouriteByURI, dollar_1)
 	var i Favourite
 	err := row.Scan(
 		&i.ID,
@@ -464,6 +467,24 @@ func (q *Queries) GetFavouriteByURI(ctx context.Context, uri string) (Favourite,
 		&i.Uri,
 		&i.AccountID,
 		&i.StatusID,
+	)
+	return i, err
+}
+
+const getFollowByURI = `-- name: GetFollowByURI :one
+SELECT id, created_at, updated_at, uri, account_id, target_account_id FROM follows WHERE uri LIKE '%' || $1::text
+`
+
+func (q *Queries) GetFollowByURI(ctx context.Context, dollar_1 string) (Follow, error) {
+	row := q.db.QueryRowContext(ctx, getFollowByURI, dollar_1)
+	var i Follow
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Uri,
+		&i.AccountID,
+		&i.TargetAccountID,
 	)
 	return i, err
 }
@@ -649,11 +670,11 @@ func (q *Queries) GetStatusByIdWithMetadata(ctx context.Context, id int32) (GetS
 }
 
 const getStatusByURI = `-- name: GetStatusByURI :one
-SELECT id, created_at, updated_at, uri, url, local, content, account_id, in_reply_to_id, reblog_of_id FROM statuses WHERE uri = $1
+SELECT id, created_at, updated_at, uri, url, local, content, account_id, in_reply_to_id, reblog_of_id FROM statuses WHERE uri LIKE '%' || $1::text
 `
 
-func (q *Queries) GetStatusByURI(ctx context.Context, uri string) (Status, error) {
-	row := q.db.QueryRowContext(ctx, getStatusByURI, uri)
+func (q *Queries) GetStatusByURI(ctx context.Context, dollar_1 string) (Status, error) {
+	row := q.db.QueryRowContext(ctx, getStatusByURI, dollar_1)
 	var i Status
 	err := row.Scan(
 		&i.ID,

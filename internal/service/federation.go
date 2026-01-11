@@ -17,7 +17,9 @@ type FederationService interface {
 	GetLocalActor(context.Context, string) (*domain.Object, error)
 	GetActorFollowers(context.Context, string, *int) (*domain.Object, error)
 	GetActorFollowing(context.Context, string, *int) (*domain.Object, error)
-	GetActorStatus(context.Context, string, int) (*domain.Object, error)
+	GetStatus(context.Context, string) (*domain.Object, error)
+	GetLike(context.Context, string) (*domain.Object, error)
+	GetFollow(context.Context, string) (*domain.Object, error)
 	ProcessIncoming(context.Context, *domain.ObjectOrLink) (worker.Job, error)
 }
 
@@ -50,13 +52,12 @@ func (s *federationService) GetLocalActor(
 	return actor.GetRaw().Object, nil
 }
 
-// GetActorStatus implements FederationService.
-func (s *federationService) GetActorStatus(
+// GetStatus implements FederationService.
+func (s *federationService) GetStatus(
 	ctx context.Context,
-	username string,
-	postId int,
+	uri string,
 ) (*domain.Object, error) {
-	statusDB, err := s.store.Statuses().GetById(ctx, postId)
+	statusDB, err := s.store.Statuses().GetByURI(ctx, uri)
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +70,7 @@ func (s *federationService) GetActorStatus(
 
 		reply.SetLink(inreply.Uri)
 	}
-	accountDB, err := s.store.Accounts().GetLocalByUsername(ctx, username)
+	accountDB, err := s.store.Accounts().GetById(ctx, int(statusDB.AccountID))
 	if err != nil {
 		return nil, err
 	}
@@ -91,6 +92,72 @@ func (s *federationService) GetActorStatus(
 	})
 
 	return note.GetRaw().Object, nil
+}
+// GetLike implements FederationService.
+func (s *federationService) GetLike(
+	ctx context.Context,
+	uri string,
+) (*domain.Object, error) {
+	likeDB, err := s.store.Favourites().GetByURI(ctx, uri)
+	if err != nil {
+		return nil, err
+	}
+	accountDB, err := s.store.Accounts().GetById(ctx, int(likeDB.AccountID))
+	if err != nil {
+		return nil, err
+	}
+	postDB, err := s.store.Statuses().GetById(ctx, int(likeDB.StatusID))
+	if err != nil {
+		return nil, err
+	}
+	actor := ap.NewActor(nil)
+	actor.SetLink(accountDB.Uri)
+
+	note := ap.NewNote(nil)
+	note.SetLink(postDB.Uri)
+
+	like := ap.NewLikeActivity(nil)
+	like.SetObject(ap.Activity[ap.Note]{
+		ID:     likeDB.Uri,
+		Type:   "Like",
+		Actor:  actor,
+		Object: note,
+	})
+
+	return like.GetRaw().Object, nil
+}
+// GetFollow implements FederationService.
+func (s *federationService) GetFollow(
+	ctx context.Context,
+	uri string,
+) (*domain.Object, error) {
+	followDB, err := s.store.Follows().GetByURI(ctx, uri)
+	if err != nil {
+		return nil, err
+	}
+	followerDB, err := s.store.Accounts().GetById(ctx, int(followDB.AccountID))
+	if err != nil {
+		return nil, err
+	}
+	followeeDB, err := s.store.Accounts().GetById(ctx, int(followDB.TargetAccountID))
+	if err != nil {
+		return nil, err
+	}
+	actorFollowed := ap.NewActor(nil)
+	actorFollowed.SetLink(followeeDB.Uri)
+
+	actorFollowing := ap.NewActor(nil)
+	actorFollowing.SetLink(followerDB.Uri)
+
+	follow := ap.NewFollowActivity(nil)
+	follow.SetObject(ap.Activity[ap.Actor]{
+		ID:     followDB.Uri,
+		Type:   "Follow",
+		Actor:  actorFollowed,
+		Object: actorFollowing,
+	})
+
+	return follow.GetRaw().Object, nil
 }
 
 // GetActorFollowers implements FederationService.
