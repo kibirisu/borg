@@ -27,6 +27,8 @@ jobs:
           git diff --exit-code internal/api
       - name: Lint Go
         uses: golangci/golangci-lint-action@v9
+        env:
+          GOEXPERIMENT: jsonv2
       - uses: sqlc-dev/setup-sqlc@v4
         with:
           sqlc-version: "1.30.0"
