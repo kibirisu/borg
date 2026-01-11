@@ -9,6 +9,7 @@ import (
 type FavouriteRepository interface {
 	Create(context.Context, db.CreateFavouriteParams) (db.Favourite, error)
 	GetByPost(ctx context.Context, id int) ([]db.Favourite, error)
+	GetLikedPostsByUser(ctx context.Context, accountID int) ([]db.GetLikedPostsByAccountIdRow, error)
 }
 
 type favouriteRepository struct {
