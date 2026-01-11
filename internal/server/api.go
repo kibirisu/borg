@@ -100,48 +100,8 @@ func (s *Server) GetApiAccountsLookup(
 		}
 
 		client := http.Client{Timeout: 5 * time.Second}
-		webfingerURL := "http://" + handle.Domain + "/.well-known/webfinger?resource=acct:" + handle.Username + "@" + handle.Domain
+		actorURL := "http://" + handle.Domain + "/user/" + handle.Username
 
-		req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, webfingerURL, nil)
-		if err != nil {
-			log.Println(err)
-			util.WriteError(w, http.StatusBadRequest, err.Error())
-			return
-		}
-
-		log.Printf("lookup: remote handle %s detected, querying webfinger %s", acct, webfingerURL)
-		resp, err := client.Do(req)
-		if err != nil {
-			log.Println(err)
-			util.WriteError(w, http.StatusBadGateway, err.Error())
-			return
-		}
-		defer resp.Body.Close()
-		if resp.StatusCode != http.StatusOK {
-			util.WriteError(w, http.StatusBadGateway, "remote webfinger failed")
-			return
-		}
-
-		var wf api.WebFingerResponse
-		if err := json.UnmarshalRead(resp.Body, &wf); err != nil {
-			log.Println(err)
-			util.WriteError(w, http.StatusBadGateway, err.Error())
-			return
-		}
-
-		var actorURL string
-		for _, link := range wf.Links {
-			if link.Rel == "self" && link.Type == "application/activity+json" {
-				actorURL = link.Href
-				break
-			}
-		}
-		if actorURL == "" {
-			util.WriteError(w, http.StatusBadGateway, "actor link not found in webfinger response")
-			return
-		}
-
-		log.Printf("lookup: webfinger resolved actor %s", actorURL)
 		reqActor, err := http.NewRequestWithContext(r.Context(), http.MethodGet, actorURL, nil)
 		if err != nil {
 			log.Println(err)
@@ -149,6 +109,7 @@ func (s *Server) GetApiAccountsLookup(
 			return
 		}
 
+		log.Printf("lookup: fetching remote actor %s", actorURL)
 		actorResp, err := client.Do(reqActor)
 		if err != nil {
 			log.Println(err)
