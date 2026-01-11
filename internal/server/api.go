@@ -1,10 +1,13 @@
 package server
 
 import (
+	"database/sql"
+	"errors"
 	"log"
 	"net/http"
 
 	"github.com/kibirisu/borg/internal/api"
+	"github.com/kibirisu/borg/internal/db"
 	"github.com/kibirisu/borg/internal/server/mapper"
 	"github.com/kibirisu/borg/internal/util"
 )
@@ -100,25 +103,20 @@ func (s *Server) GetApiAccountsLookup(
 	}
 
 	log.Printf("lookup: remote account %s@%s not cached, performing WebFinger lookup", handle.Username, handle.Domain)
-	actor, err := s.service.Federation.LookupRemoteActor(r.Context(), handle)
-	if err != nil {
-		log.Println(err)
-		util.WriteError(w, http.StatusBadGateway, err.Error())
-		return
-	}
-
-	log.Printf("lookup: persisting remote actor %s", actor.ID)
-	row, err := s.service.Federation.CreateActor(
-		r.Context(),
-		*mapper.ActorToDB(actor, handle.Domain),
-	)
-	if err != nil {
-		log.Println(err)
-		util.WriteError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-	log.Printf("lookup: remote actor stored with username=%s domain=%s", row.Username, row.Domain.String)
-	util.WriteJSON(w, http.StatusOK, mapper.AccountToAPI(row))
+	util.WriteError(w, http.StatusInternalServerError, "unimplemented")
+	// actor, err := s.service.Federation.processor.LookupActor(r.Context(), handle)
+	// if err != nil {
+	// 	log.Println(err)
+	// 	util.WriteError(w, http.StatusBadGateway, err.Error())
+	// 	return
+	// }
+	// if err != nil {
+	// 	log.Println(err)
+	// 	util.WriteError(w, http.StatusInternalServerError, err.Error())
+	// 	return
+	// }
+	// log.Printf("lookup: remote actor stored with username=%s domain=%s", row.Username, row.Domain.String)
+	// util.WriteJSON(w, http.StatusOK, mapper.AccountToAPI(row))
 }
 
 // PostApiAccountsIdFollow implements api.ServerInterface.
