@@ -608,4 +608,3 @@ func (s *Server) GetApiUsersIdTimeline(w http.ResponseWriter, r *http.Request, i
 
 	util.WriteJSON(w, http.StatusOK, apiPosts)
 }
-
