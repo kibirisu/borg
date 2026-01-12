@@ -434,31 +434,10 @@ func (s *Server) PostApiPosts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	activity := mapper.StatusToCreateActivity(status, poster, nil)
+
 	s.service.App.DeliverToFollowers(w, r, newPost.UserID, func(recipientURI string) any {
-		create := ap.NewCreateActivity(nil)
-		actor := ap.NewActor(nil)
-		actor.SetLink(poster.Uri)
-		note := ap.NewNote(nil)
-		replies := ap.NewNoteCollection(nil)
-		replies.SetLink("YO MAMA TODO")
-		note.SetObject(ap.Note{
-			ID:           status.Uri,
-			Type:         "Note",
-			Content:      status.Content,
-			InReplyTo:    ap.NewNote(nil),
-			Published:    status.CreatedAt,
-			AttributedTo: ap.NewActor(nil),
-			To:           []string{recipientURI},
-			CC:           []string{recipientURI},
-			Replies:      replies,
-		})
-		create.SetObject(ap.Activity[ap.Note]{
-			ID:     "TODO",
-			Type:   "Create",
-			Actor:  actor,
-			Object: note,
-		})
-		return create.GetRaw()
+		return activity.GetRaw()
 	})
 	util.WriteJSON(w, http.StatusCreated, nil)
 }
