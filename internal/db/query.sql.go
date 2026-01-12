@@ -8,6 +8,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"time"
 )
 
 const addStatus = `-- name: AddStatus :exec
@@ -451,6 +452,58 @@ func (q *Queries) GetActorByURI(ctx context.Context, dollar_1 string) (Account, 
 		&i.Url,
 	)
 	return i, err
+}
+
+const getCommentsByPostId = `-- name: GetCommentsByPostId :many
+SELECT 
+    s.id,
+    s.created_at,
+    s.updated_at,
+    s.content,
+    s.account_id,
+    s.in_reply_to_id
+FROM statuses s
+WHERE s.in_reply_to_id = $1
+ORDER BY s.created_at ASC
+`
+
+type GetCommentsByPostIdRow struct {
+	ID          int32
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	Content     string
+	AccountID   int32
+	InReplyToID sql.NullInt32
+}
+
+func (q *Queries) GetCommentsByPostId(ctx context.Context, inReplyToID sql.NullInt32) ([]GetCommentsByPostIdRow, error) {
+	rows, err := q.db.QueryContext(ctx, getCommentsByPostId, inReplyToID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetCommentsByPostIdRow
+	for rows.Next() {
+		var i GetCommentsByPostIdRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Content,
+			&i.AccountID,
+			&i.InReplyToID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getFavouriteByURI = `-- name: GetFavouriteByURI :one

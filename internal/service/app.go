@@ -44,6 +44,7 @@ type AppService interface {
 	GetLikedPostsByAccountId(context.Context, int) ([]db.GetLikedPostsByAccountIdRow, error)
 	GetSharedPostsByAccountId(context.Context, int) ([]db.GetSharedPostsByAccountIdRow, error)
 	GetTimelinePostsByAccountId(context.Context, int) ([]db.GetTimelinePostsByAccountIdRow, error)
+	GetCommentsByPostId(context.Context, int) ([]db.GetCommentsByPostIdRow, error)
 	// EW, idk if this should stay here
 	DeliverToFollowers(http.ResponseWriter, *http.Request, int, func(recipientURI string) any)
 }
@@ -343,4 +344,11 @@ func (s *appService) GetTimelinePostsByAccountId(
 	accountID int,
 ) ([]db.GetTimelinePostsByAccountIdRow, error) {
 	return s.store.Statuses().GetTimelinePostsByAccountId(ctx, accountID)
+}
+
+func (s *appService) GetCommentsByPostId(
+	ctx context.Context,
+	postID int,
+) ([]db.GetCommentsByPostIdRow, error) {
+	return s.store.Statuses().GetCommentsByPostId(ctx, postID)
 }

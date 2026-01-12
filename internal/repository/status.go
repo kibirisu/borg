@@ -17,6 +17,7 @@ type StatusRepository interface {
 	GetByIDWithMetadata(context.Context, int) (db.GetStatusByIdWithMetadataRow, error)
 	GetSharedPostsByAccountId(context.Context, int) ([]db.GetSharedPostsByAccountIdRow, error)
 	GetTimelinePostsByAccountId(context.Context, int) ([]db.GetTimelinePostsByAccountIdRow, error)
+	GetCommentsByPostId(context.Context, int) ([]db.GetCommentsByPostIdRow, error)
 	DeleteByID(context.Context, int32) error
 }
 
@@ -81,6 +82,14 @@ func (r *statusRepository) GetTimelinePostsByAccountId(
 	accountID int,
 ) ([]db.GetTimelinePostsByAccountIdRow, error) {
 	return r.q.GetTimelinePostsByAccountId(ctx, int32(accountID))
+}
+
+// GetCommentsByPostId implements StatusRepository.
+func (r *statusRepository) GetCommentsByPostId(
+	ctx context.Context,
+	postID int,
+) ([]db.GetCommentsByPostIdRow, error) {
+	return r.q.GetCommentsByPostId(ctx, sql.NullInt32{Int32: int32(postID), Valid: true})
 }
 
 // DeleteByURI implements StatusRepository.
