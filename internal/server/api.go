@@ -543,8 +543,8 @@ func (s *Server) GetApiPosts(w http.ResponseWriter, r *http.Request) {
 	util.WriteJSON(w, http.StatusOK, apiLikes)
 }
 
-// GetApiUsersIdLikedPosts implements api.ServerInterface.
-func (s *Server) GetApiUsersIdLikedPosts(w http.ResponseWriter, r *http.Request, id int) {
+// GetApiUsersIdFavourites implements api.ServerInterface.
+func (s *Server) GetApiUsersIdFavourites(w http.ResponseWriter, r *http.Request, id int) {
 	posts, err := s.service.App.GetLikedPostsByAccountId(r.Context(), id)
 	if err != nil {
 		http.Error(w, "Database error", http.StatusInternalServerError)
@@ -565,8 +565,8 @@ func (s *Server) GetApiUsersIdLikedPosts(w http.ResponseWriter, r *http.Request,
 	util.WriteJSON(w, http.StatusOK, apiPosts)
 }
 
-// GetApiUsersIdSharedPosts implements api.ServerInterface.
-func (s *Server) GetApiUsersIdSharedPosts(w http.ResponseWriter, r *http.Request, id int) {
+// GetApiUsersIdReblogged implements api.ServerInterface.
+func (s *Server) GetApiUsersIdReblogged(w http.ResponseWriter, r *http.Request, id int) {
 	posts, err := s.service.App.GetSharedPostsByAccountId(r.Context(), id)
 	if err != nil {
 		http.Error(w, "Database error", http.StatusInternalServerError)
@@ -608,3 +608,4 @@ func (s *Server) GetApiUsersIdTimeline(w http.ResponseWriter, r *http.Request, i
 
 	util.WriteJSON(w, http.StatusOK, apiPosts)
 }
+

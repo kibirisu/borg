@@ -240,21 +240,21 @@ type ServerInterface interface {
 	// Update a user
 	// (PUT /api/users/{id})
 	PutApiUsersId(w http.ResponseWriter, r *http.Request, id int)
+	// Get liked posts of user with ID
+	// (GET /api/users/{id}/favourites)
+	GetApiUsersIdFavourites(w http.ResponseWriter, r *http.Request, id int)
 	// Get followers of the user with ID
 	// (GET /api/users/{id}/followers)
 	GetApiUsersIdFollowers(w http.ResponseWriter, r *http.Request, id int)
 	// Get followed of the user with ID
 	// (GET /api/users/{id}/following)
 	GetApiUsersIdFollowing(w http.ResponseWriter, r *http.Request, id int)
-	// Get liked posts of user with ID
-	// (GET /api/users/{id}/liked-posts)
-	GetApiUsersIdLikedPosts(w http.ResponseWriter, r *http.Request, id int)
 	// Get posts of user with ID
 	// (GET /api/users/{id}/posts)
 	GetApiUsersIdPosts(w http.ResponseWriter, r *http.Request, id int)
 	// Get shared posts of user with ID
-	// (GET /api/users/{id}/shared-posts)
-	GetApiUsersIdSharedPosts(w http.ResponseWriter, r *http.Request, id int)
+	// (GET /api/users/{id}/reblogged)
+	GetApiUsersIdReblogged(w http.ResponseWriter, r *http.Request, id int)
 	// Get timeline posts of the user with ID (posts from followed users)
 	// (GET /api/users/{id}/timeline)
 	GetApiUsersIdTimeline(w http.ResponseWriter, r *http.Request, id int)
@@ -378,6 +378,12 @@ func (_ Unimplemented) PutApiUsersId(w http.ResponseWriter, r *http.Request, id 
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// Get liked posts of user with ID
+// (GET /api/users/{id}/favourites)
+func (_ Unimplemented) GetApiUsersIdFavourites(w http.ResponseWriter, r *http.Request, id int) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // Get followers of the user with ID
 // (GET /api/users/{id}/followers)
 func (_ Unimplemented) GetApiUsersIdFollowers(w http.ResponseWriter, r *http.Request, id int) {
@@ -390,12 +396,6 @@ func (_ Unimplemented) GetApiUsersIdFollowing(w http.ResponseWriter, r *http.Req
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Get liked posts of user with ID
-// (GET /api/users/{id}/liked-posts)
-func (_ Unimplemented) GetApiUsersIdLikedPosts(w http.ResponseWriter, r *http.Request, id int) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
 // Get posts of user with ID
 // (GET /api/users/{id}/posts)
 func (_ Unimplemented) GetApiUsersIdPosts(w http.ResponseWriter, r *http.Request, id int) {
@@ -403,8 +403,8 @@ func (_ Unimplemented) GetApiUsersIdPosts(w http.ResponseWriter, r *http.Request
 }
 
 // Get shared posts of user with ID
-// (GET /api/users/{id}/shared-posts)
-func (_ Unimplemented) GetApiUsersIdSharedPosts(w http.ResponseWriter, r *http.Request, id int) {
+// (GET /api/users/{id}/reblogged)
+func (_ Unimplemented) GetApiUsersIdReblogged(w http.ResponseWriter, r *http.Request, id int) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -900,6 +900,31 @@ func (siw *ServerInterfaceWrapper) PutApiUsersId(w http.ResponseWriter, r *http.
 	handler.ServeHTTP(w, r)
 }
 
+// GetApiUsersIdFavourites operation middleware
+func (siw *ServerInterfaceWrapper) GetApiUsersIdFavourites(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id int
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetApiUsersIdFavourites(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetApiUsersIdFollowers operation middleware
 func (siw *ServerInterfaceWrapper) GetApiUsersIdFollowers(w http.ResponseWriter, r *http.Request) {
 
@@ -950,31 +975,6 @@ func (siw *ServerInterfaceWrapper) GetApiUsersIdFollowing(w http.ResponseWriter,
 	handler.ServeHTTP(w, r)
 }
 
-// GetApiUsersIdLikedPosts operation middleware
-func (siw *ServerInterfaceWrapper) GetApiUsersIdLikedPosts(w http.ResponseWriter, r *http.Request) {
-
-	var err error
-
-	// ------------- Path parameter "id" -------------
-	var id int
-
-	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
-		return
-	}
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetApiUsersIdLikedPosts(w, r, id)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r)
-}
-
 // GetApiUsersIdPosts operation middleware
 func (siw *ServerInterfaceWrapper) GetApiUsersIdPosts(w http.ResponseWriter, r *http.Request) {
 
@@ -1000,8 +1000,8 @@ func (siw *ServerInterfaceWrapper) GetApiUsersIdPosts(w http.ResponseWriter, r *
 	handler.ServeHTTP(w, r)
 }
 
-// GetApiUsersIdSharedPosts operation middleware
-func (siw *ServerInterfaceWrapper) GetApiUsersIdSharedPosts(w http.ResponseWriter, r *http.Request) {
+// GetApiUsersIdReblogged operation middleware
+func (siw *ServerInterfaceWrapper) GetApiUsersIdReblogged(w http.ResponseWriter, r *http.Request) {
 
 	var err error
 
@@ -1015,7 +1015,7 @@ func (siw *ServerInterfaceWrapper) GetApiUsersIdSharedPosts(w http.ResponseWrite
 	}
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetApiUsersIdSharedPosts(w, r, id)
+		siw.Handler.GetApiUsersIdReblogged(w, r, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1246,19 +1246,19 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Put(options.BaseURL+"/api/users/{id}", wrapper.PutApiUsersId)
 	})
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/users/{id}/favourites", wrapper.GetApiUsersIdFavourites)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/users/{id}/followers", wrapper.GetApiUsersIdFollowers)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/users/{id}/following", wrapper.GetApiUsersIdFollowing)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/api/users/{id}/liked-posts", wrapper.GetApiUsersIdLikedPosts)
-	})
-	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/users/{id}/posts", wrapper.GetApiUsersIdPosts)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/api/users/{id}/shared-posts", wrapper.GetApiUsersIdSharedPosts)
+		r.Get(options.BaseURL+"/api/users/{id}/reblogged", wrapper.GetApiUsersIdReblogged)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/users/{id}/timeline", wrapper.GetApiUsersIdTimeline)
@@ -1276,31 +1276,31 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
