@@ -111,6 +111,7 @@ func (s *Server) handleInbox(w http.ResponseWriter, r *http.Request) {
 	job, err := s.service.Federation.ProcessIncoming(r.Context(), &object)
 	if err != nil {
 		util.WriteError(w, http.StatusBadRequest, err.Error())
+		return
 	}
 	s.worker.Enqueue(job)
 	w.WriteHeader(http.StatusAccepted)
