@@ -397,13 +397,17 @@ func (s *Server) PostApiPostsIdShares(w http.ResponseWriter, r *http.Request, id
 		return
 	}
 
+	activity := mapper.StatusToCreateActivity(share, sharer, nil)
+
+	//send activity to post author
 	author, err := s.service.App.GetAccountByID(r.Context(), int(post.AccountID))
 	if err == nil && sharer.Domain != author.Domain {
-		util.DeliverToEndpoint(author.InboxUri, APAnnounce)
+		util.DeliverToEndpoint(author.InboxUri, activity.GetRaw())
 	}
 
+	//send activity to my followers
 	s.service.App.DeliverToFollowers(w, r, currentUserID, func(recipientURI string) any {
-		return APAnnounce
+		return activity.GetRaw()
 	})
 
 	util.WriteJSON(w, http.StatusCreated, nil)
