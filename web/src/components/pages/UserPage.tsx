@@ -64,7 +64,7 @@ export default function UserPage() {
       }
       return {
         username: res.data.username,
-        bio: (res.data as any).bio ?? derivedBio,
+        bio: res.data.bio ?? derivedBio,
       };
     },
   });

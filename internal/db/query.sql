@@ -204,3 +204,9 @@ SELECT
 FROM statuses s
 WHERE s.in_reply_to_id = $1
 ORDER BY s.created_at ASC;
+
+-- name: UpdateAccountById :one
+UPDATE accounts 
+SET display_name = COALESCE($2, display_name), updated_at = CURRENT_TIMESTAMP
+WHERE id = $1
+RETURNING *;

@@ -168,14 +168,29 @@ func (s *Server) DeleteApiUsersId(w http.ResponseWriter, r *http.Request, id int
 
 // GetApiUsersId implements api.ServerInterface.
 func (s *Server) GetApiUsersId(w http.ResponseWriter, r *http.Request, id int) {
-	user, err := s.service.App.GetAccountByID(r.Context(), id)
+	account, err := s.service.App.GetAccountByID(r.Context(), id)
 	if err != nil {
 		http.Error(w, "Database error", http.StatusInternalServerError)
 		return
 	}
+
+	// Get followers and following counts
+	followers, err := s.service.App.GetAccountFollowers(r.Context(), id)
+	if err != nil {
+		log.Println(err)
+		followers = []db.Account{}
+	}
+
+	following, err := s.service.App.GetAccountFollowing(r.Context(), id)
+	if err != nil {
+		log.Println(err)
+		following = []db.Account{}
+	}
+
+	user := mapper.AccountToUserAPI(&account, len(followers), len(following))
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	util.WriteJSON(w, http.StatusOK, *mapper.AccountToAPI(&user))
+	util.WriteJSON(w, http.StatusOK, *user)
 }
 
 // PostApiUsers implements api.ServerInterface.
@@ -233,7 +248,64 @@ func (s *Server) PostApiUsers(w http.ResponseWriter, r *http.Request) {
 
 // PutApiUsersId implements api.ServerInterface.
 func (s *Server) PutApiUsersId(w http.ResponseWriter, r *http.Request, id int) {
-	panic("unimplemented")
+	// 1. Authorization - check if user is authenticated
+	container, ok := r.Context().Value(TokenContextKey).(*tokenContainer)
+	if !ok || container == nil || container.id == nil {
+		util.WriteError(w, http.StatusUnauthorized, "User not authenticated")
+		return
+	}
+	currentUserID := *container.id
+
+	// 2. Check ownership - only owner can update their own account
+	if id != currentUserID {
+		util.WriteError(w, http.StatusForbidden, "Forbidden: You can only update your own account")
+		return
+	}
+
+	// 3. Check if account exists
+	_, err := s.service.App.GetAccountByID(r.Context(), id)
+	if err != nil {
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
+	// 4. Read request body
+	var update api.UpdateUser
+	if err := util.ReadJSON(r, &update); err != nil {
+		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+		return
+	}
+
+	// 5. Update the account (only bio is supported, isAdmin is ignored as it's not in DB)
+	var bio *string
+	if update.Bio != nil {
+		bio = update.Bio
+	}
+
+	updatedAccount, err := s.service.App.UpdateAccount(r.Context(), id, bio)
+	if err != nil {
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	// 6. Get followers and following counts for response
+	followers, err := s.service.App.GetAccountFollowers(r.Context(), id)
+	if err != nil {
+		log.Println(err)
+		followers = []db.Account{}
+	}
+
+	following, err := s.service.App.GetAccountFollowing(r.Context(), id)
+	if err != nil {
+		log.Println(err)
+		following = []db.Account{}
+	}
+
+	// 7. Return updated user with metadata
+	user := mapper.AccountToUserAPI(&updatedAccount, len(followers), len(following))
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	util.WriteJSON(w, http.StatusOK, *user)
 }
 
 // DeleteApiPostsId implements api.ServerInterface.

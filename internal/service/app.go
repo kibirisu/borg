@@ -34,6 +34,7 @@ type AppService interface {
 	AddFavourite(context.Context, int, int) (db.Favourite, error)
 	FollowAccount(context.Context, int, int) (*db.Follow, error)
 	GetAccountByID(context.Context, int) (db.Account, error)
+	UpdateAccount(context.Context, int, *string) (db.Account, error)
 	GetAccount(context.Context, db.GetAccountParams) (*db.Account, error)
 	GetLocalPosts(context.Context) ([]db.GetLocalStatusesRow, error)
 	GetPostByAccountID(context.Context, int) ([]db.GetStatusesByAccountIdRow, error)
@@ -226,6 +227,13 @@ func (s *appService) GetAccountByID(
 	ctx context.Context, accountID int,
 ) (db.Account, error) {
 	return s.store.Accounts().GetByID(ctx, accountID)
+}
+
+// UpdateAccount implements AppService.
+func (s *appService) UpdateAccount(
+	ctx context.Context, accountID int, bio *string,
+) (db.Account, error) {
+	return s.store.Accounts().Update(ctx, accountID, bio)
 }
 
 // AddFavourite implements AppService.

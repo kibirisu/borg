@@ -1099,6 +1099,38 @@ func (q *Queries) GetTimelinePostsByAccountId(ctx context.Context, accountID int
 	return items, nil
 }
 
+const updateAccountById = `-- name: UpdateAccountById :one
+UPDATE accounts 
+SET display_name = COALESCE($2, display_name), updated_at = CURRENT_TIMESTAMP
+WHERE id = $1
+RETURNING id, created_at, updated_at, username, uri, display_name, domain, inbox_uri, outbox_uri, followers_uri, following_uri, url
+`
+
+type UpdateAccountByIdParams struct {
+	ID          int32
+	DisplayName sql.NullString
+}
+
+func (q *Queries) UpdateAccountById(ctx context.Context, arg UpdateAccountByIdParams) (Account, error) {
+	row := q.db.QueryRowContext(ctx, updateAccountById, arg.ID, arg.DisplayName)
+	var i Account
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Username,
+		&i.Uri,
+		&i.DisplayName,
+		&i.Domain,
+		&i.InboxUri,
+		&i.OutboxUri,
+		&i.FollowersUri,
+		&i.FollowingUri,
+		&i.Url,
+	)
+	return i, err
+}
+
 const updateStatusById = `-- name: UpdateStatusById :one
 UPDATE statuses 
 SET content = $2, updated_at = CURRENT_TIMESTAMP
