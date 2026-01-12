@@ -337,11 +337,21 @@ func (s *Server) PostApiPostsIdLikes(w http.ResponseWriter, r *http.Request, id 
 		return
 	}
 
-	APLike := mapper.DBToFavourite(&like, &liker, post)
+	actor := ap.NewActor(nil)
+	actor.SetLink(liker.Uri)
+	note := ap.NewNote(nil)
+	note.SetLink(post.Uri)
+	activity := ap.NewLikeActivity(nil)
+	activity.SetObject(ap.Activity[ap.Note]{
+		ID: like.Uri,
+		Type: "Like",
+		Actor: actor,
+		Object: note,
+	})
 
 	author, err := s.service.App.GetAccountByID(r.Context(), int(post.AccountID))
 	if err == nil && liker.Domain != author.Domain {
-		util.DeliverToEndpoint(author.InboxUri, APLike)
+		util.DeliverToEndpoint(author.InboxUri, activity)
 	}
 
 	util.WriteJSON(w, http.StatusCreated, nil)
@@ -389,12 +399,10 @@ func (s *Server) PostApiPostsIdShares(w http.ResponseWriter, r *http.Request, id
 
 	author, err := s.service.App.GetAccountByID(r.Context(), int(post.AccountID))
 	if err == nil && sharer.Domain != author.Domain {
-		APAnnounce := mapper.PostToCreateNote(&share, &sharer, author.Uri)
 		util.DeliverToEndpoint(author.InboxUri, APAnnounce)
 	}
 
 	s.service.App.DeliverToFollowers(w, r, currentUserID, func(recipientURI string) any {
-		APAnnounce := mapper.PostToCreateNote(&share, &sharer, author.FollowersUri)
 		return APAnnounce
 	})
 
