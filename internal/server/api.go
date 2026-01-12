@@ -468,7 +468,63 @@ func (s *Server) PostApiPosts(w http.ResponseWriter, r *http.Request) {
 
 // PutApiPostsId implements api.ServerInterface.
 func (s *Server) PutApiPostsId(w http.ResponseWriter, r *http.Request, id int) {
-	panic("unimplemented")
+	// 1. Authorization - check if user is authenticated
+	container, ok := r.Context().Value(TokenContextKey).(*tokenContainer)
+	if !ok || container == nil || container.id == nil {
+		util.WriteError(w, http.StatusUnauthorized, "User not authenticated")
+		return
+	}
+	currentUserID := *container.id
+
+	// 2. Check if post exists and get current post data
+	post, err := s.service.App.GetPostByID(r.Context(), id)
+	if err != nil {
+		http.Error(w, "Post not found", http.StatusNotFound)
+		return
+	}
+
+	// 3. Check ownership - only owner can update their post
+	if int(post.AccountID) != currentUserID {
+		util.WriteError(w, http.StatusForbidden, "Forbidden: You can only update your own posts")
+		return
+	}
+
+	// 4. Read request body
+	var update api.UpdatePost
+	if err := util.ReadJSON(r, &update); err != nil {
+		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+		return
+	}
+
+	// 5. Validate content - check if content is provided
+	if update.Content == nil || *update.Content == "" {
+		http.Error(w, "Content cannot be empty", http.StatusBadRequest)
+		return
+	}
+
+	// 6. Update the post
+	_, err = s.service.App.UpdatePost(r.Context(), id, *update.Content)
+	if err != nil {
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	// 7. Get updated post with metadata for response
+	info, err := s.service.App.GetPostByIDWithMetadata(r.Context(), id)
+	if err != nil {
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	// 8. Return updated post with metadata
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	util.WriteJSON(w, http.StatusOK, *mapper.PostToAPIWithMetadata(
+		&info.Status,
+		&info.Account,
+		int(info.LikeCount),
+		int(info.ShareCount),
+		int(info.CommentCount)))
 }
 
 // GetApiUsersIdPosts implements api.ServerInterface.

@@ -38,6 +38,7 @@ type AppService interface {
 	GetLocalPosts(context.Context) ([]db.GetLocalStatusesRow, error)
 	GetPostByAccountID(context.Context, int) ([]db.GetStatusesByAccountIdRow, error)
 	GetPostByID(context.Context, int) (*db.Status, error)
+	UpdatePost(context.Context, int, string) (*db.Status, error)
 	GetPostLikes(context.Context, int) ([]db.Favourite, error)
 	GetPostShares(context.Context, int) ([]db.Status, error)
 	GetPostByIDWithMetadata(context.Context, int) (*db.GetStatusByIdWithMetadataRow, error)
@@ -272,6 +273,14 @@ func (s *appService) GetPostByID(ctx context.Context, id int) (*db.Status, error
 	} else {
 		return &status, nil
 	}
+}
+
+func (s *appService) UpdatePost(ctx context.Context, id int, content string) (*db.Status, error) {
+	status, err := s.store.Statuses().Update(ctx, id, content)
+	if err != nil {
+		return nil, err
+	}
+	return &status, nil
 }
 
 func (s *appService) GetPostLikes(ctx context.Context, id int) ([]db.Favourite, error) {

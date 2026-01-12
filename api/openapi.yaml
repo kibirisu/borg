@@ -235,6 +235,8 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/UpdatePost"
+      security:
+        - BearerAuth: []
       responses:
         "200":
           description: Updated user

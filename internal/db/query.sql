@@ -119,6 +119,12 @@ INSERT INTO statuses (
     $1, $2, $3, $4, $5, $6
 );
 
+-- name: UpdateStatusById :one
+UPDATE statuses 
+SET content = $2, updated_at = CURRENT_TIMESTAMP
+WHERE id = $1
+RETURNING *;
+
 -- name: DeleteStatusByID :exec
 DELETE FROM statuses WHERE id = $1;
 

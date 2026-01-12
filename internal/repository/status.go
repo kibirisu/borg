@@ -12,6 +12,7 @@ type StatusRepository interface {
 	Add(context.Context, db.AddStatusParams) error
 	GetByID(context.Context, int) (db.Status, error)
 	GetByURI(context.Context, string) (db.Status, error)
+	Update(context.Context, int, string) (db.Status, error)
 	GetShares(context.Context, int) ([]db.Status, error)
 	GetLocalStatuses(context.Context) ([]db.GetLocalStatusesRow, error)
 	GetByIDWithMetadata(context.Context, int) (db.GetStatusByIdWithMetadataRow, error)
@@ -48,6 +49,18 @@ func (r *statusRepository) GetByID(ctx context.Context, id int) (db.Status, erro
 // GetByURI implements StatusRepository.
 func (r *statusRepository) GetByURI(ctx context.Context, uri string) (db.Status, error) {
 	return r.q.GetStatusByURI(ctx, uri)
+}
+
+// Update implements StatusRepository.
+func (r *statusRepository) Update(
+	ctx context.Context,
+	id int,
+	content string,
+) (db.Status, error) {
+	return r.q.UpdateStatusById(ctx, db.UpdateStatusByIdParams{
+		ID:      int32(id),
+		Content: content,
+	})
 }
 
 // GetById implements StatusRepository.

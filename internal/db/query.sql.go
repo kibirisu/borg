@@ -1098,3 +1098,33 @@ func (q *Queries) GetTimelinePostsByAccountId(ctx context.Context, accountID int
 	}
 	return items, nil
 }
+
+const updateStatusById = `-- name: UpdateStatusById :one
+UPDATE statuses 
+SET content = $2, updated_at = CURRENT_TIMESTAMP
+WHERE id = $1
+RETURNING id, created_at, updated_at, uri, url, local, content, account_id, in_reply_to_id, reblog_of_id
+`
+
+type UpdateStatusByIdParams struct {
+	ID      int32
+	Content string
+}
+
+func (q *Queries) UpdateStatusById(ctx context.Context, arg UpdateStatusByIdParams) (Status, error) {
+	row := q.db.QueryRowContext(ctx, updateStatusById, arg.ID, arg.Content)
+	var i Status
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Uri,
+		&i.Url,
+		&i.Local,
+		&i.Content,
+		&i.AccountID,
+		&i.InReplyToID,
+		&i.ReblogOfID,
+	)
+	return i, err
+}
