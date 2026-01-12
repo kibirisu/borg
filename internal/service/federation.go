@@ -291,7 +291,7 @@ func (s *federationService) ProcessIncoming(
 			return err
 		}, nil
 	case "Accept":
-		fallthrough
+		return nil, errors.New("unsupported Activity type")
 	case "Undo":
 		return s.processUndo(object)
 	case "Delete":
