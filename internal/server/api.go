@@ -284,14 +284,15 @@ func (s *Server) PostApiPostsIdComments(w http.ResponseWriter, r *http.Request, 
 	}
 
 	parentAuthor, _ := s.service.App.GetAccountByID(r.Context(), int(parentPost.AccountID))
+	activity := mapper.StatusToCreateActivity(status, commenter, parentPost)
 
 	s.service.App.DeliverToFollowers(w, r, currentUserID, func(recipientURI string) any {
-		return mapper.PostToCreateNote(&status, &commenter, parentAuthor.FollowersUri)
+		return activity.GetRaw()
 	})
 
+	//deliver to original post author
 	if commenter.Domain != parentAuthor.Domain {
-		APComment := mapper.PostToCreateNote(&status, &commenter, parentAuthor.Uri)
-		util.DeliverToEndpoint(parentAuthor.InboxUri, APComment)
+		util.DeliverToEndpoint(parentAuthor.InboxUri, activity.GetRaw())
 	}
 
 	util.WriteJSON(w, http.StatusCreated, nil)
