@@ -467,6 +467,19 @@ paths:
           description: Followed successfully
       security:
         - BearerAuth: []
+    delete:
+      summary: Unfollow a user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      security:
+        - BearerAuth: []
+      responses:
+        "204":
+          description: Unfollowed successfully
 
 components:
   securitySchemes:

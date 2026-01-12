@@ -138,6 +138,9 @@ SELECT * FROM favourites WHERE uri LIKE '%' || $1::text;
 -- name: GetFollowByURI :one
 SELECT * FROM follows WHERE uri LIKE '%' || $1::text;
 
+-- name: DeleteFollowByAccountIds :exec
+DELETE FROM follows WHERE account_id = $1 AND target_account_id = $2;
+
 -- name: GetFavouriteByID :one
 SELECT * FROM favourites WHERE id = $1;
 

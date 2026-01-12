@@ -34,6 +34,7 @@ type AppService interface {
 	AddFavourite(context.Context, int, int) (db.Favourite, error)
 	DeleteLike(context.Context, int) error
 	FollowAccount(context.Context, int, int) (*db.Follow, error)
+	UnfollowAccount(context.Context, int, int) error
 	GetAccountByID(context.Context, int) (db.Account, error)
 	GetAccount(context.Context, db.GetAccountParams) (*db.Account, error)
 	GetLocalPosts(context.Context) ([]db.GetLocalStatusesRow, error)
@@ -323,6 +324,14 @@ func (s *appService) FollowAccount(
 		TargetAccountID: int32(followee),
 	}
 	return s.store.Follows().Create(ctx, createParams)
+}
+
+func (s *appService) UnfollowAccount(
+	ctx context.Context,
+	follower int,
+	followee int,
+) error {
+	return s.store.Follows().Delete(ctx, int32(follower), int32(followee))
 }
 
 func (s *appService) DeliverToFollowers(

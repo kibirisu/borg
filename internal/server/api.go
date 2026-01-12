@@ -161,6 +161,39 @@ func (s *Server) PostApiAccountsIdFollow(w http.ResponseWriter, r *http.Request,
 	util.WriteJSON(w, http.StatusCreated, nil)
 }
 
+// DeleteApiAccountsIdFollow implements api.ServerInterface.
+func (s *Server) DeleteApiAccountsIdFollow(w http.ResponseWriter, r *http.Request, id int) {
+	// 1. Authorization - check if user is authenticated
+	container, ok := r.Context().Value(TokenContextKey).(*tokenContainer)
+	if !ok || container == nil || container.id == nil {
+		util.WriteError(w, http.StatusUnauthorized, "User not authenticated")
+		return
+	}
+	currentUserID := *container.id
+
+	// 2. Check if trying to unfollow oneself
+	if currentUserID == id {
+		http.Error(w, "Cannot unfollow oneself", http.StatusBadRequest)
+		return
+	}
+
+	// 3. Check if follow exists (optional - can just try to delete)
+	// We'll let the database handle the case where follow doesn't exist
+
+	// 4. Delete the follow
+	err := s.service.App.UnfollowAccount(r.Context(), currentUserID, id)
+	if err != nil {
+		// Check if it's a "not found" error (follow doesn't exist)
+		// For now, we'll treat any error as internal server error
+		// In a real implementation, you might want to check for sql.ErrNoRows
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	// 5. Return 204 No Content
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // DeleteApiUsersId implements api.ServerInterface.
 func (s *Server) DeleteApiUsersId(w http.ResponseWriter, r *http.Request, id int) {
 	panic("unimplemented")
