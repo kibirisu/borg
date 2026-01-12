@@ -299,6 +299,52 @@ func (s *Server) PostApiPostsIdComments(w http.ResponseWriter, r *http.Request, 
 	util.WriteJSON(w, http.StatusCreated, nil)
 }
 
+// DeleteApiPostsPostIdCommentsCommentId implements api.ServerInterface.
+func (s *Server) DeleteApiPostsPostIdCommentsCommentId(w http.ResponseWriter, r *http.Request, postId int, commentId int) {
+	// 1. Authorization - check if user is authenticated
+	container, ok := r.Context().Value(TokenContextKey).(*tokenContainer)
+	if !ok || container == nil || container.id == nil {
+		util.WriteError(w, http.StatusUnauthorized, "User not authenticated")
+		return
+	}
+	currentUserID := *container.id
+
+	// 2. Check if comment exists and get current comment data
+	comment, err := s.service.App.GetPostByID(r.Context(), commentId)
+	if err != nil {
+		http.Error(w, "Comment not found", http.StatusNotFound)
+		return
+	}
+
+	// 3. Verify that this is actually a comment (has in_reply_to_id)
+	if !comment.InReplyToID.Valid {
+		http.Error(w, "Not a comment", http.StatusBadRequest)
+		return
+	}
+
+	// 4. Verify that comment belongs to the specified post
+	if int(comment.InReplyToID.Int32) != postId {
+		http.Error(w, "Comment does not belong to this post", http.StatusBadRequest)
+		return
+	}
+
+	// 5. Check ownership - only owner can delete their comment
+	if int(comment.AccountID) != currentUserID {
+		util.WriteError(w, http.StatusForbidden, "Forbidden: You can only delete your own comments")
+		return
+	}
+
+	// 6. Delete the comment
+	err = s.service.App.DeletePost(r.Context(), commentId)
+	if err != nil {
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	// 7. Return 204 No Content
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // GetApiPostsIdLikes implements api.ServerInterface.
 func (s *Server) GetApiPostsIdLikes(w http.ResponseWriter, r *http.Request, id int) {
 	likes, err := s.service.App.GetPostLikes(r.Context(), id)

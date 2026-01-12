@@ -272,6 +272,25 @@ paths:
               $ref: "#/components/schemas/NewComment"
       security:
         - BearerAuth: []
+  /api/posts/{postId}/comments/{commentId}:
+    delete:
+      summary: Delete a comment by ID
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: commentId
+          in: path
+          required: true
+          schema:
+            type: integer
+      security:
+        - BearerAuth: []
+      responses:
+        "204":
+          description: Deleted successfully
   /api/posts/{id}/likes:
     get:
       summary: Get post's likes
