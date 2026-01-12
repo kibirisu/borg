@@ -394,6 +394,46 @@ func (s *Server) PostApiPostsIdLikes(w http.ResponseWriter, r *http.Request, id 
 	util.WriteJSON(w, http.StatusCreated, nil)
 }
 
+// DeleteApiPostsPostIdLikesLikeId implements api.ServerInterface.
+func (s *Server) DeleteApiPostsPostIdLikesLikeId(w http.ResponseWriter, r *http.Request, postId int, likeId int) {
+	// 1. Authorization - check if user is authenticated
+	container, ok := r.Context().Value(TokenContextKey).(*tokenContainer)
+	if !ok || container == nil || container.id == nil {
+		util.WriteError(w, http.StatusUnauthorized, "User not authenticated")
+		return
+	}
+	currentUserID := *container.id
+
+	// 2. Check if like exists and get current like data
+	like, err := s.service.App.GetLikeByID(r.Context(), likeId)
+	if err != nil {
+		http.Error(w, "Like not found", http.StatusNotFound)
+		return
+	}
+
+	// 3. Verify that like belongs to the specified post
+	if int(like.StatusID) != postId {
+		http.Error(w, "Like does not belong to this post", http.StatusBadRequest)
+		return
+	}
+
+	// 4. Check ownership - only owner can delete their like
+	if int(like.AccountID) != currentUserID {
+		util.WriteError(w, http.StatusForbidden, "Forbidden: You can only delete your own likes")
+		return
+	}
+
+	// 5. Delete the like
+	err = s.service.App.DeleteLike(r.Context(), likeId)
+	if err != nil {
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	// 6. Return 204 No Content
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // GetApiPostsIdShares implements api.ServerInterface.
 func (s *Server) GetApiPostsIdShares(w http.ResponseWriter, r *http.Request, id int) {
 	shares, err := s.service.App.GetPostShares(r.Context(), id)

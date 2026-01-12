@@ -453,6 +453,24 @@ func (q *Queries) GetActorByURI(ctx context.Context, dollar_1 string) (Account, 
 	return i, err
 }
 
+const getFavouriteByID = `-- name: GetFavouriteByID :one
+SELECT id, created_at, updated_at, uri, account_id, status_id FROM favourites WHERE id = $1
+`
+
+func (q *Queries) GetFavouriteByID(ctx context.Context, id int32) (Favourite, error) {
+	row := q.db.QueryRowContext(ctx, getFavouriteByID, id)
+	var i Favourite
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Uri,
+		&i.AccountID,
+		&i.StatusID,
+	)
+	return i, err
+}
+
 const getFavouriteByURI = `-- name: GetFavouriteByURI :one
 SELECT id, created_at, updated_at, uri, account_id, status_id FROM favourites WHERE uri LIKE '%' || $1::text
 `

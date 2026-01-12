@@ -325,6 +325,25 @@ paths:
               $ref: "#/components/schemas/NewLike"
       security:
         - BearerAuth: []
+  /api/posts/{postId}/likes/{likeId}:
+    delete:
+      summary: Delete a like by ID
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: likeId
+          in: path
+          required: true
+          schema:
+            type: integer
+      security:
+        - BearerAuth: []
+      responses:
+        "204":
+          description: Deleted successfully
   /api/posts/{id}/shares:
     get:
       summary: Get post's shares

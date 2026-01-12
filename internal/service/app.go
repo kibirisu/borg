@@ -32,6 +32,7 @@ type AppService interface {
 	CreateFollow(ctx context.Context, follow *db.CreateFollowParams) (*db.Follow, error)
 	AddNote(context.Context, db.CreateStatusParams) (db.Status, error)
 	AddFavourite(context.Context, int, int) (db.Favourite, error)
+	DeleteLike(context.Context, int) error
 	FollowAccount(context.Context, int, int) (*db.Follow, error)
 	GetAccountByID(context.Context, int) (db.Account, error)
 	GetAccount(context.Context, db.GetAccountParams) (*db.Account, error)
@@ -40,6 +41,7 @@ type AppService interface {
 	GetPostByID(context.Context, int) (*db.Status, error)
 	DeletePost(context.Context, int) error
 	GetPostLikes(context.Context, int) ([]db.Favourite, error)
+	GetLikeByID(context.Context, int) (db.Favourite, error)
 	GetPostShares(context.Context, int) ([]db.Status, error)
 	GetPostByIDWithMetadata(context.Context, int) (*db.GetStatusByIdWithMetadataRow, error)
 	GetLikedPostsByAccountId(context.Context, int) ([]db.GetLikedPostsByAccountIdRow, error)
@@ -253,6 +255,11 @@ func (s *appService) AddFavourite(
 	return s.store.Favourites().Create(ctx, params)
 }
 
+// DeleteLike implements AppService.
+func (s *appService) DeleteLike(ctx context.Context, likeID int) error {
+	return s.store.Favourites().DeleteByID(ctx, int32(likeID))
+}
+
 // GetAccountFollowers implements AppService.
 func (s *appService) GetAccountFollowers(
 	ctx context.Context, accountID int,
@@ -294,6 +301,10 @@ func (s *appService) DeletePost(ctx context.Context, id int) error {
 
 func (s *appService) GetPostLikes(ctx context.Context, id int) ([]db.Favourite, error) {
 	return s.store.Favourites().GetByPost(ctx, id)
+}
+
+func (s *appService) GetLikeByID(ctx context.Context, id int) (db.Favourite, error) {
+	return s.store.Favourites().GetByID(ctx, int32(id))
 }
 
 func (s *appService) GetPostShares(ctx context.Context, id int) ([]db.Status, error) {
