@@ -40,6 +40,7 @@ type AppService interface {
 	GetPostByAccountID(context.Context, int) ([]db.GetStatusesByAccountIdRow, error)
 	GetPostByID(context.Context, int) (*db.Status, error)
 	UpdatePost(context.Context, int, string) (*db.Status, error)
+	DeletePost(context.Context, int) error
 	GetPostLikes(context.Context, int) ([]db.Favourite, error)
 	GetPostShares(context.Context, int) ([]db.Status, error)
 	GetPostByIDWithMetadata(context.Context, int) (*db.GetStatusByIdWithMetadataRow, error)
@@ -289,6 +290,10 @@ func (s *appService) UpdatePost(ctx context.Context, id int, content string) (*d
 		return nil, err
 	}
 	return &status, nil
+}
+
+func (s *appService) DeletePost(ctx context.Context, id int) error {
+	return s.store.Statuses().DeleteByID(ctx, int32(id))
 }
 
 func (s *appService) GetPostLikes(ctx context.Context, id int) ([]db.Favourite, error) {

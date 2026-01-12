@@ -224,6 +224,8 @@ paths:
           required: true
           schema:
             type: integer
+      security:
+        - BearerAuth: []
       responses:
         "204":
           description: Deleted successfully

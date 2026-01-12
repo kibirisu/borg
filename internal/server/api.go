@@ -310,7 +310,36 @@ func (s *Server) PutApiUsersId(w http.ResponseWriter, r *http.Request, id int) {
 
 // DeleteApiPostsId implements api.ServerInterface.
 func (s *Server) DeleteApiPostsId(w http.ResponseWriter, r *http.Request, id int) {
-	panic("unimplemented")
+	// 1. Authorization - check if user is authenticated
+	container, ok := r.Context().Value(TokenContextKey).(*tokenContainer)
+	if !ok || container == nil || container.id == nil {
+		util.WriteError(w, http.StatusUnauthorized, "User not authenticated")
+		return
+	}
+	currentUserID := *container.id
+
+	// 2. Check if post exists and get current post data
+	post, err := s.service.App.GetPostByID(r.Context(), id)
+	if err != nil {
+		http.Error(w, "Post not found", http.StatusNotFound)
+		return
+	}
+
+	// 3. Check ownership - only owner can delete their post
+	if int(post.AccountID) != currentUserID {
+		util.WriteError(w, http.StatusForbidden, "Forbidden: You can only delete your own posts")
+		return
+	}
+
+	// 4. Delete the post
+	err = s.service.App.DeletePost(r.Context(), id)
+	if err != nil {
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	// 5. Return 204 No Content
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // GetApiPostsId implements api.ServerInterface.
