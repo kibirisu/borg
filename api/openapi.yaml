@@ -272,6 +272,25 @@ paths:
               $ref: "#/components/schemas/NewComment"
       security:
         - BearerAuth: []
+  /api/posts/{postId}/comments/{commentId}:
+    delete:
+      summary: Delete a comment by ID
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: commentId
+          in: path
+          required: true
+          schema:
+            type: integer
+      security:
+        - BearerAuth: []
+      responses:
+        "204":
+          description: Deleted successfully
   /api/posts/{id}/likes:
     get:
       summary: Get post's likes
@@ -306,6 +325,25 @@ paths:
               $ref: "#/components/schemas/NewLike"
       security:
         - BearerAuth: []
+  /api/posts/{postId}/likes/{likeId}:
+    delete:
+      summary: Delete a like by ID
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: likeId
+          in: path
+          required: true
+          schema:
+            type: integer
+      security:
+        - BearerAuth: []
+      responses:
+        "204":
+          description: Deleted successfully
   /api/posts/{id}/shares:
     get:
       summary: Get post's shares
@@ -340,6 +378,25 @@ paths:
               $ref: "#/components/schemas/NewShare"
       security:
         - BearerAuth: []
+  /api/posts/{postId}/shares/{shareId}:
+    delete:
+      summary: Delete a share by ID
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: shareId
+          in: path
+          required: true
+          schema:
+            type: integer
+      security:
+        - BearerAuth: []
+      responses:
+        "204":
+          description: Deleted successfully
   /auth/login:
     post:
       summary: Login the user
@@ -410,6 +467,19 @@ paths:
           description: Followed successfully
       security:
         - BearerAuth: []
+    delete:
+      summary: Unfollow a user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      security:
+        - BearerAuth: []
+      responses:
+        "204":
+          description: Unfollowed successfully
 
 components:
   securitySchemes:

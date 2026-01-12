@@ -161,6 +161,39 @@ func (s *Server) PostApiAccountsIdFollow(w http.ResponseWriter, r *http.Request,
 	util.WriteJSON(w, http.StatusCreated, nil)
 }
 
+// DeleteApiAccountsIdFollow implements api.ServerInterface.
+func (s *Server) DeleteApiAccountsIdFollow(w http.ResponseWriter, r *http.Request, id int) {
+	// 1. Authorization - check if user is authenticated
+	container, ok := r.Context().Value(TokenContextKey).(*tokenContainer)
+	if !ok || container == nil || container.id == nil {
+		util.WriteError(w, http.StatusUnauthorized, "User not authenticated")
+		return
+	}
+	currentUserID := *container.id
+
+	// 2. Check if trying to unfollow oneself
+	if currentUserID == id {
+		http.Error(w, "Cannot unfollow oneself", http.StatusBadRequest)
+		return
+	}
+
+	// 3. Check if follow exists (optional - can just try to delete)
+	// We'll let the database handle the case where follow doesn't exist
+
+	// 4. Delete the follow
+	err := s.service.App.UnfollowAccount(r.Context(), currentUserID, id)
+	if err != nil {
+		// Check if it's a "not found" error (follow doesn't exist)
+		// For now, we'll treat any error as internal server error
+		// In a real implementation, you might want to check for sql.ErrNoRows
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	// 5. Return 204 No Content
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // DeleteApiUsersId implements api.ServerInterface.
 func (s *Server) DeleteApiUsersId(w http.ResponseWriter, r *http.Request, id int) {
 	panic("unimplemented")
@@ -299,6 +332,52 @@ func (s *Server) PostApiPostsIdComments(w http.ResponseWriter, r *http.Request, 
 	util.WriteJSON(w, http.StatusCreated, nil)
 }
 
+// DeleteApiPostsPostIdCommentsCommentId implements api.ServerInterface.
+func (s *Server) DeleteApiPostsPostIdCommentsCommentId(w http.ResponseWriter, r *http.Request, postId int, commentId int) {
+	// 1. Authorization - check if user is authenticated
+	container, ok := r.Context().Value(TokenContextKey).(*tokenContainer)
+	if !ok || container == nil || container.id == nil {
+		util.WriteError(w, http.StatusUnauthorized, "User not authenticated")
+		return
+	}
+	currentUserID := *container.id
+
+	// 2. Check if comment exists and get current comment data
+	comment, err := s.service.App.GetPostByID(r.Context(), commentId)
+	if err != nil {
+		http.Error(w, "Comment not found", http.StatusNotFound)
+		return
+	}
+
+	// 3. Verify that this is actually a comment (has in_reply_to_id)
+	if !comment.InReplyToID.Valid {
+		http.Error(w, "Not a comment", http.StatusBadRequest)
+		return
+	}
+
+	// 4. Verify that comment belongs to the specified post
+	if int(comment.InReplyToID.Int32) != postId {
+		http.Error(w, "Comment does not belong to this post", http.StatusBadRequest)
+		return
+	}
+
+	// 5. Check ownership - only owner can delete their comment
+	if int(comment.AccountID) != currentUserID {
+		util.WriteError(w, http.StatusForbidden, "Forbidden: You can only delete your own comments")
+		return
+	}
+
+	// 6. Delete the comment
+	err = s.service.App.DeletePost(r.Context(), commentId)
+	if err != nil {
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	// 7. Return 204 No Content
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // GetApiPostsIdLikes implements api.ServerInterface.
 func (s *Server) GetApiPostsIdLikes(w http.ResponseWriter, r *http.Request, id int) {
 	likes, err := s.service.App.GetPostLikes(r.Context(), id)
@@ -346,6 +425,46 @@ func (s *Server) PostApiPostsIdLikes(w http.ResponseWriter, r *http.Request, id 
 	}
 
 	util.WriteJSON(w, http.StatusCreated, nil)
+}
+
+// DeleteApiPostsPostIdLikesLikeId implements api.ServerInterface.
+func (s *Server) DeleteApiPostsPostIdLikesLikeId(w http.ResponseWriter, r *http.Request, postId int, likeId int) {
+	// 1. Authorization - check if user is authenticated
+	container, ok := r.Context().Value(TokenContextKey).(*tokenContainer)
+	if !ok || container == nil || container.id == nil {
+		util.WriteError(w, http.StatusUnauthorized, "User not authenticated")
+		return
+	}
+	currentUserID := *container.id
+
+	// 2. Check if like exists and get current like data
+	like, err := s.service.App.GetLikeByID(r.Context(), likeId)
+	if err != nil {
+		http.Error(w, "Like not found", http.StatusNotFound)
+		return
+	}
+
+	// 3. Verify that like belongs to the specified post
+	if int(like.StatusID) != postId {
+		http.Error(w, "Like does not belong to this post", http.StatusBadRequest)
+		return
+	}
+
+	// 4. Check ownership - only owner can delete their like
+	if int(like.AccountID) != currentUserID {
+		util.WriteError(w, http.StatusForbidden, "Forbidden: You can only delete your own likes")
+		return
+	}
+
+	// 5. Delete the like
+	err = s.service.App.DeleteLike(r.Context(), likeId)
+	if err != nil {
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	// 6. Return 204 No Content
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // GetApiPostsIdShares implements api.ServerInterface.
@@ -400,6 +519,52 @@ func (s *Server) PostApiPostsIdShares(w http.ResponseWriter, r *http.Request, id
 	})
 
 	util.WriteJSON(w, http.StatusCreated, nil)
+}
+
+// DeleteApiPostsPostIdSharesShareId implements api.ServerInterface.
+func (s *Server) DeleteApiPostsPostIdSharesShareId(w http.ResponseWriter, r *http.Request, postId int, shareId int) {
+	// 1. Authorization - check if user is authenticated
+	container, ok := r.Context().Value(TokenContextKey).(*tokenContainer)
+	if !ok || container == nil || container.id == nil {
+		util.WriteError(w, http.StatusUnauthorized, "User not authenticated")
+		return
+	}
+	currentUserID := *container.id
+
+	// 2. Check if share exists and get current share data
+	share, err := s.service.App.GetPostByID(r.Context(), shareId)
+	if err != nil {
+		http.Error(w, "Share not found", http.StatusNotFound)
+		return
+	}
+
+	// 3. Verify that this is actually a share (has reblog_of_id)
+	if !share.ReblogOfID.Valid {
+		http.Error(w, "Not a share", http.StatusBadRequest)
+		return
+	}
+
+	// 4. Verify that share belongs to the specified post
+	if int(share.ReblogOfID.Int32) != postId {
+		http.Error(w, "Share does not belong to this post", http.StatusBadRequest)
+		return
+	}
+
+	// 5. Check ownership - only owner can delete their share
+	if int(share.AccountID) != currentUserID {
+		util.WriteError(w, http.StatusForbidden, "Forbidden: You can only delete your own shares")
+		return
+	}
+
+	// 6. Delete the share
+	err = s.service.App.DeletePost(r.Context(), shareId)
+	if err != nil {
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	// 7. Return 204 No Content
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // PostApiPosts implements api.ServerInterface.

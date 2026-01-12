@@ -8,6 +8,7 @@ import (
 
 type FollowRepository interface {
 	Create(context.Context, db.CreateFollowParams) (*db.Follow, error)
+	Delete(context.Context, int32, int32) error
 	GetFollowerCollection(context.Context, string) (db.GetFollowerCollectionRow, error)
 	GetFollowingCollection(context.Context, string) (db.GetFollowingCollectionRow, error)
 	GetByURI(context.Context, string) (db.Follow, error)
@@ -29,6 +30,18 @@ func (r *followRepository) Create(
 		return nil, err
 	}
 	return &follow, err
+}
+
+// Delete implements FollowRepository.
+func (r *followRepository) Delete(
+	ctx context.Context,
+	accountID int32,
+	targetAccountID int32,
+) error {
+	return r.q.DeleteFollowByAccountIds(ctx, db.DeleteFollowByAccountIdsParams{
+		AccountID:       accountID,
+		TargetAccountID: targetAccountID,
+	})
 }
 
 // GetFollowerCollection implements FollowRepository.

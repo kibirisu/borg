@@ -192,6 +192,9 @@ type ServerInterface interface {
 	// Look up a user
 	// (GET /api/accounts/lookup)
 	GetApiAccountsLookup(w http.ResponseWriter, r *http.Request, params GetApiAccountsLookupParams)
+	// Unfollow a user
+	// (DELETE /api/accounts/{id}/follow)
+	DeleteApiAccountsIdFollow(w http.ResponseWriter, r *http.Request, id int)
 	// Follow a user
 	// (POST /api/accounts/{id}/follow)
 	PostApiAccountsIdFollow(w http.ResponseWriter, r *http.Request, id int)
@@ -228,6 +231,15 @@ type ServerInterface interface {
 	// Create a post share
 	// (POST /api/posts/{id}/shares)
 	PostApiPostsIdShares(w http.ResponseWriter, r *http.Request, id int)
+	// Delete a comment by ID
+	// (DELETE /api/posts/{postId}/comments/{commentId})
+	DeleteApiPostsPostIdCommentsCommentId(w http.ResponseWriter, r *http.Request, postId int, commentId int)
+	// Delete a like by ID
+	// (DELETE /api/posts/{postId}/likes/{likeId})
+	DeleteApiPostsPostIdLikesLikeId(w http.ResponseWriter, r *http.Request, postId int, likeId int)
+	// Delete a share by ID
+	// (DELETE /api/posts/{postId}/shares/{shareId})
+	DeleteApiPostsPostIdSharesShareId(w http.ResponseWriter, r *http.Request, postId int, shareId int)
 	// Create a user
 	// (POST /api/users)
 	PostApiUsers(w http.ResponseWriter, r *http.Request)
@@ -279,6 +291,12 @@ func (_ Unimplemented) GetWellKnownWebfinger(w http.ResponseWriter, r *http.Requ
 // Look up a user
 // (GET /api/accounts/lookup)
 func (_ Unimplemented) GetApiAccountsLookup(w http.ResponseWriter, r *http.Request, params GetApiAccountsLookupParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Unfollow a user
+// (DELETE /api/accounts/{id}/follow)
+func (_ Unimplemented) DeleteApiAccountsIdFollow(w http.ResponseWriter, r *http.Request, id int) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -351,6 +369,24 @@ func (_ Unimplemented) GetApiPostsIdShares(w http.ResponseWriter, r *http.Reques
 // Create a post share
 // (POST /api/posts/{id}/shares)
 func (_ Unimplemented) PostApiPostsIdShares(w http.ResponseWriter, r *http.Request, id int) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Delete a comment by ID
+// (DELETE /api/posts/{postId}/comments/{commentId})
+func (_ Unimplemented) DeleteApiPostsPostIdCommentsCommentId(w http.ResponseWriter, r *http.Request, postId int, commentId int) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Delete a like by ID
+// (DELETE /api/posts/{postId}/likes/{likeId})
+func (_ Unimplemented) DeleteApiPostsPostIdLikesLikeId(w http.ResponseWriter, r *http.Request, postId int, likeId int) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Delete a share by ID
+// (DELETE /api/posts/{postId}/shares/{shareId})
+func (_ Unimplemented) DeleteApiPostsPostIdSharesShareId(w http.ResponseWriter, r *http.Request, postId int, shareId int) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -494,6 +530,37 @@ func (siw *ServerInterfaceWrapper) GetApiAccountsLookup(w http.ResponseWriter, r
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetApiAccountsLookup(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteApiAccountsIdFollow operation middleware
+func (siw *ServerInterfaceWrapper) DeleteApiAccountsIdFollow(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id int
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteApiAccountsIdFollow(w, r, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -802,6 +869,126 @@ func (siw *ServerInterfaceWrapper) PostApiPostsIdShares(w http.ResponseWriter, r
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.PostApiPostsIdShares(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteApiPostsPostIdCommentsCommentId operation middleware
+func (siw *ServerInterfaceWrapper) DeleteApiPostsPostIdCommentsCommentId(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "postId" -------------
+	var postId int
+
+	err = runtime.BindStyledParameterWithOptions("simple", "postId", chi.URLParam(r, "postId"), &postId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "postId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "commentId" -------------
+	var commentId int
+
+	err = runtime.BindStyledParameterWithOptions("simple", "commentId", chi.URLParam(r, "commentId"), &commentId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "commentId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteApiPostsPostIdCommentsCommentId(w, r, postId, commentId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteApiPostsPostIdLikesLikeId operation middleware
+func (siw *ServerInterfaceWrapper) DeleteApiPostsPostIdLikesLikeId(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "postId" -------------
+	var postId int
+
+	err = runtime.BindStyledParameterWithOptions("simple", "postId", chi.URLParam(r, "postId"), &postId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "postId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "likeId" -------------
+	var likeId int
+
+	err = runtime.BindStyledParameterWithOptions("simple", "likeId", chi.URLParam(r, "likeId"), &likeId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "likeId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteApiPostsPostIdLikesLikeId(w, r, postId, likeId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteApiPostsPostIdSharesShareId operation middleware
+func (siw *ServerInterfaceWrapper) DeleteApiPostsPostIdSharesShareId(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "postId" -------------
+	var postId int
+
+	err = runtime.BindStyledParameterWithOptions("simple", "postId", chi.URLParam(r, "postId"), &postId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "postId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "shareId" -------------
+	var shareId int
+
+	err = runtime.BindStyledParameterWithOptions("simple", "shareId", chi.URLParam(r, "shareId"), &shareId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "shareId", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteApiPostsPostIdSharesShareId(w, r, postId, shareId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1198,6 +1385,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/api/accounts/lookup", wrapper.GetApiAccountsLookup)
 	})
 	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/accounts/{id}/follow", wrapper.DeleteApiAccountsIdFollow)
+	})
+	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/accounts/{id}/follow", wrapper.PostApiAccountsIdFollow)
 	})
 	r.Group(func(r chi.Router) {
@@ -1232,6 +1422,15 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/posts/{id}/shares", wrapper.PostApiPostsIdShares)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/posts/{postId}/comments/{commentId}", wrapper.DeleteApiPostsPostIdCommentsCommentId)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/posts/{postId}/likes/{likeId}", wrapper.DeleteApiPostsPostIdLikesLikeId)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/posts/{postId}/shares/{shareId}", wrapper.DeleteApiPostsPostIdSharesShareId)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/users", wrapper.PostApiUsers)
@@ -1276,31 +1475,33 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
