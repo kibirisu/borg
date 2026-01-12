@@ -378,6 +378,25 @@ paths:
               $ref: "#/components/schemas/NewShare"
       security:
         - BearerAuth: []
+  /api/posts/{postId}/shares/{shareId}:
+    delete:
+      summary: Delete a share by ID
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: shareId
+          in: path
+          required: true
+          schema:
+            type: integer
+      security:
+        - BearerAuth: []
+      responses:
+        "204":
+          description: Deleted successfully
   /auth/login:
     post:
       summary: Login the user
