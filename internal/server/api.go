@@ -142,19 +142,17 @@ func (s *Server) PostApiAccountsIdFollow(w http.ResponseWriter, r *http.Request,
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
-	// APfollow := mapper.DBToFollow(follow, &follower, &followee)
-	followActivity := ap.NewActivity(nil)
+	followActivity := ap.NewFollowActivity(nil)
 	actor := ap.NewActor(nil)
 	actor.SetLink(follower.Uri)
-	object := ap.NewActor(nil)
-	object.SetLink(followee.Uri)
-	followActivity.SetObject(ap.Activity[any]{
+	actoree := ap.NewActor(nil)
+	actoree.SetLink(followee.Uri)
+	followActivity.SetObject(ap.Activity[ap.Actor]{
 		ID:     follow.Uri,
 		Type:   "Follow",
 		Actor:  actor,
-		Object: object.(ap.Objecter[any]),
+		Object: actoree,
 	})
-	log.Println(followee.InboxUri)
 	if follower.Domain != followee.Domain {
 		util.DeliverToEndpoint(followee.InboxUri, followActivity.GetRaw())
 	}
