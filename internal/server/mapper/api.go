@@ -57,3 +57,21 @@ func LikeToAPI(like *db.Favourite) *api.Like {
 		UserID:    int(like.AccountID),
 	}
 }
+
+func AccountToUserAPI(account *db.Account, followersCount int, followingCount int) *api.User {
+	origin := "local"
+	if account.Domain.Valid && account.Domain.String != "" {
+		origin = account.Domain.String
+	}
+	return &api.User{
+		Id:             int(account.ID),
+		Username:       account.Username,
+		Bio:            account.DisplayName.String,
+		Origin:         origin,
+		IsAdmin:        false, // TODO: add admin flag to accounts table if needed
+		FollowersCount: followersCount,
+		FollowingCount: followingCount,
+		CreatedAt:      account.CreatedAt,
+		UpdatedAt:      account.UpdatedAt,
+	}
+}
