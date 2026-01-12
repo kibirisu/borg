@@ -180,7 +180,55 @@ func (s *Server) GetApiUsersId(w http.ResponseWriter, r *http.Request, id int) {
 
 // PostApiUsers implements api.ServerInterface.
 func (s *Server) PostApiUsers(w http.ResponseWriter, r *http.Request) {
-	panic("unimplemented")
+	var newUser api.NewUser
+	if err := util.ReadJSON(r, &newUser); err != nil {
+		log.Println(err)
+		util.WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	log.Printf("api users: creating user username=%s", newUser.Username)
+
+	// Use existing Register method which creates both account and user
+	authForm := api.AuthForm{
+		Username: newUser.Username,
+		Password: newUser.Password,
+	}
+	if err := s.service.App.Register(r.Context(), authForm); err != nil {
+		log.Println(err)
+		util.WriteError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Get the created account to return user data
+	account, err := s.service.App.GetLocalAccount(r.Context(), newUser.Username)
+	if err != nil {
+		log.Println(err)
+		util.WriteError(w, http.StatusInternalServerError, "Failed to retrieve created user")
+		return
+	}
+
+	// Get followers and following counts
+	followers, err := s.service.App.GetAccountFollowers(r.Context(), int(account.ID))
+	if err != nil {
+		log.Println(err)
+		// Continue even if counts fail, use 0 as default
+		followers = []db.Account{}
+	}
+
+	following, err := s.service.App.GetAccountFollowing(r.Context(), int(account.ID))
+	if err != nil {
+		log.Println(err)
+		// Continue even if counts fail, use 0 as default
+		following = []db.Account{}
+	}
+
+	user := mapper.AccountToUserAPI(account, len(followers), len(following))
+
+	log.Printf("api users: user %s created successfully with id=%d", newUser.Username, user.Id)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	util.WriteJSON(w, http.StatusCreated, *user)
 }
 
 // PutApiUsersId implements api.ServerInterface.
@@ -493,4 +541,70 @@ func (s *Server) GetApiPosts(w http.ResponseWriter, r *http.Request) {
 	}
 
 	util.WriteJSON(w, http.StatusOK, apiLikes)
+}
+
+// GetApiUsersIdFavourites implements api.ServerInterface.
+func (s *Server) GetApiUsersIdFavourites(w http.ResponseWriter, r *http.Request, id int) {
+	posts, err := s.service.App.GetLikedPostsByAccountId(r.Context(), id)
+	if err != nil {
+		http.Error(w, "Database error", http.StatusInternalServerError)
+		return
+	}
+
+	apiPosts := make([]api.Post, 0, len(posts))
+	for _, info := range posts {
+		converted := mapper.PostToAPIWithMetadata(
+			&info.Status,
+			&info.Account,
+			int(info.LikeCount),
+			int(info.ShareCount),
+			int(info.CommentCount))
+		apiPosts = append(apiPosts, *converted)
+	}
+
+	util.WriteJSON(w, http.StatusOK, apiPosts)
+}
+
+// GetApiUsersIdReblogged implements api.ServerInterface.
+func (s *Server) GetApiUsersIdReblogged(w http.ResponseWriter, r *http.Request, id int) {
+	posts, err := s.service.App.GetSharedPostsByAccountId(r.Context(), id)
+	if err != nil {
+		http.Error(w, "Database error", http.StatusInternalServerError)
+		return
+	}
+
+	apiPosts := make([]api.Post, 0, len(posts))
+	for _, info := range posts {
+		converted := mapper.PostToAPIWithMetadata(
+			&info.Status,
+			&info.Account,
+			int(info.LikeCount),
+			int(info.ShareCount),
+			int(info.CommentCount))
+		apiPosts = append(apiPosts, *converted)
+	}
+
+	util.WriteJSON(w, http.StatusOK, apiPosts)
+}
+
+// GetApiUsersIdTimeline implements api.ServerInterface.
+func (s *Server) GetApiUsersIdTimeline(w http.ResponseWriter, r *http.Request, id int) {
+	posts, err := s.service.App.GetTimelinePostsByAccountId(r.Context(), id)
+	if err != nil {
+		http.Error(w, "Database error", http.StatusInternalServerError)
+		return
+	}
+
+	apiPosts := make([]api.Post, 0, len(posts))
+	for _, info := range posts {
+		converted := mapper.PostToAPIWithMetadata(
+			&info.Status,
+			&info.Account,
+			int(info.LikeCount),
+			int(info.ShareCount),
+			int(info.CommentCount))
+		apiPosts = append(apiPosts, *converted)
+	}
+
+	util.WriteJSON(w, http.StatusOK, apiPosts)
 }

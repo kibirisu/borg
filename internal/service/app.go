@@ -41,6 +41,9 @@ type AppService interface {
 	GetPostLikes(context.Context, int) ([]db.Favourite, error)
 	GetPostShares(context.Context, int) ([]db.Status, error)
 	GetPostByIDWithMetadata(context.Context, int) (*db.GetStatusByIdWithMetadataRow, error)
+	GetLikedPostsByAccountId(context.Context, int) ([]db.GetLikedPostsByAccountIdRow, error)
+	GetSharedPostsByAccountId(context.Context, int) ([]db.GetSharedPostsByAccountIdRow, error)
+	GetTimelinePostsByAccountId(context.Context, int) ([]db.GetTimelinePostsByAccountIdRow, error)
 	// EW, idk if this should stay here
 	DeliverToFollowers(http.ResponseWriter, *http.Request, int, func(recipientURI string) any)
 }
@@ -319,4 +322,25 @@ func (s *appService) GetPostByAccountID(
 
 func (s *appService) GetLocalPosts(ctx context.Context) ([]db.GetLocalStatusesRow, error) {
 	return s.store.Statuses().GetLocalStatuses(ctx)
+}
+
+func (s *appService) GetLikedPostsByAccountId(
+	ctx context.Context,
+	accountID int,
+) ([]db.GetLikedPostsByAccountIdRow, error) {
+	return s.store.Favourites().GetLikedPostsByAccountId(ctx, accountID)
+}
+
+func (s *appService) GetSharedPostsByAccountId(
+	ctx context.Context,
+	accountID int,
+) ([]db.GetSharedPostsByAccountIdRow, error) {
+	return s.store.Statuses().GetSharedPostsByAccountId(ctx, accountID)
+}
+
+func (s *appService) GetTimelinePostsByAccountId(
+	ctx context.Context,
+	accountID int,
+) ([]db.GetTimelinePostsByAccountIdRow, error) {
+	return s.store.Statuses().GetTimelinePostsByAccountId(ctx, accountID)
 }
