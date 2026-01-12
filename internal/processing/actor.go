@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"net/url"
 
 	"github.com/kibirisu/borg/internal/ap"
 	"github.com/kibirisu/borg/internal/db"
@@ -20,13 +21,17 @@ func (p *processor) LookupActor(ctx context.Context, object ap.Actorer) (db.Acco
 		if err != nil {
 			return account, err
 		}
+		parsedDomain, err := url.Parse(uri)
+		if err != nil {
+			return account, err
+		}
 		fetchedActor := ap.NewActor(object)
 		actorData := fetchedActor.GetObject()
 		account, err = p.store.Accounts().Create(ctx, db.CreateActorParams{
 			Username:     actorData.PreferredUsername,
 			Uri:          actorData.ID,
 			DisplayName:  sql.NullString{},
-			Domain:       sql.NullString{},
+			Domain:       sql.NullString{String: parsedDomain.Host, Valid: true},
 			InboxUri:     actorData.Inbox,
 			OutboxUri:    actorData.Outbox,
 			Url:          "nope",
