@@ -138,9 +138,9 @@ func (s *Server) GetApiAccountsLookup(
 				String: handle.Domain,
 				Valid:  true,
 			},
-			DisplayName: sql.NullString{},
-			InboxUri:    actorData.Inbox,
-			OutboxUri:   actorData.Outbox,
+			DisplayName:  sql.NullString{},
+			InboxUri:     actorData.Inbox,
+			OutboxUri:    actorData.Outbox,
 			FollowersUri: actorData.Followers,
 			FollowingUri: actorData.Following,
 			Url:          actorData.ID,
@@ -170,19 +170,16 @@ func (s *Server) GetApiAccountsLookup(
 	}
 }
 
-type HealthResponse struct {
-	Status string `json:"status"`
-}
-
 // GetApiHealth implements api.ServerInterface.
 func (s *Server) GetApiHealth(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	response := HealthResponse{
+	resp := struct {
+		Status string `json:"status"`
+	}{
 		Status: "ok",
 	}
-	util.WriteJSON(w, http.StatusOK, response)
+	util.WriteJSON(w, http.StatusOK, &resp)
 }
+
 // PostApiAccountsIdFollow implements api.ServerInterface.
 func (s *Server) PostApiAccountsIdFollow(w http.ResponseWriter, r *http.Request, id int) {
 	container, ok := r.Context().Value(TokenContextKey).(*tokenContainer)
@@ -351,7 +348,7 @@ func (s *Server) PostApiPostsIdComments(w http.ResponseWriter, r *http.Request, 
 		return activity.GetRaw()
 	})
 
-	//deliver to original post author
+	// deliver to original post author
 	if commenter.Domain != parentAuthor.Domain {
 		util.DeliverToEndpoint(parentAuthor.InboxUri, activity.GetRaw())
 	}
@@ -404,9 +401,9 @@ func (s *Server) PostApiPostsIdLikes(w http.ResponseWriter, r *http.Request, id 
 	note.SetLink(post.Uri)
 	activity := ap.NewLikeActivity(nil)
 	activity.SetObject(ap.Activity[ap.Note]{
-		ID: like.Uri,
-		Type: "Like",
-		Actor: actor,
+		ID:     like.Uri,
+		Type:   "Like",
+		Actor:  actor,
 		Object: note,
 	})
 
@@ -460,13 +457,13 @@ func (s *Server) PostApiPostsIdShares(w http.ResponseWriter, r *http.Request, id
 
 	activity := mapper.StatusToCreateActivity(share, sharer, nil)
 
-	//send activity to post author
+	// send activity to post author
 	author, err := s.service.App.GetAccountByID(r.Context(), int(post.AccountID))
 	if err == nil && sharer.Domain != author.Domain {
 		util.DeliverToEndpoint(author.InboxUri, activity.GetRaw())
 	}
 
-	//send activity to my followers
+	// send activity to my followers
 	s.service.App.DeliverToFollowers(w, r, currentUserID, func(recipientURI string) any {
 		return activity.GetRaw()
 	})
