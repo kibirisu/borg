@@ -68,6 +68,7 @@ func (s *appService) Register(ctx context.Context, form api.AuthForm) error {
 	uri := fmt.Sprintf("http://%s/users/%s", s.conf.ListenHost, form.Username)
 	log.Printf("register: creating actor username=%s uri=%s", form.Username, uri)
 	actor, err := s.store.Accounts().Create(ctx, db.CreateActorParams{
+		ID:          xid.New(),
 		Username:    form.Username,
 		Uri:         uri,
 		DisplayName: sql.NullString{}, // hassle to maintain that, gonna abandon display name
@@ -86,6 +87,7 @@ func (s *appService) Register(ctx context.Context, form api.AuthForm) error {
 		return err
 	}
 	if err = s.store.Users().Create(ctx, db.CreateUserParams{
+		ID:           xid.New(),
 		AccountID:    actor.ID,
 		PasswordHash: string(hash),
 	}); err != nil {

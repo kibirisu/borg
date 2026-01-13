@@ -15,6 +15,7 @@ func NewPostToDB(newPost *api.NewPost, isLocal bool) *db.CreateStatusParams {
 		return nil
 	}
 	return &db.CreateStatusParams{
+		ID:          xid.New(),
 		Url:         "TODO",
 		Local:       sql.NullBool{Bool: isLocal, Valid: true},
 		Content:     newPost.Content,
@@ -34,6 +35,7 @@ func NewCommentToDB(comment *api.NewComment) *db.CreateStatusParams {
 		return nil
 	}
 	return &db.CreateStatusParams{
+		ID:          xid.New(),
 		Url:         "TODO",
 		Local:       sql.NullBool{Bool: true, Valid: true},
 		Content:     comment.Content,
@@ -53,6 +55,7 @@ func NewShareToDB(share *api.NewShare) *db.CreateStatusParams {
 		return nil
 	}
 	return &db.CreateStatusParams{
+		ID:          xid.New(),
 		Url:         "TODO",
 		Local:       sql.NullBool{Bool: true, Valid: true},
 		Content:     "",

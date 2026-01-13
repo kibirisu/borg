@@ -173,8 +173,6 @@ func (s *Server) GetApiUsersId(w http.ResponseWriter, r *http.Request, id string
 		http.Error(w, "Database error", http.StatusInternalServerError)
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
 	util.WriteJSON(w, http.StatusOK, *mapper.AccountToAPI(&user))
 }
 
