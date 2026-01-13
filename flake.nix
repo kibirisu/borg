@@ -32,6 +32,11 @@
           name = "gostack-env";
 
           buildInputs = with pkgs; [
+            (pkgs.python3.withPackages (python-pkgs: [
+              python-pkgs.pytest
+              python-pkgs.requests
+              python-pkgs.psycopg2
+            ]))
             pnpm
             nodejs_22
             yarn
