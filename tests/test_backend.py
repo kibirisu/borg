@@ -24,17 +24,19 @@ DBS = [DB_1, DB_2]
 def db_inspector():
     def _query(db_name, sql):
         conn = psycopg2.connect(f"postgres://borg:borg@localhost:5432/{db_name}")
+        conn.autocommit = True
         with conn.cursor() as cur:
             cur.execute(sql)
-            rows = cur.fetchall()
-            # Get column names from the cursor description
-            colnames = [desc[0] for desc in cur.description]
+            if cur.pgresult_ptr is not None:
+                rows = cur.fetchall()
+                colnames = [desc[0] for desc in cur.description]
+            else:
+                rows = []
         conn.close()
+        if not rows:
+            return rows
         
-        # Define a NamedTuple type 'Row' with the database column names
         Row = namedtuple('Row', colnames)
-        
-        # Convert every tuple in 'rows' into a 'Row' object
         return [Row(*r) for r in rows]
     
     return _query
@@ -84,6 +86,9 @@ def test_posting(user_tokens, db_inspector):
         assert resp.status_code == 201
         psts = db_inspector(DBS[i], "SELECT * FROM statuses")
         assert len(psts) == 1
+        db_inspector(DBS[i], "DELETE FROM statuses")
+        psts = db_inspector(DBS[i], "SELECT * FROM statuses")
+        assert len(psts) == 0
 
 def test_remote_search(db_inspector):
     url = f"{SERVER_1}/api/accounts/lookup"
@@ -114,3 +119,20 @@ def test_remote_follow(user_tokens, db_inspector):
     # check if remote got the follower and if it's domain is correctly set
     remote_follower = db_inspector(DB_2, f"SELECT * FROM accounts where username like '{USER_1}'")[0]
     assert(remote_follower.domain != None)
+
+def test_remote_post(user_tokens, db_inspector):
+    header = user_tokens[USER_2]
+    # check if in the follower db no statuses are present
+    psts = db_inspector(DB_1, "SELECT * FROM statuses")
+    assert len(psts) == 0
+    resp = requests.post(f"{SERVER_2}/api/posts", 
+                         json={
+                            "userID": 1,
+                            "content": f"I am {USER_2}",
+                         }, 
+                         headers=header)
+    assert resp.status_code == 201
+    # check if in the follower db status has been created
+    psts = db_inspector(DB_1, "SELECT * FROM statuses")
+    assert len(psts) == 1
+    assert psts[0].content == f"I am {USER_2}"
