@@ -33,6 +33,28 @@ const items: SidebarItem[] = [
     ),
   },
   {
+    label: "Timeline",
+    to: "/timeline",
+    icon: (
+      <svg
+        role="img"
+        aria-label="Timeline"
+        className="w-5 h-5"
+        fill="none"
+        viewBox="0 0 24 24"
+      >
+        <title>Timeline</title>
+        <path
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M4 4v16M9 7h11M9 12h11M9 17h11"
+        />
+      </svg>
+    ),
+  },
+  {
     label: "Explore",
     to: "/explore",
     icon: (
@@ -57,28 +79,6 @@ const items: SidebarItem[] = [
           strokeLinecap="round"
           strokeLinejoin="round"
           d="M13.5 3V11h7.975"
-        />
-      </svg>
-    ),
-  },
-  {
-    label: "Notifications",
-    to: "/notifications",
-    icon: (
-      <svg
-        role="img"
-        aria-label="Notifications"
-        className="w-5 h-5"
-        fill="none"
-        viewBox="0 0 24 24"
-      >
-        <title>Notifications</title>
-        <path
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5"
         />
       </svg>
     ),

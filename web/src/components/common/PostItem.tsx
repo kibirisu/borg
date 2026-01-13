@@ -21,6 +21,8 @@ interface PostProps {
   onSelect?: (post: PostPresentable) => void;
   showActions?: boolean;
   onCommentClick?: (post: PostPresentable) => void;
+  likeActive?: boolean;
+  shareActive?: boolean;
 }
 
 export const PostItem = ({
@@ -29,6 +31,8 @@ export const PostItem = ({
   onSelect,
   showActions = false,
   onCommentClick,
+  likeActive = false,
+  shareActive = false,
 }: PostProps) => {
   const appState = useContext(AppContext);
   const currentUserId = appState?.userId ?? null;
@@ -164,7 +168,9 @@ export const PostItem = ({
             {"shareCount" in post.data && (
               <button
                 type="button"
-                className="flex items-center space-x-1 hover:text-green-500 transition"
+                className={`flex items-center space-x-1 transition ${
+                  shareActive ? "text-green-500" : "hover:text-green-500"
+                }`}
                 onClick={(event) => {
                   event.stopPropagation();
                   void shareAction();
@@ -176,13 +182,15 @@ export const PostItem = ({
             {"likeCount" in post.data && (
               <button
                 type="button"
-                className="flex items-center space-x-1 hover:text-pink-500 transition"
+                className={`flex items-center space-x-1 transition ${
+                  likeActive ? "text-red-500" : "hover:text-pink-500"
+                }`}
                 onClick={(event) => {
                   event.stopPropagation();
                   void likeAction();
                 }}
               >
-                <Heart size={16} />
+                <Heart size={16} fill={likeActive ? "currentColor" : "none"} />
                 <span>{post.data.likeCount}</span>
               </button>
             )}
