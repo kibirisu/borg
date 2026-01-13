@@ -170,6 +170,19 @@ func (s *Server) GetApiAccountsLookup(
 	}
 }
 
+type HealthResponse struct {
+	Status string `json:"status"`
+}
+
+// GetApiHealth implements api.ServerInterface.
+func (s *Server) GetApiHealth(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	response := HealthResponse{
+		Status: "ok",
+	}
+	util.WriteJSON(w, http.StatusOK, response)
+}
 // PostApiAccountsIdFollow implements api.ServerInterface.
 func (s *Server) PostApiAccountsIdFollow(w http.ResponseWriter, r *http.Request, id int) {
 	container, ok := r.Context().Value(TokenContextKey).(*tokenContainer)
