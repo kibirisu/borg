@@ -1,6 +1,7 @@
 import requests
 import psycopg2
 import pytest
+from collections import namedtuple
 
 SERVER_1 = "http://localhost:8080"
 SERVER_2 = "http://localhost:8081"
@@ -26,8 +27,16 @@ def db_inspector():
         with conn.cursor() as cur:
             cur.execute(sql)
             rows = cur.fetchall()
+            # Get column names from the cursor description
+            colnames = [desc[0] for desc in cur.description]
         conn.close()
-        return rows
+        
+        # Define a NamedTuple type 'Row' with the database column names
+        Row = namedtuple('Row', colnames)
+        
+        # Convert every tuple in 'rows' into a 'Row' object
+        return [Row(*r) for r in rows]
+    
     return _query
 
 def test_register(db_inspector):
@@ -63,7 +72,6 @@ def user_tokens():
 def test_posting(user_tokens, db_inspector):
     for i in range(2):
         header = user_tokens[USERS[i]]
-        print(header)
         
         psts = db_inspector(DBS[i], "SELECT * FROM statuses")
         assert len(psts) == 0
@@ -87,4 +95,22 @@ def test_remote_search(db_inspector):
     resp = requests.get(url, params=params)
     assert resp.status_code == 200
     remote_acc = db_inspector(DB_1, f"SELECT * FROM accounts where username like '{USER_2}'")
+    assert(remote_acc[0].username == "bob")
+    assert(remote_acc[0].domain != None)
 
+def test_remote_follow(user_tokens, db_inspector):
+    remote_acc = db_inspector(DB_1, f"SELECT * FROM accounts where username like '{USER_2}'")[0]
+
+    header = user_tokens[USER_1]
+    resp = requests.post(f"{SERVER_1}/api/accounts/{remote_acc.id}/follow", headers=header)
+    assert(resp.status_code == 201)
+    # check if  follow appeared locally
+    local_follows = db_inspector(DB_1, f"SELECT * FROM follows")
+    assert(len(local_follows) == 1)
+    # check if  follow appeared  on remote server
+    remote_follows = db_inspector(DB_2, f"SELECT * FROM follows")
+    assert(len(remote_follows) == 1)
+
+    # check if remote got the follower and if it's domain is correctly set
+    remote_follower = db_inspector(DB_2, f"SELECT * FROM accounts where username like '{USER_1}'")[0]
+    assert(remote_follower.domain != None)
