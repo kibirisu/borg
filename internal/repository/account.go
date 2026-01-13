@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/kibirisu/borg/internal/db"
 )
@@ -15,6 +16,7 @@ type AccountRepository interface {
 	GetFollowers(context.Context, int) ([]db.Account, error)
 	GetFollowing(context.Context, int) ([]db.Account, error)
 	GetPosts(context.Context, int) ([]db.GetStatusesByAccountIdRow, error)
+	Update(context.Context, int, *string) (db.Account, error)
 }
 
 type accountRepository struct {
@@ -79,4 +81,23 @@ func (r *accountRepository) GetPosts(
 	id int,
 ) ([]db.GetStatusesByAccountIdRow, error) {
 	return r.q.GetStatusesByAccountId(ctx, int32(id))
+}
+
+// Update implements AccountRepository.
+func (r *accountRepository) Update(
+	ctx context.Context,
+	id int,
+	bio *string,
+) (db.Account, error) {
+	var displayName sql.NullString
+	if bio != nil {
+		displayName = sql.NullString{
+			String: *bio,
+			Valid:  true,
+		}
+	}
+	return r.q.UpdateAccountById(ctx, db.UpdateAccountByIdParams{
+		ID:          int32(id),
+		DisplayName: displayName,
+	})
 }

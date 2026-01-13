@@ -119,6 +119,12 @@ INSERT INTO statuses (
     $1, $2, $3, $4, $5, $6
 );
 
+-- name: UpdateStatusById :one
+UPDATE statuses 
+SET content = $2, updated_at = CURRENT_TIMESTAMP
+WHERE id = $1
+RETURNING *;
+
 -- name: DeleteStatusByID :exec
 DELETE FROM statuses WHERE id = $1;
 
@@ -189,3 +195,21 @@ JOIN accounts a ON s.account_id = a.id
 JOIN follows f ON a.id = f.target_account_id
 WHERE f.account_id = $1 AND s.in_reply_to_id IS NULL
 ORDER BY s.created_at DESC;
+
+-- name: GetCommentsByPostId :many
+SELECT 
+    s.id,
+    s.created_at,
+    s.updated_at,
+    s.content,
+    s.account_id,
+    s.in_reply_to_id
+FROM statuses s
+WHERE s.in_reply_to_id = $1
+ORDER BY s.created_at ASC;
+
+-- name: UpdateAccountById :one
+UPDATE accounts 
+SET display_name = COALESCE($2, display_name), updated_at = CURRENT_TIMESTAMP
+WHERE id = $1
+RETURNING *;

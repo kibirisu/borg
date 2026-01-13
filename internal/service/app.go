@@ -34,16 +34,20 @@ type AppService interface {
 	AddFavourite(context.Context, int, int) (db.Favourite, error)
 	FollowAccount(context.Context, int, int) (*db.Follow, error)
 	GetAccountByID(context.Context, int) (db.Account, error)
+	UpdateAccount(context.Context, int, *string) (db.Account, error)
 	GetAccount(context.Context, db.GetAccountParams) (*db.Account, error)
 	GetLocalPosts(context.Context) ([]db.GetLocalStatusesRow, error)
 	GetPostByAccountID(context.Context, int) ([]db.GetStatusesByAccountIdRow, error)
 	GetPostByID(context.Context, int) (*db.Status, error)
+	UpdatePost(context.Context, int, string) (*db.Status, error)
+	DeletePost(context.Context, int) error
 	GetPostLikes(context.Context, int) ([]db.Favourite, error)
 	GetPostShares(context.Context, int) ([]db.Status, error)
 	GetPostByIDWithMetadata(context.Context, int) (*db.GetStatusByIdWithMetadataRow, error)
 	GetLikedPostsByAccountId(context.Context, int) ([]db.GetLikedPostsByAccountIdRow, error)
 	GetSharedPostsByAccountId(context.Context, int) ([]db.GetSharedPostsByAccountIdRow, error)
 	GetTimelinePostsByAccountId(context.Context, int) ([]db.GetTimelinePostsByAccountIdRow, error)
+	GetCommentsByPostId(context.Context, int) ([]db.GetCommentsByPostIdRow, error)
 	// EW, idk if this should stay here
 	DeliverToFollowers(http.ResponseWriter, *http.Request, int, func(recipientURI string) any)
 }
@@ -253,6 +257,13 @@ func (s *appService) GetAccountByID(
 	return s.store.Accounts().GetByID(ctx, accountID)
 }
 
+// UpdateAccount implements AppService.
+func (s *appService) UpdateAccount(
+	ctx context.Context, accountID int, bio *string,
+) (db.Account, error) {
+	return s.store.Accounts().Update(ctx, accountID, bio)
+}
+
 // AddFavourite implements AppService.
 func (s *appService) AddFavourite(
 	ctx context.Context, accountID int, postID int,
@@ -303,6 +314,18 @@ func (s *appService) GetPostByID(ctx context.Context, id int) (*db.Status, error
 	} else {
 		return &status, nil
 	}
+}
+
+func (s *appService) UpdatePost(ctx context.Context, id int, content string) (*db.Status, error) {
+	status, err := s.store.Statuses().Update(ctx, id, content)
+	if err != nil {
+		return nil, err
+	}
+	return &status, nil
+}
+
+func (s *appService) DeletePost(ctx context.Context, id int) error {
+	return s.store.Statuses().DeleteByID(ctx, int32(id))
 }
 
 func (s *appService) GetPostLikes(ctx context.Context, id int) ([]db.Favourite, error) {
@@ -380,4 +403,11 @@ func (s *appService) GetTimelinePostsByAccountId(
 	accountID int,
 ) ([]db.GetTimelinePostsByAccountIdRow, error) {
 	return s.store.Statuses().GetTimelinePostsByAccountId(ctx, accountID)
+}
+
+func (s *appService) GetCommentsByPostId(
+	ctx context.Context,
+	postID int,
+) ([]db.GetCommentsByPostIdRow, error) {
+	return s.store.Statuses().GetCommentsByPostId(ctx, postID)
 }

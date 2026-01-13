@@ -61,9 +61,15 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/UpdateUser"
+      security:
+        - BearerAuth: []
       responses:
         "200":
           description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
   /api/users/{id}/posts:
     get:
       summary: Get posts of user with ID
@@ -218,6 +224,8 @@ paths:
           required: true
           schema:
             type: integer
+      security:
+        - BearerAuth: []
       responses:
         "204":
           description: Deleted successfully
@@ -235,6 +243,8 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/UpdatePost"
+      security:
+        - BearerAuth: []
       responses:
         "200":
           description: Updated user

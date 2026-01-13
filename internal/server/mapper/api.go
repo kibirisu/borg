@@ -75,3 +75,19 @@ func AccountToUserAPI(account *db.Account, followersCount int, followingCount in
 		UpdatedAt:      account.UpdatedAt,
 	}
 }
+
+func StatusToComment(status *db.GetCommentsByPostIdRow) *api.Comment {
+	postID := 0
+	if status.InReplyToID.Valid {
+		postID = int(status.InReplyToID.Int32)
+	}
+	return &api.Comment{
+		Id:        int(status.ID),
+		PostID:    postID,
+		UserID:    int(status.AccountID),
+		Content:   status.Content,
+		ParentID:  postID, // Comments have parentID same as postID
+		CreatedAt: status.CreatedAt,
+		UpdatedAt: status.UpdatedAt,
+	}
+}

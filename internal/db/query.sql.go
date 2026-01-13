@@ -8,6 +8,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"time"
 )
 
 const addStatus = `-- name: AddStatus :exec
@@ -460,6 +461,58 @@ func (q *Queries) GetActorByURI(ctx context.Context, dollar_1 string) (Account, 
 		&i.Url,
 	)
 	return i, err
+}
+
+const getCommentsByPostId = `-- name: GetCommentsByPostId :many
+SELECT 
+    s.id,
+    s.created_at,
+    s.updated_at,
+    s.content,
+    s.account_id,
+    s.in_reply_to_id
+FROM statuses s
+WHERE s.in_reply_to_id = $1
+ORDER BY s.created_at ASC
+`
+
+type GetCommentsByPostIdRow struct {
+	ID          int32
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	Content     string
+	AccountID   int32
+	InReplyToID sql.NullInt32
+}
+
+func (q *Queries) GetCommentsByPostId(ctx context.Context, inReplyToID sql.NullInt32) ([]GetCommentsByPostIdRow, error) {
+	rows, err := q.db.QueryContext(ctx, getCommentsByPostId, inReplyToID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetCommentsByPostIdRow
+	for rows.Next() {
+		var i GetCommentsByPostIdRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Content,
+			&i.AccountID,
+			&i.InReplyToID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getFavouriteByURI = `-- name: GetFavouriteByURI :one
@@ -1053,4 +1106,66 @@ func (q *Queries) GetTimelinePostsByAccountId(ctx context.Context, accountID int
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateAccountById = `-- name: UpdateAccountById :one
+UPDATE accounts 
+SET display_name = COALESCE($2, display_name), updated_at = CURRENT_TIMESTAMP
+WHERE id = $1
+RETURNING id, created_at, updated_at, username, uri, display_name, domain, inbox_uri, outbox_uri, followers_uri, following_uri, url
+`
+
+type UpdateAccountByIdParams struct {
+	ID          int32
+	DisplayName sql.NullString
+}
+
+func (q *Queries) UpdateAccountById(ctx context.Context, arg UpdateAccountByIdParams) (Account, error) {
+	row := q.db.QueryRowContext(ctx, updateAccountById, arg.ID, arg.DisplayName)
+	var i Account
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Username,
+		&i.Uri,
+		&i.DisplayName,
+		&i.Domain,
+		&i.InboxUri,
+		&i.OutboxUri,
+		&i.FollowersUri,
+		&i.FollowingUri,
+		&i.Url,
+	)
+	return i, err
+}
+
+const updateStatusById = `-- name: UpdateStatusById :one
+UPDATE statuses 
+SET content = $2, updated_at = CURRENT_TIMESTAMP
+WHERE id = $1
+RETURNING id, created_at, updated_at, uri, url, local, content, account_id, in_reply_to_id, reblog_of_id
+`
+
+type UpdateStatusByIdParams struct {
+	ID      int32
+	Content string
+}
+
+func (q *Queries) UpdateStatusById(ctx context.Context, arg UpdateStatusByIdParams) (Status, error) {
+	row := q.db.QueryRowContext(ctx, updateStatusById, arg.ID, arg.Content)
+	var i Status
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Uri,
+		&i.Url,
+		&i.Local,
+		&i.Content,
+		&i.AccountID,
+		&i.InReplyToID,
+		&i.ReblogOfID,
+	)
+	return i, err
 }

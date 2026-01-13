@@ -12,11 +12,13 @@ type StatusRepository interface {
 	Add(context.Context, db.AddStatusParams) error
 	GetByID(context.Context, int) (db.Status, error)
 	GetByURI(context.Context, string) (db.Status, error)
+	Update(context.Context, int, string) (db.Status, error)
 	GetShares(context.Context, int) ([]db.Status, error)
 	GetLocalStatuses(context.Context) ([]db.GetLocalStatusesRow, error)
 	GetByIDWithMetadata(context.Context, int) (db.GetStatusByIdWithMetadataRow, error)
 	GetSharedPostsByAccountId(context.Context, int) ([]db.GetSharedPostsByAccountIdRow, error)
 	GetTimelinePostsByAccountId(context.Context, int) ([]db.GetTimelinePostsByAccountIdRow, error)
+	GetCommentsByPostId(context.Context, int) ([]db.GetCommentsByPostIdRow, error)
 	DeleteByID(context.Context, int32) error
 }
 
@@ -47,6 +49,18 @@ func (r *statusRepository) GetByID(ctx context.Context, id int) (db.Status, erro
 // GetByURI implements StatusRepository.
 func (r *statusRepository) GetByURI(ctx context.Context, uri string) (db.Status, error) {
 	return r.q.GetStatusByURI(ctx, uri)
+}
+
+// Update implements StatusRepository.
+func (r *statusRepository) Update(
+	ctx context.Context,
+	id int,
+	content string,
+) (db.Status, error) {
+	return r.q.UpdateStatusById(ctx, db.UpdateStatusByIdParams{
+		ID:      int32(id),
+		Content: content,
+	})
 }
 
 // GetById implements StatusRepository.
@@ -81,6 +95,14 @@ func (r *statusRepository) GetTimelinePostsByAccountId(
 	accountID int,
 ) ([]db.GetTimelinePostsByAccountIdRow, error) {
 	return r.q.GetTimelinePostsByAccountId(ctx, int32(accountID))
+}
+
+// GetCommentsByPostId implements StatusRepository.
+func (r *statusRepository) GetCommentsByPostId(
+	ctx context.Context,
+	postID int,
+) ([]db.GetCommentsByPostIdRow, error) {
+	return r.q.GetCommentsByPostId(ctx, sql.NullInt32{Int32: int32(postID), Valid: true})
 }
 
 // DeleteByURI implements StatusRepository.
