@@ -76,3 +76,15 @@ def test_posting(user_tokens, db_inspector):
         assert resp.status_code == 201
         psts = db_inspector(DBS[i], "SELECT * FROM statuses")
         assert len(psts) == 1
+
+def test_remote_search(db_inspector):
+    url = f"{SERVER_1}/api/accounts/lookup"
+    url_remote = SERVER_2
+    url_remote = url_remote.replace("http://", "").replace("https://", "").rstrip("/")
+    params = {
+        "acct": f"@{USER_2}@{url_remote}"
+    }
+    resp = requests.get(url, params=params)
+    assert resp.status_code == 200
+    remote_acc = db_inspector(DB_1, f"SELECT * FROM accounts where username like '{USER_2}'")
+
