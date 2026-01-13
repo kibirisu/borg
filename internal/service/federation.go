@@ -388,16 +388,16 @@ func (s *federationService) LookupRemoteActor(
 		return nil, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		log.Printf("lookup_remote: WebFinger request failed status=%s", resp.Status)
 		return nil, fmt.Errorf("webfinger lookup failed: %s", resp.Status)
 	}
 	var webfinger api.WebFingerResponse
 	if err := json.NewDecoder(resp.Body).Decode(&webfinger); err != nil {
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		return nil, err
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	actorURL, err := selectActorLink(webfinger.Links)
 	if err != nil {
@@ -415,17 +415,17 @@ func (s *federationService) LookupRemoteActor(
 		return nil, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		log.Printf("lookup_remote: actor request failed status=%s", resp.Status)
 		return nil, fmt.Errorf("actor lookup failed: %s", resp.Status)
 	}
 
 	var actor domain.Actor
 	if err := json.NewDecoder(resp.Body).Decode(&actor); err != nil {
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		return nil, err
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	return &actor, nil
 }
 

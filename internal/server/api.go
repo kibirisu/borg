@@ -116,7 +116,12 @@ func (s *Server) GetApiAccountsLookup(
 			util.WriteError(w, http.StatusBadGateway, err.Error())
 			return
 		}
-		defer actorResp.Body.Close()
+		defer func() {
+			err = actorResp.Body.Close()
+			if err != nil {
+				log.Println(err)
+			}
+		}()
 		if actorResp.StatusCode != http.StatusOK {
 			util.WriteError(w, http.StatusBadGateway, "remote actor fetch failed")
 			return
@@ -138,15 +143,18 @@ func (s *Server) GetApiAccountsLookup(
 				String: handle.Domain,
 				Valid:  true,
 			},
-			DisplayName: sql.NullString{},
-			InboxUri:    actorData.Inbox,
-			OutboxUri:   actorData.Outbox,
+			DisplayName:  sql.NullString{},
+			InboxUri:     actorData.Inbox,
+			OutboxUri:    actorData.Outbox,
 			FollowersUri: actorData.Followers,
 			FollowingUri: actorData.Following,
 			Url:          actorData.ID,
 		}
 
-		log.Printf("lookup: creating remote account %s@%s from actor %s", actorData.PreferredUsername, handle.Domain, actorData.ID)
+		log.Printf(
+			"lookup: creating remote account %s@%s from actor %s",
+			actorData.PreferredUsername, handle.Domain, actorData.ID,
+		)
 		account, err = s.service.App.AddRemoteAccount(r.Context(), &params)
 		if err != nil {
 			log.Println(err)
@@ -184,7 +192,15 @@ func (s *Server) PostApiAccountsIdFollow(w http.ResponseWriter, r *http.Request,
 		return
 	}
 	follower, err := s.service.App.GetAccountByID(r.Context(), currentUserID)
+	if err != nil {
+		util.WriteError(w, http.StatusNotFound, err.Error())
+		return
+	}
 	followee, err := s.service.App.GetAccountByID(r.Context(), id)
+	if err != nil {
+		util.WriteError(w, http.StatusNotFound, err.Error())
+		return
+	}
 	follow, err := s.service.App.FollowAccount(r.Context(), currentUserID, id)
 	if err != nil {
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -251,10 +267,7 @@ func (s *Server) PostApiUsers(w http.ResponseWriter, r *http.Request) {
 	log.Printf("api users: creating user username=%s", newUser.Username)
 
 	// Use existing Register method which creates both account and user
-	authForm := api.AuthForm{
-		Username: newUser.Username,
-		Password: newUser.Password,
-	}
+	authForm := api.AuthForm(newUser)
 	if err := s.service.App.Register(r.Context(), authForm); err != nil {
 		log.Println(err)
 		util.WriteError(w, http.StatusInternalServerError, err.Error())
@@ -390,7 +403,7 @@ func (s *Server) GetApiPostsId(w http.ResponseWriter, r *http.Request, id int) {
 
 // GetApiPostsIdComments implements api.ServerInterface.
 func (s *Server) GetApiPostsIdComments(w http.ResponseWriter, r *http.Request, id int) {
-	comments, err := s.service.App.GetCommentsByPostId(r.Context(), id)
+	comments, err := s.service.App.GetCommentsByPostID(r.Context(), id)
 	if err != nil {
 		http.Error(w, "Database error", http.StatusInternalServerError)
 		return
@@ -417,6 +430,9 @@ func (s *Server) PostApiPostsIdComments(w http.ResponseWriter, r *http.Request, 
 	currentUserID := comment.UserID
 
 	commenter, err := s.service.App.GetAccountByID(r.Context(), currentUserID)
+	if err != nil {
+		util.WriteError(w, http.StatusNotFound, err.Error())
+	}
 	parentPost, err := s.service.App.GetPostByID(r.Context(), id)
 	if err != nil {
 		http.Error(w, "Parent post not found", http.StatusNotFound)
@@ -437,7 +453,7 @@ func (s *Server) PostApiPostsIdComments(w http.ResponseWriter, r *http.Request, 
 		return activity.GetRaw()
 	})
 
-	//deliver to original post author
+	// deliver to original post author
 	if commenter.Domain != parentAuthor.Domain {
 		util.DeliverToEndpoint(parentAuthor.InboxUri, activity.GetRaw())
 	}
@@ -472,9 +488,13 @@ func (s *Server) PostApiPostsIdLikes(w http.ResponseWriter, r *http.Request, id 
 	currentUserID := newLike.UserID
 
 	liker, err := s.service.App.GetAccountByID(r.Context(), currentUserID)
+	if err != nil {
+		util.WriteError(w, http.StatusNotFound, err.Error())
+		return
+	}
 	post, err := s.service.App.GetPostByID(r.Context(), id)
 	if err != nil {
-		http.Error(w, "Post not found", http.StatusNotFound)
+		util.WriteError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
@@ -490,9 +510,9 @@ func (s *Server) PostApiPostsIdLikes(w http.ResponseWriter, r *http.Request, id 
 	note.SetLink(post.Uri)
 	activity := ap.NewLikeActivity(nil)
 	activity.SetObject(ap.Activity[ap.Note]{
-		ID: like.Uri,
-		Type: "Like",
-		Actor: actor,
+		ID:     like.Uri,
+		Type:   "Like",
+		Actor:  actor,
 		Object: note,
 	})
 
@@ -531,6 +551,9 @@ func (s *Server) PostApiPostsIdShares(w http.ResponseWriter, r *http.Request, id
 	currentUserID := newShare.UserID
 
 	sharer, err := s.service.App.GetAccountByID(r.Context(), currentUserID)
+	if err != nil {
+		util.WriteError(w, http.StatusNotFound, err.Error())
+	}
 	post, err := s.service.App.GetPostByID(r.Context(), id)
 	if err != nil {
 		http.Error(w, "Post not found", http.StatusNotFound)
@@ -546,13 +569,13 @@ func (s *Server) PostApiPostsIdShares(w http.ResponseWriter, r *http.Request, id
 
 	activity := mapper.StatusToCreateActivity(share, sharer, nil)
 
-	//send activity to post author
+	// send activity to post author
 	author, err := s.service.App.GetAccountByID(r.Context(), int(post.AccountID))
 	if err == nil && sharer.Domain != author.Domain {
 		util.DeliverToEndpoint(author.InboxUri, activity.GetRaw())
 	}
 
-	//send activity to my followers
+	// send activity to my followers
 	s.service.App.DeliverToFollowers(w, r, currentUserID, func(recipientURI string) any {
 		return activity.GetRaw()
 	})
@@ -569,6 +592,10 @@ func (s *Server) PostApiPosts(w http.ResponseWriter, r *http.Request) {
 	}
 	currentUserID := *container.id
 	poster, err := s.service.App.GetAccountByID(r.Context(), currentUserID)
+	if err != nil {
+		util.WriteError(w, http.StatusNotFound, err.Error())
+		return
+	}
 	var newPost api.NewPost
 	if err := util.ReadJSON(r, &newPost); err != nil {
 		http.Error(w, "Invalid request payload", http.StatusBadRequest)
@@ -738,7 +765,7 @@ func (s *Server) GetApiPosts(w http.ResponseWriter, r *http.Request) {
 
 // GetApiUsersIdFavourites implements api.ServerInterface.
 func (s *Server) GetApiUsersIdFavourites(w http.ResponseWriter, r *http.Request, id int) {
-	posts, err := s.service.App.GetLikedPostsByAccountId(r.Context(), id)
+	posts, err := s.service.App.GetLikedPostsByAccountID(r.Context(), id)
 	if err != nil {
 		http.Error(w, "Database error", http.StatusInternalServerError)
 		return
@@ -760,7 +787,7 @@ func (s *Server) GetApiUsersIdFavourites(w http.ResponseWriter, r *http.Request,
 
 // GetApiUsersIdReblogged implements api.ServerInterface.
 func (s *Server) GetApiUsersIdReblogged(w http.ResponseWriter, r *http.Request, id int) {
-	posts, err := s.service.App.GetSharedPostsByAccountId(r.Context(), id)
+	posts, err := s.service.App.GetSharedPostsByAccountID(r.Context(), id)
 	if err != nil {
 		http.Error(w, "Database error", http.StatusInternalServerError)
 		return
@@ -782,7 +809,7 @@ func (s *Server) GetApiUsersIdReblogged(w http.ResponseWriter, r *http.Request, 
 
 // GetApiUsersIdTimeline implements api.ServerInterface.
 func (s *Server) GetApiUsersIdTimeline(w http.ResponseWriter, r *http.Request, id int) {
-	posts, err := s.service.App.GetTimelinePostsByAccountId(r.Context(), id)
+	posts, err := s.service.App.GetTimelinePostsByAccountID(r.Context(), id)
 	if err != nil {
 		http.Error(w, "Database error", http.StatusInternalServerError)
 		return

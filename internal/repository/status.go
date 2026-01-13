@@ -16,9 +16,9 @@ type StatusRepository interface {
 	GetShares(context.Context, int) ([]db.Status, error)
 	GetLocalStatuses(context.Context) ([]db.GetLocalStatusesRow, error)
 	GetByIDWithMetadata(context.Context, int) (db.GetStatusByIdWithMetadataRow, error)
-	GetSharedPostsByAccountId(context.Context, int) ([]db.GetSharedPostsByAccountIdRow, error)
-	GetTimelinePostsByAccountId(context.Context, int) ([]db.GetTimelinePostsByAccountIdRow, error)
-	GetCommentsByPostId(context.Context, int) ([]db.GetCommentsByPostIdRow, error)
+	GetSharedPostsByAccountID(context.Context, int) ([]db.GetSharedPostsByAccountIdRow, error)
+	GetTimelinePostsByAccountID(context.Context, int) ([]db.GetTimelinePostsByAccountIdRow, error)
+	GetCommentsByPostID(context.Context, int) ([]db.GetCommentsByPostIdRow, error)
 	DeleteByID(context.Context, int32) error
 }
 
@@ -82,7 +82,7 @@ func (r *statusRepository) GetLocalStatuses(ctx context.Context) ([]db.GetLocalS
 }
 
 // GetSharedPostsByAccountId implements StatusRepository.
-func (r *statusRepository) GetSharedPostsByAccountId(
+func (r *statusRepository) GetSharedPostsByAccountID(
 	ctx context.Context,
 	accountID int,
 ) ([]db.GetSharedPostsByAccountIdRow, error) {
@@ -90,7 +90,7 @@ func (r *statusRepository) GetSharedPostsByAccountId(
 }
 
 // GetTimelinePostsByAccountId implements StatusRepository.
-func (r *statusRepository) GetTimelinePostsByAccountId(
+func (r *statusRepository) GetTimelinePostsByAccountID(
 	ctx context.Context,
 	accountID int,
 ) ([]db.GetTimelinePostsByAccountIdRow, error) {
@@ -98,7 +98,7 @@ func (r *statusRepository) GetTimelinePostsByAccountId(
 }
 
 // GetCommentsByPostId implements StatusRepository.
-func (r *statusRepository) GetCommentsByPostId(
+func (r *statusRepository) GetCommentsByPostID(
 	ctx context.Context,
 	postID int,
 ) ([]db.GetCommentsByPostIdRow, error) {

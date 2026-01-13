@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"fmt"
+	"log"
 
 	"github.com/kibirisu/borg/internal/config"
 	"github.com/kibirisu/borg/internal/server"
@@ -11,12 +11,12 @@ import (
 func main() {
 	ctx := context.Background()
 	conf := config.GetConfig()
-	fmt.Println("--- Config Test ---")
-	fmt.Printf("Env:  %s\n", conf.AppEnv)
-	fmt.Printf("Host: %s\n", conf.ListenHost)
-	fmt.Printf("Port: %s\n", conf.ListenPort)
-	fmt.Printf("DB:   %s\n", conf.DatabaseURL)
-	fmt.Println("-------------------")
+	log.Println("--- Config Test ---")
+	log.Printf("Env:  %s\n", conf.AppEnv)
+	log.Printf("Host: %s\n", conf.ListenHost)
+	log.Printf("Port: %s\n", conf.ListenPort)
+	log.Printf("DB:   %s\n", conf.DatabaseURL)
+	log.Println("-------------------")
 	s := server.New(ctx, conf)
 	panic(s.ListenAndServe())
 }

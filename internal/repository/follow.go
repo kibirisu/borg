@@ -55,6 +55,6 @@ func (r *followRepository) GetByURI(
 }
 
 // DeleteByID implements FollowRepository.
-func (r *followRepository)DeleteByID(ctx context.Context, id int32) error {
+func (r *followRepository) DeleteByID(ctx context.Context, id int32) error {
 	return r.q.DeleteFollowByID(ctx, id)
 }

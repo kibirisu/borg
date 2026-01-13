@@ -44,10 +44,10 @@ type AppService interface {
 	GetPostLikes(context.Context, int) ([]db.Favourite, error)
 	GetPostShares(context.Context, int) ([]db.Status, error)
 	GetPostByIDWithMetadata(context.Context, int) (*db.GetStatusByIdWithMetadataRow, error)
-	GetLikedPostsByAccountId(context.Context, int) ([]db.GetLikedPostsByAccountIdRow, error)
-	GetSharedPostsByAccountId(context.Context, int) ([]db.GetSharedPostsByAccountIdRow, error)
-	GetTimelinePostsByAccountId(context.Context, int) ([]db.GetTimelinePostsByAccountIdRow, error)
-	GetCommentsByPostId(context.Context, int) ([]db.GetCommentsByPostIdRow, error)
+	GetLikedPostsByAccountID(context.Context, int) ([]db.GetLikedPostsByAccountIdRow, error)
+	GetSharedPostsByAccountID(context.Context, int) ([]db.GetSharedPostsByAccountIdRow, error)
+	GetTimelinePostsByAccountID(context.Context, int) ([]db.GetTimelinePostsByAccountIdRow, error)
+	GetCommentsByPostID(context.Context, int) ([]db.GetCommentsByPostIdRow, error)
 	// EW, idk if this should stay here
 	DeliverToFollowers(http.ResponseWriter, *http.Request, int, func(recipientURI string) any)
 }
@@ -384,30 +384,30 @@ func (s *appService) GetLocalPosts(ctx context.Context) ([]db.GetLocalStatusesRo
 	return s.store.Statuses().GetLocalStatuses(ctx)
 }
 
-func (s *appService) GetLikedPostsByAccountId(
+func (s *appService) GetLikedPostsByAccountID(
 	ctx context.Context,
 	accountID int,
 ) ([]db.GetLikedPostsByAccountIdRow, error) {
-	return s.store.Favourites().GetLikedPostsByAccountId(ctx, accountID)
+	return s.store.Favourites().GetLikedPostsByAccountID(ctx, accountID)
 }
 
-func (s *appService) GetSharedPostsByAccountId(
+func (s *appService) GetSharedPostsByAccountID(
 	ctx context.Context,
 	accountID int,
 ) ([]db.GetSharedPostsByAccountIdRow, error) {
-	return s.store.Statuses().GetSharedPostsByAccountId(ctx, accountID)
+	return s.store.Statuses().GetSharedPostsByAccountID(ctx, accountID)
 }
 
-func (s *appService) GetTimelinePostsByAccountId(
+func (s *appService) GetTimelinePostsByAccountID(
 	ctx context.Context,
 	accountID int,
 ) ([]db.GetTimelinePostsByAccountIdRow, error) {
-	return s.store.Statuses().GetTimelinePostsByAccountId(ctx, accountID)
+	return s.store.Statuses().GetTimelinePostsByAccountID(ctx, accountID)
 }
 
-func (s *appService) GetCommentsByPostId(
+func (s *appService) GetCommentsByPostID(
 	ctx context.Context,
 	postID int,
 ) ([]db.GetCommentsByPostIdRow, error) {
-	return s.store.Statuses().GetCommentsByPostId(ctx, postID)
+	return s.store.Statuses().GetCommentsByPostID(ctx, postID)
 }

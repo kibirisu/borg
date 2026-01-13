@@ -57,9 +57,9 @@ func (p *processor) FollowStatus(
 			return follow, err
 		}
 		DBfollow, err := p.store.Follows().Create(ctx, db.CreateFollowParams{
-			Uri: "/users/" + followedActor.Username + "/followers/" + followerAccount.Username, //TODO
-			AccountID: followerAccount.ID,
-			TargetAccountID:  followedActor.ID,
+			Uri:             "/users/" + followedActor.Username + "/followers/" + followerAccount.Username, // TODO
+			AccountID:       followerAccount.ID,
+			TargetAccountID: followedActor.ID,
 		})
 		return *DBfollow, err
 	}
