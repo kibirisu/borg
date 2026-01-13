@@ -2,7 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 import { useContext, useMemo, useState } from "react";
 import {
   type LoaderFunctionArgs,
-  Outlet,
   useLoaderData,
   useNavigate,
 } from "react-router";
@@ -216,7 +215,6 @@ export default function UserPage() {
                 )}
               </>
             )}
-            <Outlet />
           </section>
         </main>
         <Sidebar onPostClick={openComposer} />

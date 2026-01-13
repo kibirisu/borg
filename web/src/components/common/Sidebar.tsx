@@ -230,7 +230,8 @@ export default function Sidebar({ onPostClick }: SidebarProps) {
 
       <button
         type="button"
-        className="mt-8 w-full bg-indigo-500 text-white py-2 rounded-full font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:cursor-pointer"
+        className="mt-8 w-full bg-indigo-500 text-white py-2 rounded-full font-semibold disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:cursor-not-allowed hover:cursor-pointer"
+        disabled={!isAuthenticated}
         onClick={handlePostClick}
       >
         {isAuthenticated ? "Post" : "Sign in to post"}

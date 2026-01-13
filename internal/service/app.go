@@ -63,7 +63,7 @@ var _ AppService = (*appService)(nil)
 
 // Register implements AppService.
 func (s *appService) Register(ctx context.Context, form api.AuthForm) error {
-	uri := fmt.Sprintf("http://%s:%s/user/%s", s.conf.ListenHost, s.conf.ListenPort, form.Username)	
+	uri := fmt.Sprintf("http://%s:%s/user/%s", s.conf.ListenHost, s.conf.ListenPort, form.Username)
 	log.Printf("register: creating actor username=%s uri=%s", form.Username, uri)
 	actor, err := s.store.Accounts().Create(ctx, db.CreateActorParams{
 		Username:    form.Username,
@@ -72,9 +72,24 @@ func (s *appService) Register(ctx context.Context, form api.AuthForm) error {
 		Domain:      sql.NullString{},
 		InboxUri:    uri + "/inbox",
 		OutboxUri:   uri + "/outbox",
-		Url:         fmt.Sprintf("http://%s:%s/profiles/%s", s.conf.ListenHost, s.conf.ListenPort, form.Username),
-		FollowersUri: fmt.Sprintf("http://%s:%s/user/%s/followers", s.conf.ListenHost, s.conf.ListenPort, form.Username),
-		FollowingUri: fmt.Sprintf("http://%s:%s/user/%s/following", s.conf.ListenHost, s.conf.ListenPort, form.Username),
+		Url: fmt.Sprintf(
+			"http://%s:%s/profiles/%s",
+			s.conf.ListenHost,
+			s.conf.ListenPort,
+			form.Username,
+		),
+		FollowersUri: fmt.Sprintf(
+			"http://%s:%s/user/%s/followers",
+			s.conf.ListenHost,
+			s.conf.ListenPort,
+			form.Username,
+		),
+		FollowingUri: fmt.Sprintf(
+			"http://%s:%s/user/%s/following",
+			s.conf.ListenHost,
+			s.conf.ListenPort,
+			form.Username,
+		),
 	})
 	if err != nil {
 		log.Printf("register: failed to create actor username=%s err=%v", form.Username, err)
@@ -196,7 +211,12 @@ func (s *appService) CreateFollow(
 	follow *db.CreateFollowParams,
 ) (*db.Follow, error) {
 	if follow.Uri == "" {
-		follow.Uri = fmt.Sprintf("http://%s:%s/follows/%s", s.conf.ListenHost, s.conf.ListenPort, uuid.NewString())
+		follow.Uri = fmt.Sprintf(
+			"http://%s:%s/follows/%s",
+			s.conf.ListenHost,
+			s.conf.ListenPort,
+			uuid.NewString(),
+		)
 	}
 	return s.store.Follows().Create(ctx, *follow)
 }
@@ -204,7 +224,12 @@ func (s *appService) CreateFollow(
 // AddNote implements AppService.
 func (s *appService) AddNote(ctx context.Context, note db.CreateStatusParams) (db.Status, error) {
 	if note.Uri == "" {
-		note.Uri = fmt.Sprintf("http://%s:%s/statuses/%s", s.conf.ListenHost, s.conf.ListenPort, uuid.NewString())
+		note.Uri = fmt.Sprintf(
+			"http://%s:%s/statuses/%s",
+			s.conf.ListenHost,
+			s.conf.ListenPort,
+			uuid.NewString(),
+		)
 	}
 	if note.Url == "" {
 		note.Url = note.Uri
@@ -235,7 +260,12 @@ func (s *appService) AddFavourite(
 	params := db.CreateFavouriteParams{
 		AccountID: int32(accountID),
 		StatusID:  int32(postID),
-		Uri:       fmt.Sprintf("http://%s:%s/likes/%s", s.conf.ListenHost, s.conf.ListenPort, uuid.NewString()),
+		Uri: fmt.Sprintf(
+			"http://%s:%s/likes/%s",
+			s.conf.ListenHost,
+			s.conf.ListenPort,
+			uuid.NewString(),
+		),
 	}
 	return s.store.Favourites().Create(ctx, params)
 }
@@ -290,7 +320,12 @@ func (s *appService) FollowAccount(
 	followee int,
 ) (*db.Follow, error) {
 	createParams := db.CreateFollowParams{
-		Uri:             fmt.Sprintf("http://%s:%s/follows/%s", s.conf.ListenHost, s.conf.ListenPort, uuid.NewString()),
+		Uri: fmt.Sprintf(
+			"http://%s:%s/follows/%s",
+			s.conf.ListenHost,
+			s.conf.ListenPort,
+			uuid.NewString(),
+		),
 		AccountID:       int32(follower),
 		TargetAccountID: int32(followee),
 	}
