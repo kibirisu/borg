@@ -141,6 +141,9 @@ SELECT * FROM follows WHERE uri LIKE '%' || $1::text;
 -- name: DeleteFavouriteByID :exec
 DELETE FROM favourites WHERE id = $1;
 
+-- name: DeleteFollowByID :exec
+DELETE FROM follows WHERE id = $1;
+
 -- name: GetAccountFollowers :many
 SELECT a.* FROM accounts a
 JOIN follows f ON a.id = f.account_id
@@ -150,3 +153,39 @@ WHERE f.target_account_id = $1;
 SELECT a.* FROM accounts a
 JOIN follows f ON a.id = f.target_account_id
 WHERE f.account_id = $1;
+
+-- name: GetLikedPostsByAccountId :many
+SELECT 
+    sqlc.embed(s),
+    sqlc.embed(a),
+    (SELECT COUNT(*) FROM favourites f WHERE f.status_id = s.id) AS like_count,
+    (SELECT COUNT(*) FROM statuses r WHERE r.in_reply_to_id = s.id) AS comment_count,
+    (SELECT COUNT(*) FROM statuses b WHERE b.reblog_of_id = s.id) AS share_count
+FROM favourites f
+JOIN statuses s ON f.status_id = s.id
+JOIN accounts a ON s.account_id = a.id
+WHERE f.account_id = $1;
+
+-- name: GetSharedPostsByAccountId :many
+SELECT 
+    sqlc.embed(s),
+    sqlc.embed(a),
+    (SELECT COUNT(*) FROM favourites f WHERE f.status_id = s.id) AS like_count,
+    (SELECT COUNT(*) FROM statuses r WHERE r.in_reply_to_id = s.id) AS comment_count,
+    (SELECT COUNT(*) FROM statuses b WHERE b.reblog_of_id = s.id) AS share_count
+FROM statuses s
+JOIN accounts a ON s.account_id = a.id
+WHERE s.account_id = $1 AND s.reblog_of_id IS NOT NULL;
+
+-- name: GetTimelinePostsByAccountId :many
+SELECT 
+    sqlc.embed(s),
+    sqlc.embed(a),
+    (SELECT COUNT(*) FROM favourites f WHERE f.status_id = s.id) AS like_count,
+    (SELECT COUNT(*) FROM statuses r WHERE r.in_reply_to_id = s.id) AS comment_count,
+    (SELECT COUNT(*) FROM statuses b WHERE b.reblog_of_id = s.id) AS share_count
+FROM statuses s
+JOIN accounts a ON s.account_id = a.id
+JOIN follows f ON a.id = f.target_account_id
+WHERE f.account_id = $1 AND s.in_reply_to_id IS NULL
+ORDER BY s.created_at DESC;

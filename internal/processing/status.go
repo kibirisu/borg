@@ -50,3 +50,16 @@ func (p *processor) LookupStatus(ctx context.Context, object ap.Noter) (db.Statu
 	}
 	return status, nil
 }
+
+func (p *processor) PropagateStatus(ctx context.Context, status ap.Noter) error {
+	createdStatus, err := p.LookupStatus(ctx, status)
+	if err != nil {
+		return err
+	}
+	actor, err := p.store.Accounts().GetByID(ctx, int(createdStatus.AccountID))
+	if err != nil {
+		return err
+	}
+	_ = actor
+	panic("")
+}

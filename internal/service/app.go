@@ -11,16 +11,20 @@ import (
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 
+	"github.com/kibirisu/borg/internal/ap"
 	"github.com/kibirisu/borg/internal/api"
 	"github.com/kibirisu/borg/internal/config"
 	"github.com/kibirisu/borg/internal/db"
+	proc "github.com/kibirisu/borg/internal/processing"
 	repo "github.com/kibirisu/borg/internal/repository"
 	"github.com/kibirisu/borg/internal/util"
+	"github.com/kibirisu/borg/internal/worker"
 )
 
 type AppService interface {
 	Register(context.Context, api.AuthForm) error
 	Login(context.Context, api.AuthForm) (string, error)
+	CreateStatus(context.Context, api.NewPost, LoginData) (worker.Job, error)
 	GetAccountFollowers(context.Context, int) ([]db.Account, error)
 	GetAccountFollowing(context.Context, int) ([]db.Account, error)
 	GetLocalAccount(context.Context, string) (*db.Account, error)
@@ -29,21 +33,30 @@ type AppService interface {
 	AddNote(context.Context, db.CreateStatusParams) (db.Status, error)
 	AddFavourite(context.Context, int, int) (db.Favourite, error)
 	FollowAccount(context.Context, int, int) (*db.Follow, error)
-	GetAccountById(context.Context, int) (db.Account, error)
+	GetAccountByID(context.Context, int) (db.Account, error)
 	GetAccount(context.Context, db.GetAccountParams) (*db.Account, error)
 	GetLocalPosts(context.Context) ([]db.GetLocalStatusesRow, error)
-	GetPostByAccountId(context.Context, int) ([]db.GetStatusesByAccountIdRow, error)
-	GetPostById(context.Context, int) (*db.Status, error)
+	GetPostByAccountID(context.Context, int) ([]db.GetStatusesByAccountIdRow, error)
+	GetPostByID(context.Context, int) (*db.Status, error)
 	GetPostLikes(context.Context, int) ([]db.Favourite, error)
 	GetPostShares(context.Context, int) ([]db.Status, error)
-	GetPostByIdWithMetadata(context.Context, int) (*db.GetStatusByIdWithMetadataRow, error)
+	GetPostByIDWithMetadata(context.Context, int) (*db.GetStatusByIdWithMetadataRow, error)
+	GetLikedPostsByAccountId(context.Context, int) ([]db.GetLikedPostsByAccountIdRow, error)
+	GetSharedPostsByAccountId(context.Context, int) ([]db.GetSharedPostsByAccountIdRow, error)
+	GetTimelinePostsByAccountId(context.Context, int) ([]db.GetTimelinePostsByAccountIdRow, error)
 	// EW, idk if this should stay here
 	DeliverToFollowers(http.ResponseWriter, *http.Request, int, func(recipientURI string) any)
 }
 
 type appService struct {
-	store repo.Store
-	conf  *config.Config
+	store    repo.Store
+	prcessor proc.Processor
+	conf     *config.Config
+}
+
+type LoginData struct {
+	ID       int
+	Username string
 }
 
 var _ AppService = (*appService)(nil)
@@ -118,6 +131,64 @@ func (s *appService) Login(ctx context.Context, form api.AuthForm) (string, erro
 	return token, nil
 }
 
+// CreateStatus implements AppService.
+func (s *appService) CreateStatus(
+	ctx context.Context,
+	status api.NewPost,
+	login LoginData,
+) (worker.Job, error) {
+	actorURI := fmt.Sprintf(
+		"http://%s:%s/user/%s",
+		s.conf.ListenHost,
+		s.conf.ListenPort,
+		login.Username,
+	)
+	statusURI := fmt.Sprintf("%s/statuses/%s", actorURI, uuid.New())
+	createdStatus, err := s.store.Statuses().Create(ctx, db.CreateStatusParams{
+		Local: sql.NullBool{
+			Bool:  true,
+			Valid: true,
+		},
+		Content:   status.Content,
+		AccountID: int32(login.ID),
+		Uri:       statusURI,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return func(ctx context.Context) error {
+		actor := ap.NewActor(nil)
+		actor.SetLink(actorURI)
+		status := ap.NewNote(nil)
+		replies := ap.NewNoteCollection(nil)
+		page := ap.NewNoteCollectionPage(nil)
+		page.SetObject(ap.CollectionPage[ap.Note]{
+			ID:     "None",
+			Type:   "CollectionPage",
+			Next:   ap.NewNoteCollectionPage(nil),
+			PartOf: replies,
+			Items:  []ap.Objecter[ap.Note]{},
+		})
+		replies.SetObject(ap.Collection[ap.Note]{
+			ID:    fmt.Sprintf("%s/replies", statusURI),
+			Type:  "Collection",
+			First: nil,
+		})
+		status.SetObject(ap.Note{
+			ID:           createdStatus.Uri,
+			Type:         "Note",
+			Content:      createdStatus.Content,
+			InReplyTo:    ap.NewNote(nil),
+			Published:    createdStatus.CreatedAt,
+			AttributedTo: actor,
+			To:           []string{},
+			CC:           []string{},
+			Replies:      replies,
+		})
+		return s.prcessor.PropagateStatus(ctx, status)
+	}, nil
+}
+
 // GetLocalAccount implements AppService.
 func (s *appService) GetLocalAccount(ctx context.Context, username string) (*db.Account, error) {
 	user, err := s.store.Accounts().GetLocalByUsername(ctx, username)
@@ -175,11 +246,11 @@ func (s *appService) GetAccount(
 	return &res, err
 }
 
-// GetAccountById implements AppService.
-func (s *appService) GetAccountById(
+// GetAccountByID implements AppService.
+func (s *appService) GetAccountByID(
 	ctx context.Context, accountID int,
 ) (db.Account, error) {
-	return s.store.Accounts().GetById(ctx, accountID)
+	return s.store.Accounts().GetByID(ctx, accountID)
 }
 
 // AddFavourite implements AppService.
@@ -213,11 +284,11 @@ func (s *appService) GetAccountFollowing(
 	return s.store.Accounts().GetFollowing(ctx, accountID)
 }
 
-func (s *appService) GetPostByIdWithMetadata(
+func (s *appService) GetPostByIDWithMetadata(
 	ctx context.Context,
 	id int,
 ) (*db.GetStatusByIdWithMetadataRow, error) {
-	status, err := s.store.Statuses().GetByIdWithMetadata(ctx, id)
+	status, err := s.store.Statuses().GetByIDWithMetadata(ctx, id)
 	if err != nil {
 		return nil, err
 	} else {
@@ -225,8 +296,8 @@ func (s *appService) GetPostByIdWithMetadata(
 	}
 }
 
-func (s *appService) GetPostById(ctx context.Context, id int) (*db.Status, error) {
-	status, err := s.store.Statuses().GetById(ctx, id)
+func (s *appService) GetPostByID(ctx context.Context, id int) (*db.Status, error) {
+	status, err := s.store.Statuses().GetByID(ctx, id)
 	if err != nil {
 		return nil, err
 	} else {
@@ -279,7 +350,7 @@ func (s *appService) DeliverToFollowers(
 	}
 }
 
-func (s *appService) GetPostByAccountId(
+func (s *appService) GetPostByAccountID(
 	ctx context.Context,
 	id int,
 ) ([]db.GetStatusesByAccountIdRow, error) {
@@ -288,4 +359,25 @@ func (s *appService) GetPostByAccountId(
 
 func (s *appService) GetLocalPosts(ctx context.Context) ([]db.GetLocalStatusesRow, error) {
 	return s.store.Statuses().GetLocalStatuses(ctx)
+}
+
+func (s *appService) GetLikedPostsByAccountId(
+	ctx context.Context,
+	accountID int,
+) ([]db.GetLikedPostsByAccountIdRow, error) {
+	return s.store.Favourites().GetLikedPostsByAccountId(ctx, accountID)
+}
+
+func (s *appService) GetSharedPostsByAccountId(
+	ctx context.Context,
+	accountID int,
+) ([]db.GetSharedPostsByAccountIdRow, error) {
+	return s.store.Statuses().GetSharedPostsByAccountId(ctx, accountID)
+}
+
+func (s *appService) GetTimelinePostsByAccountId(
+	ctx context.Context,
+	accountID int,
+) ([]db.GetTimelinePostsByAccountIdRow, error) {
+	return s.store.Statuses().GetTimelinePostsByAccountId(ctx, accountID)
 }

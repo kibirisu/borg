@@ -18,7 +18,7 @@ func NewContainer(ctx context.Context, conf *config.Config) *Container {
 	store := repository.New(ctx, conf.DatabaseURL)
 	proc := proc.New(store, transport.New())
 	return &Container{
-		App:        &appService{store, conf},
+		App:        &appService{store, proc, conf},
 		Federation: &federationService{store, proc},
 	}
 }
