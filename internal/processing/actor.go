@@ -9,6 +9,53 @@ import (
 	"github.com/kibirisu/borg/internal/ap"
 	"github.com/kibirisu/borg/internal/db"
 )
+func pop[T any](s *[]T) T {
+	lastIdx := len(*s) - 1
+	element := (*s)[lastIdx]
+	*s = (*s)[:lastIdx]
+	return element
+}
+
+func (p *processor) FetchActorCollectionPage(ctx context.Context, collectionUri string) (ap.ActorCollectionPager, error) {
+	col, err := p.client.Get(ctx, collectionUri)
+	if err != nil {
+		return ap.NewActorCollectionPage(nil), err
+	}
+	fetchedCollection := ap.NewActorCollection(col)
+	collectionData := fetchedCollection.GetObject()
+	pageUri := collectionData.First.GetURI()
+	// we assume only one page is used
+	colP, err := p.client.Get(ctx, pageUri)
+	if err != nil {
+		return ap.NewActorCollectionPage(nil), err
+	}
+	fetchedCollectionPage := ap.NewActorCollectionPage(colP)
+	return fetchedCollectionPage, nil
+}
+func (p *processor) LookupFollowers(ctx context.Context, account db.Account, actor ap.Actor) error {
+	followersUri := actor.Followers
+	page, err := p.FetchActorCollectionPage(ctx, followersUri)
+	if err != nil {
+		return err
+	}
+	for _, follower := range page.GetObject().Items {
+		// this will recursively call lookupfollowers for other accounts
+		dbFollower, err := p.LookupActor(ctx, follower)
+		if err != nil {
+			return err
+		}
+		params := db.CreateFollowParams {
+			AccountID: dbFollower.ID,
+			TargetAccountID: account.ID,
+		}
+		_, err = p.store.Follows().Create(ctx, params)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
 
 func (p *processor) LookupActor(ctx context.Context, object ap.Actorer) (db.Account, error) {
 	uri := object.GetURI()
@@ -38,6 +85,10 @@ func (p *processor) LookupActor(ctx context.Context, object ap.Actorer) (db.Acco
 			FollowersUri: actorData.Followers,
 			FollowingUri: actorData.Following,
 		})
+		if err != nil {
+			return account, err
+		}
+		err = p.LookupFollowers(ctx, account, actorData)
 		if err != nil {
 			return account, err
 		}
