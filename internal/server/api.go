@@ -2,13 +2,16 @@ package server
 
 import (
 	"database/sql"
+	"encoding/json/v2"
 	"errors"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/kibirisu/borg/internal/ap"
 	"github.com/kibirisu/borg/internal/api"
 	"github.com/kibirisu/borg/internal/db"
+	"github.com/kibirisu/borg/internal/domain"
 	"github.com/kibirisu/borg/internal/server/mapper"
 	"github.com/kibirisu/borg/internal/util"
 )
@@ -57,8 +60,10 @@ func (s *Server) GetApiAccountsLookup(
 	r *http.Request,
 	params api.GetApiAccountsLookupParams,
 ) {
+	// we must check if account is local or from other instance
+	// if from other instance we do webfinger lookup
 	acct := params.Acct
-	handle, err := util.ParseHandle(acct, s.conf.ListenHost)
+	handle, err := util.ParseHandle(acct, s.conf.ListenHost, s.conf.ListenPort)
 	if err != nil {
 		util.WriteError(w, http.StatusBadRequest, err.Error())
 		return
@@ -74,52 +79,95 @@ func (s *Server) GetApiAccountsLookup(
 		}
 		log.Printf("lookup: found local account %s", account.Username)
 		util.WriteJSON(w, http.StatusOK, mapper.AccountToAPI(account))
-		return
-	}
-
-	if handle.Domain == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	log.Printf("lookup: remote handle %s detected, checking local cache", acct)
-	account, err := s.service.App.GetAccount(
-		r.Context(),
-		db.GetAccountParams{
+	} else {
+		log.Printf("lookup: remote handle %s detected, checking local cache", acct)
+		account, err := s.service.App.GetAccount(r.Context(), db.GetAccountParams{
 			Username: handle.Username,
-			Domain:   sql.NullString{String: handle.Domain, Valid: true},
-		},
-	)
-	if err == nil {
-		log.Printf("lookup: remote account %s@%s found locally", handle.Username, handle.Domain)
-		util.WriteJSON(w, http.StatusOK, mapper.AccountToAPI(account))
-		return
-	}
-	if !errors.Is(err, sql.ErrNoRows) {
-		log.Println(err)
-		util.WriteError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
+			Domain: sql.NullString{
+				String: handle.Domain,
+				Valid:  true,
+			},
+		})
+		if err == nil {
+			log.Printf("lookup: remote account %s@%s found locally", handle.Username, handle.Domain)
+			util.WriteJSON(w, http.StatusOK, mapper.AccountToAPI(account))
+			return
+		}
+		if !errors.Is(err, sql.ErrNoRows) {
+			log.Println(err)
+			util.WriteError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
 
-	log.Printf(
-		"lookup: remote account %s@%s not cached, performing WebFinger lookup",
-		handle.Username,
-		handle.Domain,
-	)
-	util.WriteError(w, http.StatusInternalServerError, "unimplemented")
-	// actor, err := s.service.Federation.processor.LookupActor(r.Context(), handle)
-	// if err != nil {
-	// 	log.Println(err)
-	// 	util.WriteError(w, http.StatusBadGateway, err.Error())
-	// 	return
-	// }
-	// if err != nil {
-	// 	log.Println(err)
-	// 	util.WriteError(w, http.StatusInternalServerError, err.Error())
-	// 	return
-	// }
-	// log.Printf("lookup: remote actor stored with username=%s domain=%s", row.Username, row.Domain.String)
-	// util.WriteJSON(w, http.StatusOK, mapper.AccountToAPI(row))
+		client := http.Client{Timeout: 5 * time.Second}
+		actorURL := "http://" + handle.Domain + "/user/" + handle.Username
+
+		reqActor, err := http.NewRequestWithContext(r.Context(), http.MethodGet, actorURL, nil)
+		if err != nil {
+			log.Println(err)
+			util.WriteError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+
+		log.Printf("lookup: fetching remote actor %s", actorURL)
+		actorResp, err := client.Do(reqActor)
+		if err != nil {
+			log.Println(err)
+			util.WriteError(w, http.StatusBadGateway, err.Error())
+			return
+		}
+		defer actorResp.Body.Close()
+		if actorResp.StatusCode != http.StatusOK {
+			util.WriteError(w, http.StatusBadGateway, "remote actor fetch failed")
+			return
+		}
+
+		var object domain.ObjectOrLink
+		if err := json.UnmarshalRead(actorResp.Body, &object); err != nil {
+			log.Println(err)
+			util.WriteError(w, http.StatusBadGateway, err.Error())
+			return
+		}
+		actor := ap.NewActor(&object)
+		actorData := actor.GetObject()
+
+		params := db.CreateActorParams{
+			Username: actorData.PreferredUsername,
+			Uri:      actorData.ID,
+			Domain: sql.NullString{
+				String: handle.Domain,
+				Valid:  true,
+			},
+			DisplayName: sql.NullString{},
+			InboxUri:    actorData.Inbox,
+			OutboxUri:   actorData.Outbox,
+			FollowersUri: actorData.Followers,
+			FollowingUri: actorData.Following,
+			Url:          actorData.ID,
+		}
+
+		log.Printf("lookup: creating remote account %s@%s from actor %s", actorData.PreferredUsername, handle.Domain, actorData.ID)
+		account, err = s.service.App.AddRemoteAccount(r.Context(), &params)
+		if err != nil {
+			log.Println(err)
+			// If already exists, fetch the stored record.
+			existing, getErr := s.service.App.GetAccount(r.Context(), db.GetAccountParams{
+				Username: actorData.PreferredUsername,
+				Domain: sql.NullString{
+					String: handle.Domain,
+					Valid:  true,
+				},
+			})
+			if getErr != nil {
+				util.WriteError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+			util.WriteJSON(w, http.StatusOK, mapper.AccountToAPI(existing))
+			return
+		}
+
+		util.WriteJSON(w, http.StatusOK, mapper.AccountToAPI(account))
+	}
 }
 
 // PostApiAccountsIdFollow implements api.ServerInterface.
@@ -142,19 +190,17 @@ func (s *Server) PostApiAccountsIdFollow(w http.ResponseWriter, r *http.Request,
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
-	// APfollow := mapper.DBToFollow(follow, &follower, &followee)
-	followActivity := ap.NewActivity(nil)
+	followActivity := ap.NewFollowActivity(nil)
 	actor := ap.NewActor(nil)
 	actor.SetLink(follower.Uri)
-	object := ap.NewActor(nil)
-	object.SetLink(followee.Uri)
-	followActivity.SetObject(ap.Activity[any]{
+	actoree := ap.NewActor(nil)
+	actoree.SetLink(followee.Uri)
+	followActivity.SetObject(ap.Activity[ap.Actor]{
 		ID:     follow.Uri,
 		Type:   "Follow",
 		Actor:  actor,
-		Object: object.(ap.Objecter[any]),
+		Object: actoree,
 	})
-	log.Println(followee.InboxUri)
 	if follower.Domain != followee.Domain {
 		util.DeliverToEndpoint(followee.InboxUri, followActivity.GetRaw())
 	}
@@ -385,14 +431,15 @@ func (s *Server) PostApiPostsIdComments(w http.ResponseWriter, r *http.Request, 
 	}
 
 	parentAuthor, _ := s.service.App.GetAccountByID(r.Context(), int(parentPost.AccountID))
+	activity := mapper.StatusToCreateActivity(status, commenter, parentPost)
 
 	s.service.App.DeliverToFollowers(w, r, currentUserID, func(recipientURI string) any {
-		return mapper.PostToCreateNote(&status, &commenter, parentAuthor.FollowersUri)
+		return activity.GetRaw()
 	})
 
+	//deliver to original post author
 	if commenter.Domain != parentAuthor.Domain {
-		APComment := mapper.PostToCreateNote(&status, &commenter, parentAuthor.Uri)
-		util.DeliverToEndpoint(parentAuthor.InboxUri, APComment)
+		util.DeliverToEndpoint(parentAuthor.InboxUri, activity.GetRaw())
 	}
 
 	util.WriteJSON(w, http.StatusCreated, nil)
@@ -437,11 +484,21 @@ func (s *Server) PostApiPostsIdLikes(w http.ResponseWriter, r *http.Request, id 
 		return
 	}
 
-	APLike := mapper.DBToFavourite(&like, &liker, post)
+	actor := ap.NewActor(nil)
+	actor.SetLink(liker.Uri)
+	note := ap.NewNote(nil)
+	note.SetLink(post.Uri)
+	activity := ap.NewLikeActivity(nil)
+	activity.SetObject(ap.Activity[ap.Note]{
+		ID: like.Uri,
+		Type: "Like",
+		Actor: actor,
+		Object: note,
+	})
 
 	author, err := s.service.App.GetAccountByID(r.Context(), int(post.AccountID))
 	if err == nil && liker.Domain != author.Domain {
-		util.DeliverToEndpoint(author.InboxUri, APLike)
+		util.DeliverToEndpoint(author.InboxUri, activity)
 	}
 
 	util.WriteJSON(w, http.StatusCreated, nil)
@@ -487,15 +544,17 @@ func (s *Server) PostApiPostsIdShares(w http.ResponseWriter, r *http.Request, id
 		return
 	}
 
+	activity := mapper.StatusToCreateActivity(share, sharer, nil)
+
+	//send activity to post author
 	author, err := s.service.App.GetAccountByID(r.Context(), int(post.AccountID))
 	if err == nil && sharer.Domain != author.Domain {
-		APAnnounce := mapper.PostToCreateNote(&share, &sharer, author.Uri)
-		util.DeliverToEndpoint(author.InboxUri, APAnnounce)
+		util.DeliverToEndpoint(author.InboxUri, activity.GetRaw())
 	}
 
+	//send activity to my followers
 	s.service.App.DeliverToFollowers(w, r, currentUserID, func(recipientURI string) any {
-		APAnnounce := mapper.PostToCreateNote(&share, &sharer, author.FollowersUri)
-		return APAnnounce
+		return activity.GetRaw()
 	})
 
 	util.WriteJSON(w, http.StatusCreated, nil)
@@ -522,31 +581,10 @@ func (s *Server) PostApiPosts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	activity := mapper.StatusToCreateActivity(status, poster, nil)
+
 	s.service.App.DeliverToFollowers(w, r, newPost.UserID, func(recipientURI string) any {
-		create := ap.NewCreateActivity(nil)
-		actor := ap.NewActor(nil)
-		actor.SetLink(poster.Uri)
-		note := ap.NewNote(nil)
-		replies := ap.NewNoteCollection(nil)
-		replies.SetLink("YO MAMA TODO")
-		note.SetObject(ap.Note{
-			ID:           status.Uri,
-			Type:         "Note",
-			Content:      status.Content,
-			InReplyTo:    ap.NewNote(nil),
-			Published:    status.CreatedAt,
-			AttributedTo: ap.NewActor(nil),
-			To:           []string{recipientURI},
-			CC:           []string{recipientURI},
-			Replies:      replies,
-		})
-		create.SetObject(ap.Activity[ap.Note]{
-			ID:     "TODO",
-			Type:   "Create",
-			Actor:  actor,
-			Object: note,
-		})
-		return create.GetRaw()
+		return activity.GetRaw()
 	})
 	util.WriteJSON(w, http.StatusCreated, nil)
 }

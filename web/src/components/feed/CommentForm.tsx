@@ -95,7 +95,7 @@ export default function CommentForm() {
         disabled={isSubmitting || !isAuthenticated}
         className="self-end rounded-full bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm disabled:opacity-50"
       >
-        {isSubmitting ? "Posting…" : "Post"}
+        {isSubmitting ? "Commenting…" : "Comment"}
       </button>
     </Form>
   );

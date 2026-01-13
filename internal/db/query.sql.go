@@ -260,6 +260,15 @@ func (q *Queries) DeleteFavouriteByID(ctx context.Context, id int32) error {
 	return err
 }
 
+const deleteFollowByID = `-- name: DeleteFollowByID :exec
+DELETE FROM follows WHERE id = $1
+`
+
+func (q *Queries) DeleteFollowByID(ctx context.Context, id int32) error {
+	_, err := q.db.ExecContext(ctx, deleteFollowByID, id)
+	return err
+}
+
 const deleteStatusByID = `-- name: DeleteStatusByID :exec
 DELETE FROM statuses WHERE id = $1
 `

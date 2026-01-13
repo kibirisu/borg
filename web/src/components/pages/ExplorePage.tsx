@@ -4,9 +4,39 @@ import { useLoaderData, useNavigate } from "react-router";
 import type { components } from "../../lib/api/v1";
 import type { AppClient } from "../../lib/client";
 import ClientContext from "../../lib/client";
+import AppContext from "../../lib/state";
 import PostComposerOverlay from "../common/PostComposerOverlay";
 import { PostItem, type PostPresentable } from "../common/PostItem";
 import Sidebar from "../common/Sidebar";
+
+function FoundUserItem({
+  account,
+}: {
+  account: components["schemas"]["Account"];
+}) {
+  const display = account.displayName || account.username;
+  const handle = account.acct || `@${account.username}`;
+  const initial = display?.slice(0, 1).toUpperCase() || "?";
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm">
+      <div className="flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 text-indigo-600 font-semibold">
+          {initial}
+        </div>
+        <div className="flex flex-col">
+          <a
+            href={`/profile/${account.id}`}
+            className="text-base font-semibold text-gray-900 hover:text-indigo-600"
+          >
+            {display}
+          </a>
+          <span className="text-sm text-gray-500">{handle}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export const loader = (client: AppClient) => async () => {
   const opts = client.$api.queryOptions("get", "/api/posts", {});
@@ -16,6 +46,7 @@ export const loader = (client: AppClient) => async () => {
 
 export default function ExplorePage() {
   const client = useContext(ClientContext);
+  const appState = useContext(AppContext);
   const navigate = useNavigate();
   const { opts } = useLoaderData() as Awaited<
     ReturnType<ReturnType<typeof loader>>
@@ -56,9 +87,9 @@ export default function ExplorePage() {
   const handleSearch = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmed = searchTerm.trim();
-    const handlePattern = /^@[A-Za-z0-9._-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+    const handlePattern = /^@[A-Za-z0-9._-]+@[A-Za-z0-9.-]+(?::\d{2,5})?$/;
     if (!handlePattern.test(trimmed)) {
-      setSearchError("Format must be @user@instance.com");
+      setSearchError("Format must be @user@host or @user@host:port");
       return;
     }
     if (!client) {
@@ -95,6 +126,22 @@ export default function ExplorePage() {
   const closeComposer = () => {
     setIsComposerOpen(false);
     setSelectedPost(null);
+  };
+
+  const handleCreatePost = async (content: string) => {
+    const userId = appState?.userId ?? null;
+    if (!client || userId === null) {
+      throw new Error("User not authenticated");
+    }
+    await client.fetchClient.POST("/api/posts", {
+      body: { userID: userId, content },
+    });
+    await client.queryClient.invalidateQueries({
+      queryKey: ["user-posts", userId],
+    });
+    await client.queryClient.invalidateQueries({
+      queryKey: ["get", "/api/posts", {}],
+    });
   };
 
   const onSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -143,7 +190,7 @@ export default function ExplorePage() {
               <input
                 id="explore-search"
                 type="search"
-                placeholder="@user@instance.com"
+                placeholder="@user@host:port"
                 className="block w-full rounded-xl border border-gray-200 bg-gray-50 p-3 pl-9 text-sm text-gray-900 placeholder:text-gray-500 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 focus:outline-none"
                 value={searchTerm}
                 onChange={onSearchChange}
@@ -176,46 +223,41 @@ export default function ExplorePage() {
             </button>
           </form>
           {searchError && (
-            <p className="text-center text-sm text-red-600">{searchError}</p>
+            <div
+              className="flex items-start sm:items-center p-4 mb-4 text-sm text-fg-warning rounded-base bg-warning-soft text-yellow-800 bg-yellow-50 border border-yellow-200 rounded-lg"
+              role="alert"
+            >
+              <svg
+                className="w-4 h-4 me-2 shrink-0 mt-0.5 sm:mt-0"
+                aria-hidden="true"
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M10 11h2v5m-2 0h4m-2.592-8.5h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+                />
+              </svg>
+              <p>
+                <span className="font-medium me-1">Warning!</span>
+                {searchError === "Error during fetching client."
+                  ? "Sorry, we coudn't find this profile. Are you sure you entered the username and host correctly?"
+                  : searchError}
+              </p>
+            </div>
           )}
           {searchResult && (
-            <div className="max-w-md mx-auto bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-              <p className="text-sm font-medium text-gray-500">Search result</p>
-              <p className="text-lg font-semibold text-gray-900">
-                {searchResult.displayName || searchResult.username}
+            <div className="max-w-4xl mx-auto">
+              <p className="text-sm font-medium text-gray-500 mb-2">
+                Search result
               </p>
-              <p className="text-sm text-gray-500">
-                {searchResult.acct || `@${searchResult.username}`}
-              </p>
-              <a
-                href={searchResult.url}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-3 inline-flex items-center text-sm text-indigo-600 hover:text-indigo-800"
-              >
-                View profile
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4 ml-1"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={1.5}
-                  aria-hidden="true"
-                >
-                  <title>Open profile</title>
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M13.5 4.5H20m0 0v6.5m0-6.5L10.5 14"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M18 13.5V20H4v-14h6.5"
-                  />
-                </svg>
-              </a>
+              <FoundUserItem account={searchResult} />
             </div>
           )}
           <section className="bg-white rounded-2xl border border-gray-200 p-4 space-y-4 min-h-[400px]">
@@ -241,6 +283,7 @@ export default function ExplorePage() {
         isOpen={isComposerOpen}
         onClose={closeComposer}
         replyTo={selectedPost}
+        onSubmit={handleCreatePost}
       />
     </div>
   );

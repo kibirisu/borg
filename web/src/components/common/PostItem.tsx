@@ -1,7 +1,7 @@
 import { Heart, MessageCircle, Repeat, Share2 } from "lucide-react";
 import { useContext } from "react";
 import ReactMarkdown from "react-markdown";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import type { components } from "../../lib/api/v1";
 import type { AppClient } from "../../lib/client";
 import AppContext from "../../lib/state";
@@ -32,6 +32,7 @@ export const PostItem = ({
 }: PostProps) => {
   const appState = useContext(AppContext);
   const currentUserId = appState?.userId ?? null;
+  const navigate = useNavigate();
 
   const likeAction = async () => {
     if (!("id" in post.data)) return;
@@ -149,6 +150,10 @@ export const PostItem = ({
                   event.stopPropagation();
                   if (onCommentClick) {
                     onCommentClick(post);
+                    return;
+                  }
+                  if ("id" in post.data) {
+                    navigate(`/post/${post.data.id}`);
                   }
                 }}
               >
