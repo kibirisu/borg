@@ -54,6 +54,7 @@ type appService struct {
 	store    repo.Store
 	prcessor proc.Processor
 	conf     *config.Config
+	builder  util.URIBuilder
 }
 
 type LoginData struct {
@@ -124,39 +125,28 @@ func (s *appService) CreateStatus(
 	status api.NewPost,
 	login LoginData,
 ) (worker.Job, error) {
-	uri := fmt.Sprintf(
-		"http://%s:%s/user/%s/statuses/%s",
-		s.conf.ListenHost,
-		s.conf.ListenPort,
-		login.Username,
-		uuid.New(),
-	)
+	statusID := xid.New()
+	statusURIs := s.builder.StatusURIs(login.ID, statusID.String())
 	accountID, err := xid.FromString(login.ID)
 	if err != nil {
 		return nil, err
 	}
 	createdStatus, err := s.store.Statuses().Create(ctx, db.CreateStatusParams{
+		ID: statusID,
 		Local: sql.NullBool{
 			Bool:  true,
 			Valid: true,
 		},
 		Content:   status.Content,
 		AccountID: accountID,
-		Uri:       uri,
+		Uri:       statusURIs.Status,
 	})
 	if err != nil {
 		return nil, err
 	}
 	return func(ctx context.Context) error {
 		actor := ap.NewActor(nil)
-		actor.SetLink(
-			fmt.Sprintf(
-				"http://%s:%s/user/%s",
-				s.conf.ListenHost,
-				s.conf.ListenPort,
-				login.Username,
-			),
-		)
+		actor.SetLink(createdStatus.AccountUri)
 		status := ap.NewNote(nil)
 		replies := ap.NewNoteCollection(nil)
 		page := ap.NewNoteCollectionPage(nil)
@@ -168,7 +158,7 @@ func (s *appService) CreateStatus(
 			Items:  []ap.Objecter[ap.Note]{},
 		})
 		replies.SetObject(ap.Collection[ap.Note]{
-			ID:    fmt.Sprintf("%s/replies", uri),
+			ID:    statusURIs.Replies,
 			Type:  "Collection",
 			First: nil,
 		})
@@ -185,12 +175,12 @@ func (s *appService) CreateStatus(
 		})
 		create := ap.NewCreateActivity(nil)
 		create.SetObject(ap.Activity[ap.Note]{
-			ID:     "",
+			ID:     statusURIs.Create,
 			Type:   "Create",
 			Actor:  actor,
 			Object: status,
 		})
-		return s.prcessor.Propagate(ctx, create.(ap.Activiter[any]))
+		panic("unimplemented")
 	}, nil
 }
 

@@ -49,3 +49,7 @@ func (p *processor) LookupStatus(ctx context.Context, object ap.Noter) (db.Statu
 	}
 	return status, nil
 }
+
+func (p *processor) PropagateStatus(ctx context.Context, object ap.CreateActivitier) error {
+	panic("unimpl")
+}
