@@ -16,6 +16,10 @@ func NewLikeActivity(from *domain.ObjectOrLink) LikeActivitier {
 	return &likeActivity{activity{object{from}}}
 }
 
+func NewEmptyLikeActivity() LikeActivitier {
+	return &likeActivity{activity{object{}}}
+}
+
 // GetObject implements likeActivitier.
 // Subtle: this method shadows the method (activity).GetObject of likeActivity.activity.
 func (f *likeActivity) GetObject() Activity[Note] {
@@ -38,4 +42,18 @@ func (f *likeActivity) SetObject(activity Activity[Note]) {
 			ActivityObject: activity.Object.GetRaw(),
 		},
 	}
+}
+
+// WithLink implements LikeActivitier.
+// Subtle: this method shadows the method (activity).WithLink of likeActivity.activity.
+func (f *likeActivity) WithLink(link string) Objecter[Activity[Note]] {
+	f.SetLink(link)
+	return f
+}
+
+// WithObject implements LikeActivitier.
+// Subtle: this method shadows the method (activity).WithObject of likeActivity.activity.
+func (f *likeActivity) WithObject(activity Activity[Note]) Objecter[Activity[Note]] {
+	f.SetObject(activity)
+	return f
 }

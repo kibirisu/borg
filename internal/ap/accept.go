@@ -16,6 +16,10 @@ func NewAcceptActivity(from *domain.ObjectOrLink) AcceptActivitier {
 	return &acceptActivity{activity{object{from}}}
 }
 
+func NewEmptyAcceptActivity() AcceptActivitier {
+	return &acceptActivity{activity{object{}}}
+}
+
 // GetObject implements AcceptActivitier.
 // Subtle: this method shadows the method (activity).GetObject of acceptActivity.activity.
 func (a *acceptActivity) GetObject() Activity[Activity[Actor]] {
@@ -38,4 +42,20 @@ func (a *acceptActivity) SetObject(activity Activity[Activity[Actor]]) {
 			ActivityObject: activity.Object.GetRaw(),
 		},
 	}
+}
+
+// WithLink implements AcceptActivitier.
+// Subtle: this method shadows the method (activity).WithLink of acceptActivity.activity.
+func (a *acceptActivity) WithLink(link string) Objecter[Activity[Activity[Actor]]] {
+	a.SetLink(link)
+	return a
+}
+
+// WithObject implements AcceptActivitier.
+// Subtle: this method shadows the method (activity).WithObject of acceptActivity.activity.
+func (a *acceptActivity) WithObject(
+	activity Activity[Activity[Actor]],
+) Objecter[Activity[Activity[Actor]]] {
+	a.SetObject(activity)
+	return a
 }

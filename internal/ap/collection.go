@@ -77,16 +77,32 @@ func NewActorCollection(from *domain.ObjectOrLink) ActorCollectioner {
 	return &actorCollection{collection{object{from}}}
 }
 
+func NewEmptyActorCollection() ActorCollectioner {
+	return &actorCollection{collection{object{}}}
+}
+
 func NewNoteCollection(from *domain.ObjectOrLink) NoteCollectioner {
 	return &noteCollection{collection{object{from}}}
+}
+
+func NewEmptyNoteCollection() NoteCollectioner {
+	return &noteCollection{collection{object{}}}
 }
 
 func NewActorCollectionPage(from *domain.ObjectOrLink) ActorCollectionPager {
 	return &actorCollectionPage{collectionPage{object{from}}}
 }
 
+func NewEmptyActorCollectionPage() ActorCollectionPager {
+	return &actorCollectionPage{collectionPage{object{}}}
+}
+
 func NewNoteCollectionPage(from *domain.ObjectOrLink) NoteCollectionPager {
 	return &noteCollectionPage{collectionPage{object{from}}}
+}
+
+func NewEmptyNoteCollectionPage() NoteCollectionPager {
+	return &noteCollectionPage{collectionPage{object{}}}
 }
 
 // GetObject implements Collectioner.
@@ -114,6 +130,20 @@ func (c *collection) SetObject(collection Collection[any]) {
 	}
 }
 
+// WithLink implements Collectioner.
+// Subtle: this method shadows the method (object).WithLink of collection.object.
+func (c *collection) WithLink(link string) Objecter[Collection[any]] {
+	c.SetLink(link)
+	return c
+}
+
+// WithObject implements Collectioner.
+// Subtle: this method shadows the method (object).WithObject of collection.object.
+func (c *collection) WithObject(collection Collection[any]) Objecter[Collection[any]] {
+	c.SetObject(collection)
+	return c
+}
+
 // GetObject implements ActorCollectioner.
 // Subtle: this method shadows the method (collection).GetObject of actorCollection.collection.
 func (a *actorCollection) GetObject() Collection[Actor] {
@@ -138,6 +168,20 @@ func (a *actorCollection) SetObject(collection Collection[Actor]) {
 	}
 }
 
+// WithLink implements ActorCollectioner.
+// Subtle: this method shadows the method (collection).WithLink of actorCollection.collection.
+func (a *actorCollection) WithLink(link string) Objecter[Collection[Actor]] {
+	a.SetLink(link)
+	return a
+}
+
+// WithObject implements ActorCollectioner.
+// Subtle: this method shadows the method (collection).WithObject of actorCollection.collection.
+func (a *actorCollection) WithObject(collection Collection[Actor]) Objecter[Collection[Actor]] {
+	a.SetObject(collection)
+	return a
+}
+
 // GetObject implements NoteCollectioner.
 // Subtle: this method shadows the method (collection).GetObject of noteCollection.collection.
 func (n *noteCollection) GetObject() Collection[Note] {
@@ -160,6 +204,20 @@ func (n *noteCollection) SetObject(collection Collection[Note]) {
 			},
 		},
 	}
+}
+
+// WithLink implements NoteCollectioner.
+// Subtle: this method shadows the method (collection).WithLink of noteCollection.collection.
+func (n *noteCollection) WithLink(link string) Objecter[Collection[Note]] {
+	n.SetLink(link)
+	return n
+}
+
+// WithObject implements NoteCollectioner.
+// Subtle: this method shadows the method (collection).WithObject of noteCollection.collection.
+func (n *noteCollection) WithObject(collection Collection[Note]) Objecter[Collection[Note]] {
+	n.SetObject(collection)
+	return n
 }
 
 // GetObject implements CollectionPager.
@@ -196,6 +254,22 @@ func (c *collectionPage) SetObject(page CollectionPage[any]) {
 	}
 }
 
+// WithLink implements CollectionPager.
+// Subtle: this method shadows the method (object).WithLink of collectionPage.object.
+func (c *collectionPage) WithLink(link string) Objecter[CollectionPage[any]] {
+	c.SetLink(link)
+	return c
+}
+
+// WithObject implements CollectionPager.
+// Subtle: this method shadows the method (object).WithObject of collectionPage.object.
+func (c *collectionPage) WithObject(
+	page CollectionPage[any],
+) Objecter[CollectionPage[any]] {
+	c.SetObject(page)
+	return c
+}
+
 // GetObject implements ActorCollectionPager.
 // Subtle: this method shadows the method (collectionPage).GetObject of actorCollectionPage.collectionPage.
 func (a *actorCollectionPage) GetObject() CollectionPage[Actor] {
@@ -230,6 +304,22 @@ func (a *actorCollectionPage) SetObject(page CollectionPage[Actor]) {
 	}
 }
 
+// WithLink implements ActorCollectionPager.
+// Subtle: this method shadows the method (collectionPage).WithLink of actorCollectionPage.collectionPage.
+func (a *actorCollectionPage) WithLink(link string) Objecter[CollectionPage[Actor]] {
+	a.SetLink(link)
+	return a
+}
+
+// WithObject implements ActorCollectionPager.
+// Subtle: this method shadows the method (collectionPage).WithObject of actorCollectionPage.collectionPage.
+func (a *actorCollectionPage) WithObject(
+	page CollectionPage[Actor],
+) Objecter[CollectionPage[Actor]] {
+	a.SetObject(page)
+	return a
+}
+
 // GetObject implements NoteCollectionPager.
 // Subtle: this method shadows the method (object).GetObject of noteCollectionPage.object.
 func (n *noteCollectionPage) GetObject() CollectionPage[Note] {
@@ -262,6 +352,20 @@ func (n *noteCollectionPage) SetObject(page CollectionPage[Note]) {
 			},
 		},
 	}
+}
+
+// WithLink implements NoteCollectionPager.
+// Subtle: this method shadows the method (collectionPage).WithLink of noteCollectionPage.collectionPage.
+func (n *noteCollectionPage) WithLink(link string) Objecter[CollectionPage[Note]] {
+	n.SetLink(link)
+	return n
+}
+
+// WithObject implements NoteCollectionPager.
+// Subtle: this method shadows the method (collectionPage).WithObject of noteCollectionPage.collectionPage.
+func (n *noteCollectionPage) WithObject(page CollectionPage[Note]) Objecter[CollectionPage[Note]] {
+	n.SetObject(page)
+	return n
 }
 
 func mapToRaw[T any](objects []Objecter[T]) []domain.ObjectOrLink {

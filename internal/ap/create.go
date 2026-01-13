@@ -39,3 +39,17 @@ func (c *createActivity) SetObject(activity Activity[Note]) {
 		},
 	}
 }
+
+// WithLink implements CreateActivitier.
+// Subtle: this method shadows the method (activity).WithLink of createActivity.activity.
+func (c *createActivity) WithLink(link string) Objecter[Activity[Note]] {
+	c.SetLink(link)
+	return c
+}
+
+// WithObject implements CreateActivitier.
+// Subtle: this method shadows the method (activity).WithObject of createActivity.activity.
+func (c *createActivity) WithObject(activity Activity[Note]) Objecter[Activity[Note]] {
+	c.SetObject(activity)
+	return c
+}

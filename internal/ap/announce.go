@@ -16,6 +16,10 @@ func NewAnnounceActivity(from *domain.ObjectOrLink) AnnounceActivitier {
 	return &announceActivity{activity{object{from}}}
 }
 
+func NewEmptyAnnounceActivity() AnnounceActivitier {
+	return &announceActivity{activity{object{}}}
+}
+
 // GetObject implements AnnounceActivitier.
 // Subtle: this method shadows the method (activity).GetObject of announceActivity.activity.
 func (a *announceActivity) GetObject() Activity[Note] {
@@ -38,4 +42,18 @@ func (a *announceActivity) SetObject(activity Activity[Note]) {
 			ActivityObject: activity.Object.GetRaw(),
 		},
 	}
+}
+
+// WithLink implements AnnounceActivitier.
+// Subtle: this method shadows the method (activity).WithLink of announceActivity.activity.
+func (a *announceActivity) WithLink(link string) Objecter[Activity[Note]] {
+	a.SetLink(link)
+	return a
+}
+
+// WithObject implements AnnounceActivitier.
+// Subtle: this method shadows the method (activity).WithObject of announceActivity.activity.
+func (a *announceActivity) WithObject(activity Activity[Note]) Objecter[Activity[Note]] {
+	a.SetObject(activity)
+	return a
 }

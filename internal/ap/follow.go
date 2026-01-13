@@ -16,6 +16,10 @@ func NewFollowActivity(from *domain.ObjectOrLink) FollowActivitier {
 	return &followActivity{activity{object{from}}}
 }
 
+func NewEmptyFollowActivity() FollowActivitier {
+	return &followActivity{activity{object{}}}
+}
+
 // GetObject implements FollowActivitier.
 // Subtle: this method shadows the method (activity).GetObject of followActivity.activity.
 func (f *followActivity) GetObject() Activity[Actor] {
@@ -38,4 +42,18 @@ func (f *followActivity) SetObject(activity Activity[Actor]) {
 			ActivityObject: activity.Object.GetRaw(),
 		},
 	}
+}
+
+// WithLink implements FollowActivitier.
+// Subtle: this method shadows the method (activity).WithLink of followActivity.activity.
+func (f *followActivity) WithLink(link string) Objecter[Activity[Actor]] {
+	f.SetLink(link)
+	return f
+}
+
+// WithObject implements FollowActivitier.
+// Subtle: this method shadows the method (activity).WithObject of followActivity.activity.
+func (f *followActivity) WithObject(activity Activity[Actor]) Objecter[Activity[Actor]] {
+	f.SetObject(activity)
+	return f
 }
