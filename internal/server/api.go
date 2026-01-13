@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/kibirisu/borg/internal/ap"
 	"github.com/kibirisu/borg/internal/api"
 	"github.com/kibirisu/borg/internal/db"
@@ -500,6 +501,10 @@ func (s *Server) PostApiPostsIdLikes(w http.ResponseWriter, r *http.Request, id 
 
 	like, err := s.service.App.AddFavourite(r.Context(), currentUserID, id)
 	if err != nil {
+		if isUniqueViolation(err) {
+			util.WriteError(w, http.StatusConflict, "Post already liked")
+			return
+		}
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -563,6 +568,10 @@ func (s *Server) PostApiPostsIdShares(w http.ResponseWriter, r *http.Request, id
 
 	share, err := s.service.App.AddNote(r.Context(), *status)
 	if err != nil {
+		if isUniqueViolation(err) {
+			util.WriteError(w, http.StatusConflict, "Post already shared")
+			return
+		}
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -581,6 +590,11 @@ func (s *Server) PostApiPostsIdShares(w http.ResponseWriter, r *http.Request, id
 	})
 
 	util.WriteJSON(w, http.StatusCreated, nil)
+}
+
+func isUniqueViolation(err error) bool {
+	var pgErr *pgconn.PgError
+	return errors.As(err, &pgErr) && pgErr.Code == "23505"
 }
 
 // PostApiPosts implements api.ServerInterface.
