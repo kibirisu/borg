@@ -3,39 +3,61 @@ package mapper
 import (
 	"database/sql"
 
+	"github.com/rs/xid"
+
 	"github.com/kibirisu/borg/internal/api"
 	"github.com/kibirisu/borg/internal/db"
 )
 
 func NewPostToDB(newPost *api.NewPost, isLocal bool) *db.CreateStatusParams {
+	actorID, err := xid.FromString(newPost.UserID)
+	if err != nil {
+		return nil
+	}
 	return &db.CreateStatusParams{
 		Url:         "TODO",
 		Local:       sql.NullBool{Bool: isLocal, Valid: true},
 		Content:     newPost.Content,
-		AccountID:   int32(newPost.UserID),
-		InReplyToID: sql.NullInt32{},
-		ReblogOfID:  sql.NullInt32{},
+		AccountID:   actorID,
+		InReplyToID: nil,
+		ReblogOfID:  nil,
 	}
 }
 
 func NewCommentToDB(comment *api.NewComment) *db.CreateStatusParams {
+	actorID, err := xid.FromString(comment.UserID)
+	if err != nil {
+		return nil
+	}
+	replyOfID, err := xid.FromString(comment.PostID)
+	if err != nil {
+		return nil
+	}
 	return &db.CreateStatusParams{
 		Url:         "TODO",
 		Local:       sql.NullBool{Bool: true, Valid: true},
 		Content:     comment.Content,
-		AccountID:   int32(comment.UserID),
-		InReplyToID: sql.NullInt32{Int32: int32(comment.PostID), Valid: true},
-		ReblogOfID:  sql.NullInt32{Valid: false},
+		AccountID:   actorID,
+		InReplyToID: &replyOfID,
+		ReblogOfID:  nil,
 	}
 }
 
 func NewShareToDB(share *api.NewShare) *db.CreateStatusParams {
+	actorID, err := xid.FromString(share.UserID)
+	if err != nil {
+		return nil
+	}
+	reblogOfID, err := xid.FromString(share.PostID)
+	if err != nil {
+		return nil
+	}
 	return &db.CreateStatusParams{
 		Url:         "TODO",
 		Local:       sql.NullBool{Bool: true, Valid: true},
 		Content:     "",
-		AccountID:   int32(share.UserID),
-		InReplyToID: sql.NullInt32{Valid: false},
-		ReblogOfID:  sql.NullInt32{Valid: true, Int32: int32(share.PostID)},
+		AccountID:   actorID,
+		InReplyToID: nil,
+		ReblogOfID:  &reblogOfID,
 	}
 }

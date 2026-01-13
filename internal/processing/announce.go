@@ -2,7 +2,6 @@ package processing
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 
 	"github.com/kibirisu/borg/internal/ap"
@@ -29,11 +28,8 @@ func (p *processor) AnnounceStatus(
 			return status, err
 		}
 		return p.store.Statuses().Create(ctx, db.CreateStatusParams{
-			AccountID: actor.ID,
-			ReblogOfID: sql.NullInt32{
-				Int32: announcedStatus.ID,
-				Valid: true,
-			},
+			AccountID:  actor.ID,
+			ReblogOfID: &announcedStatus.ID,
 		})
 	}
 	return status, nil

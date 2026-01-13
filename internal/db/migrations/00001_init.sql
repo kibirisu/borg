@@ -1,6 +1,6 @@
 -- +goose Up
 CREATE TABLE accounts (
-    id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    id VARCHAR(20) PRIMARY KEY,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     username TEXT NOT NULL,
@@ -16,53 +16,54 @@ CREATE TABLE accounts (
 );
 
 CREATE TABLE statuses (
-    id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    id VARCHAR(20) PRIMARY KEY,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     uri TEXT UNIQUE NOT NULL,
     url TEXT NOT NULL,
     local BOOLEAN DEFAULT FALSE,
     content TEXT NOT NULL,
-    account_id INTEGER NOT NULL REFERENCES accounts (id),
-    in_reply_to_id INTEGER REFERENCES statuses,
-    reblog_of_id INTEGER REFERENCES statuses
+    account_id VARCHAR(20) NOT NULL REFERENCES accounts (id),
+    account_uri TEXT NOT NULL REFERENCES accounts (uri),
+    in_reply_to_id VARCHAR(20) REFERENCES statuses,
+    reblog_of_id VARCHAR(20) REFERENCES statuses
 );
 
 CREATE TABLE follows (
-    id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    id VARCHAR(20) PRIMARY KEY,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     uri TEXT UNIQUE NOT NULL,
-    account_id INTEGER NOT NULL REFERENCES accounts (id),
-    target_account_id INTEGER NOT NULL REFERENCES accounts (id),
+    account_id VARCHAR(20) NOT NULL REFERENCES accounts (id),
+    target_account_id VARCHAR(20) NOT NULL REFERENCES accounts (id),
     UNIQUE (account_id, target_account_id),
     CHECK (account_id != target_account_id)
 );
 
 CREATE TABLE follow_requests (
-    id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    id VARCHAR(20) PRIMARY KEY,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     uri TEXT UNIQUE NOT NULL,
-    account_id INTEGER NOT NULL REFERENCES accounts (id),
-    target_account_id INTEGER NOT NULL REFERENCES accounts (id),
+    account_id VARCHAR(20) NOT NULL REFERENCES accounts (id),
+    target_account_id VARCHAR(20) NOT NULL REFERENCES accounts (id),
     UNIQUE (account_id, target_account_id),
     CHECK (account_id != target_account_id)
 );
 
 CREATE TABLE favourites (
-    id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    id VARCHAR(20) PRIMARY KEY,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     uri TEXT UNIQUE NOT NULL,
-    account_id INTEGER NOT NULL REFERENCES accounts (id),
-    status_id INTEGER NOT NULL REFERENCES statuses (id),
+    account_id VARCHAR(20) NOT NULL REFERENCES accounts (id),
+    status_id VARCHAR(20) NOT NULL REFERENCES statuses (id),
     UNIQUE (account_id, status_id)
 );
 
 CREATE TABLE users (
-    id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    account_id INTEGER NOT NULL UNIQUE REFERENCES accounts (id),
+    id VARCHAR(20) PRIMARY KEY,
+    account_id VARCHAR(20) NOT NULL UNIQUE REFERENCES accounts (id),
     password_hash TEXT NOT NULL
 );
 

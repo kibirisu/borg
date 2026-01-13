@@ -2,7 +2,8 @@ package repository
 
 import (
 	"context"
-	"database/sql"
+
+	"github.com/rs/xid"
 
 	"github.com/kibirisu/borg/internal/db"
 )
@@ -10,14 +11,17 @@ import (
 type StatusRepository interface {
 	Create(context.Context, db.CreateStatusParams) (db.Status, error)
 	Add(context.Context, db.AddStatusParams) error
-	GetByID(context.Context, int) (db.Status, error)
+	GetByID(context.Context, xid.ID) (db.Status, error)
 	GetByURI(context.Context, string) (db.Status, error)
-	GetShares(context.Context, int) ([]db.Status, error)
+	GetShares(context.Context, xid.ID) ([]db.Status, error)
 	GetLocalStatuses(context.Context) ([]db.GetLocalStatusesRow, error)
-	GetByIDWithMetadata(context.Context, int) (db.GetStatusByIdWithMetadataRow, error)
-	GetSharedPostsByAccountId(context.Context, int) ([]db.GetSharedPostsByAccountIdRow, error)
-	GetTimelinePostsByAccountId(context.Context, int) ([]db.GetTimelinePostsByAccountIdRow, error)
-	DeleteByID(context.Context, int32) error
+	GetByIDWithMetadata(context.Context, xid.ID) (db.GetStatusByIdWithMetadataRow, error)
+	GetSharedPostsByAccountId(context.Context, xid.ID) ([]db.GetSharedPostsByAccountIdRow, error)
+	GetTimelinePostsByAccountId(
+		context.Context,
+		xid.ID,
+	) ([]db.GetTimelinePostsByAccountIdRow, error)
+	DeleteByID(context.Context, xid.ID) error
 }
 
 type statusRepository struct {
@@ -40,8 +44,8 @@ func (r *statusRepository) Add(ctx context.Context, status db.AddStatusParams) e
 }
 
 // GetById implements StatusRepository.
-func (r *statusRepository) GetByID(ctx context.Context, id int) (db.Status, error) {
-	return r.q.GetStatusById(ctx, int32(id))
+func (r *statusRepository) GetByID(ctx context.Context, id xid.ID) (db.Status, error) {
+	return r.q.GetStatusById(ctx, id)
 }
 
 // GetByURI implements StatusRepository.
@@ -52,14 +56,14 @@ func (r *statusRepository) GetByURI(ctx context.Context, uri string) (db.Status,
 // GetById implements StatusRepository.
 func (r *statusRepository) GetByIDWithMetadata(
 	ctx context.Context,
-	id int,
+	id xid.ID,
 ) (db.GetStatusByIdWithMetadataRow, error) {
-	return r.q.GetStatusByIdWithMetadata(ctx, int32(id))
+	return r.q.GetStatusByIdWithMetadata(ctx, id)
 }
 
 // GetShares implements StatusRepository.
-func (r *statusRepository) GetShares(ctx context.Context, id int) ([]db.Status, error) {
-	return r.q.GetStatusShares(ctx, sql.NullInt32{Int32: int32(id), Valid: true})
+func (r *statusRepository) GetShares(ctx context.Context, id xid.ID) ([]db.Status, error) {
+	return r.q.GetStatusShares(ctx, &id)
 }
 
 // GetLocalStatuses implements StatusRepository.
@@ -70,20 +74,20 @@ func (r *statusRepository) GetLocalStatuses(ctx context.Context) ([]db.GetLocalS
 // GetSharedPostsByAccountId implements StatusRepository.
 func (r *statusRepository) GetSharedPostsByAccountId(
 	ctx context.Context,
-	accountID int,
+	accountID xid.ID,
 ) ([]db.GetSharedPostsByAccountIdRow, error) {
-	return r.q.GetSharedPostsByAccountId(ctx, int32(accountID))
+	return r.q.GetSharedPostsByAccountId(ctx, accountID)
 }
 
 // GetTimelinePostsByAccountId implements StatusRepository.
 func (r *statusRepository) GetTimelinePostsByAccountId(
 	ctx context.Context,
-	accountID int,
+	accountID xid.ID,
 ) ([]db.GetTimelinePostsByAccountIdRow, error) {
-	return r.q.GetTimelinePostsByAccountId(ctx, int32(accountID))
+	return r.q.GetTimelinePostsByAccountId(ctx, accountID)
 }
 
 // DeleteByURI implements StatusRepository.
-func (r *statusRepository) DeleteByID(ctx context.Context, id int32) error {
+func (r *statusRepository) DeleteByID(ctx context.Context, id xid.ID) error {
 	return r.q.DeleteStatusByID(ctx, id)
 }

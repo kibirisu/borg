@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"errors"
 
+	"github.com/rs/xid"
+
 	"github.com/kibirisu/borg/internal/ap"
 	"github.com/kibirisu/borg/internal/db"
 )
@@ -26,16 +28,13 @@ func (p *processor) LookupStatus(ctx context.Context, object ap.Noter) (db.Statu
 		if err != nil {
 			return status, err
 		}
-		inReplyToID := sql.NullInt32{}
+		var inReplyToID *xid.ID
 		if statusData.InReplyTo.GetRaw() != nil {
 			parentStatus, err := p.LookupStatus(ctx, statusData.InReplyTo)
 			if err != nil {
 				return status, err
 			}
-			inReplyToID = sql.NullInt32{
-				Int32: parentStatus.ID,
-				Valid: true,
-			}
+			inReplyToID = &parentStatus.ID
 		}
 		status, err = p.store.Statuses().Create(ctx, db.CreateStatusParams{
 			Url:         "nope",

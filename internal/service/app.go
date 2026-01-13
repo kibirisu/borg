@@ -3,12 +3,12 @@ package service
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
 
 	"github.com/google/uuid"
+	"github.com/rs/xid"
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/kibirisu/borg/internal/ap"
@@ -25,27 +25,29 @@ type AppService interface {
 	Register(context.Context, api.AuthForm) error
 	Login(context.Context, api.AuthForm) (string, error)
 	CreateStatus(context.Context, api.NewPost, LoginData) (worker.Job, error)
-	GetAccountFollowers(context.Context, int) ([]db.Account, error)
-	GetAccountFollowing(context.Context, int) ([]db.Account, error)
+	GetAccountFollowers(context.Context, string) ([]db.Account, error)
+	GetAccountFollowing(context.Context, string) ([]db.Account, error)
 	GetLocalAccount(context.Context, string) (*db.Account, error)
-	AddRemoteAccount(ctx context.Context, remote *db.CreateActorParams) (*db.Account, error)
 	CreateFollow(ctx context.Context, follow *db.CreateFollowParams) (*db.Follow, error)
 	AddNote(context.Context, db.CreateStatusParams) (db.Status, error)
-	AddFavourite(context.Context, int, int) (db.Favourite, error)
-	FollowAccount(context.Context, int, int) (*db.Follow, error)
-	GetAccountByID(context.Context, int) (db.Account, error)
+	AddFavourite(context.Context, string, string) (db.Favourite, error)
+	FollowAccount(context.Context, string, string) (*db.Follow, error)
+	GetAccountByID(context.Context, string) (db.Account, error)
 	GetAccount(context.Context, db.GetAccountParams) (*db.Account, error)
 	GetLocalPosts(context.Context) ([]db.GetLocalStatusesRow, error)
-	GetPostByAccountID(context.Context, int) ([]db.GetStatusesByAccountIdRow, error)
-	GetPostByID(context.Context, int) (*db.Status, error)
-	GetPostLikes(context.Context, int) ([]db.Favourite, error)
-	GetPostShares(context.Context, int) ([]db.Status, error)
-	GetPostByIDWithMetadata(context.Context, int) (*db.GetStatusByIdWithMetadataRow, error)
-	GetLikedPostsByAccountId(context.Context, int) ([]db.GetLikedPostsByAccountIdRow, error)
-	GetSharedPostsByAccountId(context.Context, int) ([]db.GetSharedPostsByAccountIdRow, error)
-	GetTimelinePostsByAccountId(context.Context, int) ([]db.GetTimelinePostsByAccountIdRow, error)
+	GetPostByAccountID(context.Context, string) ([]db.GetStatusesByAccountIdRow, error)
+	GetPostByID(context.Context, string) (*db.Status, error)
+	GetPostLikes(context.Context, string) ([]db.Favourite, error)
+	GetPostShares(context.Context, string) ([]db.Status, error)
+	GetPostByIDWithMetadata(context.Context, string) (*db.GetStatusByIdWithMetadataRow, error)
+	GetLikedPostsByAccountId(context.Context, string) ([]db.GetLikedPostsByAccountIdRow, error)
+	GetSharedPostsByAccountId(context.Context, string) ([]db.GetSharedPostsByAccountIdRow, error)
+	GetTimelinePostsByAccountId(
+		context.Context,
+		string,
+	) ([]db.GetTimelinePostsByAccountIdRow, error)
 	// EW, idk if this should stay here
-	DeliverToFollowers(http.ResponseWriter, *http.Request, int, func(recipientURI string) any)
+	DeliverToFollowers(http.ResponseWriter, *http.Request, string, func(recipientURI string) any)
 }
 
 type appService struct {
@@ -55,7 +57,7 @@ type appService struct {
 }
 
 type LoginData struct {
-	ID       int
+	ID       string
 	Username string
 }
 
@@ -107,7 +109,7 @@ func (s *appService) Login(ctx context.Context, form api.AuthForm) (string, erro
 	if err = bcrypt.CompareHashAndPassword([]byte(auth.PasswordHash), []byte(form.Password)); err != nil {
 		return "", err
 	}
-	token, err := issueToken(auth.ID, form.Username, s.conf.ListenHost, s.conf.JWTSecret)
+	token, err := issueToken(auth.ID.String(), form.Username, s.conf.ListenHost, s.conf.JWTSecret)
 	if err != nil {
 		return "", err
 	}
@@ -127,13 +129,17 @@ func (s *appService) CreateStatus(
 		login.Username,
 		uuid.New(),
 	)
+	accountID, err := xid.FromString(login.ID)
+	if err != nil {
+		return nil, err
+	}
 	createdStatus, err := s.store.Statuses().Create(ctx, db.CreateStatusParams{
 		Local: sql.NullBool{
 			Bool:  true,
 			Valid: true,
 		},
 		Content:   status.Content,
-		AccountID: int32(login.ID),
+		AccountID: accountID,
 		Uri:       uri,
 	})
 	if err != nil {
@@ -192,17 +198,6 @@ func (s *appService) GetLocalAccount(ctx context.Context, username string) (*db.
 	return &user, err
 }
 
-func (s *appService) AddRemoteAccount(
-	ctx context.Context,
-	remote *db.CreateActorParams,
-) (*db.Account, error) {
-	if !remote.Domain.Valid {
-		return nil, errors.New("domain must be a remote server")
-	}
-	acc, err := s.store.Accounts().Create(ctx, *remote)
-	return &acc, err
-}
-
 func (s *appService) CreateFollow(
 	ctx context.Context,
 	follow *db.CreateFollowParams,
@@ -235,18 +230,30 @@ func (s *appService) GetAccount(
 
 // GetAccountByID implements AppService.
 func (s *appService) GetAccountByID(
-	ctx context.Context, accountID int,
+	ctx context.Context, accountID string,
 ) (db.Account, error) {
-	return s.store.Accounts().GetByID(ctx, accountID)
+	actorID, err := xid.FromString(accountID)
+	if err != nil {
+		return db.Account{}, err
+	}
+	return s.store.Accounts().GetByID(ctx, actorID)
 }
 
 // AddFavourite implements AppService.
 func (s *appService) AddFavourite(
-	ctx context.Context, accountID int, postID int,
+	ctx context.Context, accountID string, postID string,
 ) (db.Favourite, error) {
+	actorID, err := xid.FromString(accountID)
+	if err != nil {
+		return db.Favourite{}, err
+	}
+	statusID, err := xid.FromString(postID)
+	if err != nil {
+		return db.Favourite{}, err
+	}
 	params := db.CreateFavouriteParams{
-		AccountID: int32(accountID),
-		StatusID:  int32(postID),
+		AccountID: actorID,
+		StatusID:  statusID,
 		Uri:       fmt.Sprintf("http://%s/likes/%s", s.conf.ListenHost, uuid.NewString()),
 	}
 	return s.store.Favourites().Create(ctx, params)
@@ -254,63 +261,87 @@ func (s *appService) AddFavourite(
 
 // GetAccountFollowers implements AppService.
 func (s *appService) GetAccountFollowers(
-	ctx context.Context, accountID int,
+	ctx context.Context, accountID string,
 ) ([]db.Account, error) {
-	return s.store.Accounts().GetFollowers(ctx, accountID)
+	id, err := xid.FromString(accountID)
+	if err != nil {
+		return []db.Account{}, err
+	}
+	return s.store.Accounts().GetFollowers(ctx, id)
 }
 
 // GetAccountFollowing implements AppService.
 func (s *appService) GetAccountFollowing(
-	ctx context.Context, accountID int,
+	ctx context.Context, accountID string,
 ) ([]db.Account, error) {
-	return s.store.Accounts().GetFollowing(ctx, accountID)
+	id, err := xid.FromString(accountID)
+	if err != nil {
+		return []db.Account{}, err
+	}
+	return s.store.Accounts().GetFollowing(ctx, id)
 }
 
 func (s *appService) GetPostByIDWithMetadata(
 	ctx context.Context,
-	id int,
+	id string,
 ) (*db.GetStatusByIdWithMetadataRow, error) {
-	status, err := s.store.Statuses().GetByIDWithMetadata(ctx, id)
+	statusID, err := xid.FromString(id)
 	if err != nil {
 		return nil, err
-	} else {
-		return &status, nil
 	}
+	status, err := s.store.Statuses().GetByIDWithMetadata(ctx, statusID)
+	return &status, err
 }
 
-func (s *appService) GetPostByID(ctx context.Context, id int) (*db.Status, error) {
-	status, err := s.store.Statuses().GetByID(ctx, id)
+func (s *appService) GetPostByID(ctx context.Context, id string) (*db.Status, error) {
+	statusID, err := xid.FromString(id)
 	if err != nil {
 		return nil, err
-	} else {
-		return &status, nil
 	}
+	status, err := s.store.Statuses().GetByID(ctx, statusID)
+	return &status, err
 }
 
-func (s *appService) GetPostLikes(ctx context.Context, id int) ([]db.Favourite, error) {
-	return s.store.Favourites().GetByPost(ctx, id)
+func (s *appService) GetPostLikes(ctx context.Context, id string) ([]db.Favourite, error) {
+	statusID, err := xid.FromString(id)
+	if err != nil {
+		return []db.Favourite{}, err
+	}
+	return s.store.Favourites().GetByPost(ctx, statusID)
 }
 
-func (s *appService) GetPostShares(ctx context.Context, id int) ([]db.Status, error) {
-	return s.store.Statuses().GetShares(ctx, id)
+func (s *appService) GetPostShares(ctx context.Context, id string) ([]db.Status, error) {
+	statusID, err := xid.FromString(id)
+	if err != nil {
+		return []db.Status{}, err
+	}
+	return s.store.Statuses().GetShares(ctx, statusID)
 }
 
 // FollowAccount implements AppService.
 func (s *appService) FollowAccount(
 	ctx context.Context,
-	follower int,
-	followee int,
+	follower string,
+	followee string,
 ) (*db.Follow, error) {
+	followerID, err := xid.FromString(follower)
+	if err != nil {
+		return nil, err
+	}
+	followedID, err := xid.FromString(followee)
+	if err != nil {
+		return nil, err
+	}
 	createParams := db.CreateFollowParams{
 		Uri:             fmt.Sprintf("http://%s/follows/%s", s.conf.ListenHost, uuid.NewString()),
-		AccountID:       int32(follower),
-		TargetAccountID: int32(followee),
+		AccountID:       followerID,
+		TargetAccountID: followedID,
 	}
 	return s.store.Follows().Create(ctx, createParams)
 }
 
 func (s *appService) DeliverToFollowers(
-	w http.ResponseWriter, r *http.Request, userID int,
+	w http.ResponseWriter, r *http.Request, userID string,
 	build func(recipientURI string) any,
 ) {
 	followers, err := s.GetAccountFollowers(r.Context(), userID)
@@ -329,9 +360,13 @@ func (s *appService) DeliverToFollowers(
 
 func (s *appService) GetPostByAccountID(
 	ctx context.Context,
-	id int,
+	id string,
 ) ([]db.GetStatusesByAccountIdRow, error) {
-	return s.store.Accounts().GetPosts(ctx, id)
+	actorID, err := xid.FromString(id)
+	if err != nil {
+		return []db.GetStatusesByAccountIdRow{}, err
+	}
+	return s.store.Accounts().GetPosts(ctx, actorID)
 }
 
 func (s *appService) GetLocalPosts(ctx context.Context) ([]db.GetLocalStatusesRow, error) {
@@ -340,21 +375,33 @@ func (s *appService) GetLocalPosts(ctx context.Context) ([]db.GetLocalStatusesRo
 
 func (s *appService) GetLikedPostsByAccountId(
 	ctx context.Context,
-	accountID int,
+	accountID string,
 ) ([]db.GetLikedPostsByAccountIdRow, error) {
-	return s.store.Favourites().GetLikedPostsByAccountId(ctx, accountID)
+	actorID, err := xid.FromString(accountID)
+	if err != nil {
+		return []db.GetLikedPostsByAccountIdRow{}, err
+	}
+	return s.store.Favourites().GetLikedPostsByAccountId(ctx, actorID)
 }
 
 func (s *appService) GetSharedPostsByAccountId(
 	ctx context.Context,
-	accountID int,
+	accountID string,
 ) ([]db.GetSharedPostsByAccountIdRow, error) {
-	return s.store.Statuses().GetSharedPostsByAccountId(ctx, accountID)
+	actorID, err := xid.FromString(accountID)
+	if err != nil {
+		return []db.GetSharedPostsByAccountIdRow{}, err
+	}
+	return s.store.Statuses().GetSharedPostsByAccountId(ctx, actorID)
 }
 
 func (s *appService) GetTimelinePostsByAccountId(
 	ctx context.Context,
-	accountID int,
+	accountID string,
 ) ([]db.GetTimelinePostsByAccountIdRow, error) {
-	return s.store.Statuses().GetTimelinePostsByAccountId(ctx, accountID)
+	actorID, err := xid.FromString(accountID)
+	if err != nil {
+		return []db.GetTimelinePostsByAccountIdRow{}, err
+	}
+	return s.store.Statuses().GetTimelinePostsByAccountId(ctx, actorID)
 }

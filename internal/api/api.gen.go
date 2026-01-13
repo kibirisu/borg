@@ -28,7 +28,7 @@ const (
 type Account struct {
 	Acct        string `json:"acct"`
 	DisplayName string `json:"displayName"`
-	Id          int    `json:"id"`
+	Id          string `json:"id"`
 	Url         string `json:"url"`
 	Username    string `json:"username"`
 }
@@ -44,43 +44,43 @@ type Comment struct {
 	UpdatedAt time.Time `json:"UpdatedAt"`
 	Content   string    `json:"content"`
 	CreatedAt time.Time `json:"createdAt"`
-	Id        int       `json:"id"`
-	ParentID  int       `json:"parentID"`
-	PostID    int       `json:"postID"`
-	UserID    int       `json:"userID"`
+	Id        string    `json:"id"`
+	ParentID  string    `json:"parentID"`
+	PostID    string    `json:"postID"`
+	UserID    string    `json:"userID"`
 }
 
 // Like defines model for Like.
 type Like struct {
 	CreatedAt time.Time `json:"createdAt"`
-	Id        int       `json:"id"`
-	PostID    int       `json:"postID"`
-	UserID    int       `json:"userID"`
+	Id        string    `json:"id"`
+	PostID    string    `json:"postID"`
+	UserID    string    `json:"userID"`
 }
 
 // NewComment defines model for NewComment.
 type NewComment struct {
 	Content string `json:"content"`
-	PostID  int    `json:"postID"`
-	UserID  int    `json:"userID"`
+	PostID  string `json:"postID"`
+	UserID  string `json:"userID"`
 }
 
 // NewLike defines model for NewLike.
 type NewLike struct {
-	PostID int `json:"postID"`
-	UserID int `json:"userID"`
+	PostID string `json:"postID"`
+	UserID string `json:"userID"`
 }
 
 // NewPost defines model for NewPost.
 type NewPost struct {
 	Content string `json:"content"`
-	UserID  int    `json:"userID"`
+	UserID  string `json:"userID"`
 }
 
 // NewShare defines model for NewShare.
 type NewShare struct {
-	PostID int `json:"postID"`
-	UserID int `json:"userID"`
+	PostID string `json:"postID"`
+	UserID string `json:"userID"`
 }
 
 // NewUser defines model for NewUser.
@@ -94,20 +94,20 @@ type Post struct {
 	CommentCount int       `json:"commentCount"`
 	Content      string    `json:"content"`
 	CreatedAt    time.Time `json:"createdAt"`
-	Id           int       `json:"id"`
+	Id           string    `json:"id"`
 	LikeCount    int       `json:"likeCount"`
 	ShareCount   int       `json:"shareCount"`
 	UpdatedAt    time.Time `json:"updatedAt"`
-	UserID       int       `json:"userID"`
+	UserID       string    `json:"userID"`
 	Username     *string   `json:"username,omitempty"`
 }
 
 // Share defines model for Share.
 type Share struct {
 	CreatedAt time.Time `json:"createdAt"`
-	Id        int       `json:"id"`
-	PostID    int       `json:"postID"`
-	UserID    int       `json:"userID"`
+	Id        string    `json:"id"`
+	PostID    string    `json:"postID"`
+	UserID    string    `json:"userID"`
 }
 
 // UpdatePost defines model for UpdatePost.
@@ -127,7 +127,7 @@ type User struct {
 	CreatedAt      time.Time `json:"createdAt"`
 	FollowersCount int       `json:"followersCount"`
 	FollowingCount int       `json:"followingCount"`
-	Id             int       `json:"id"`
+	Id             string    `json:"id"`
 	IsAdmin        bool      `json:"isAdmin"`
 	Origin         string    `json:"origin"`
 	UpdatedAt      time.Time `json:"updatedAt"`
@@ -194,7 +194,7 @@ type ServerInterface interface {
 	GetApiAccountsLookup(w http.ResponseWriter, r *http.Request, params GetApiAccountsLookupParams)
 	// Follow a user
 	// (POST /api/accounts/{id}/follow)
-	PostApiAccountsIdFollow(w http.ResponseWriter, r *http.Request, id int)
+	PostApiAccountsIdFollow(w http.ResponseWriter, r *http.Request, id string)
 	// Get all posts
 	// (GET /api/posts)
 	GetApiPosts(w http.ResponseWriter, r *http.Request)
@@ -203,61 +203,61 @@ type ServerInterface interface {
 	PostApiPosts(w http.ResponseWriter, r *http.Request)
 	// Delete a post by ID
 	// (DELETE /api/posts/{id})
-	DeleteApiPostsId(w http.ResponseWriter, r *http.Request, id int)
+	DeleteApiPostsId(w http.ResponseWriter, r *http.Request, id string)
 	// Get a post by ID
 	// (GET /api/posts/{id})
-	GetApiPostsId(w http.ResponseWriter, r *http.Request, id int)
+	GetApiPostsId(w http.ResponseWriter, r *http.Request, id string)
 	// Update a post
 	// (PUT /api/posts/{id})
-	PutApiPostsId(w http.ResponseWriter, r *http.Request, id int)
+	PutApiPostsId(w http.ResponseWriter, r *http.Request, id string)
 	// Get a post's comments by ID
 	// (GET /api/posts/{id}/comments)
-	GetApiPostsIdComments(w http.ResponseWriter, r *http.Request, id int)
+	GetApiPostsIdComments(w http.ResponseWriter, r *http.Request, id string)
 	// Create a post comment
 	// (POST /api/posts/{id}/comments)
-	PostApiPostsIdComments(w http.ResponseWriter, r *http.Request, id int)
+	PostApiPostsIdComments(w http.ResponseWriter, r *http.Request, id string)
 	// Get post's likes
 	// (GET /api/posts/{id}/likes)
-	GetApiPostsIdLikes(w http.ResponseWriter, r *http.Request, id int)
+	GetApiPostsIdLikes(w http.ResponseWriter, r *http.Request, id string)
 	// Create a post like
 	// (POST /api/posts/{id}/likes)
-	PostApiPostsIdLikes(w http.ResponseWriter, r *http.Request, id int)
+	PostApiPostsIdLikes(w http.ResponseWriter, r *http.Request, id string)
 	// Get post's shares
 	// (GET /api/posts/{id}/shares)
-	GetApiPostsIdShares(w http.ResponseWriter, r *http.Request, id int)
+	GetApiPostsIdShares(w http.ResponseWriter, r *http.Request, id string)
 	// Create a post share
 	// (POST /api/posts/{id}/shares)
-	PostApiPostsIdShares(w http.ResponseWriter, r *http.Request, id int)
+	PostApiPostsIdShares(w http.ResponseWriter, r *http.Request, id string)
 	// Create a user
 	// (POST /api/users)
 	PostApiUsers(w http.ResponseWriter, r *http.Request)
 	// Delete a user by ID
 	// (DELETE /api/users/{id})
-	DeleteApiUsersId(w http.ResponseWriter, r *http.Request, id int)
+	DeleteApiUsersId(w http.ResponseWriter, r *http.Request, id string)
 	// Get a user by ID
 	// (GET /api/users/{id})
-	GetApiUsersId(w http.ResponseWriter, r *http.Request, id int)
+	GetApiUsersId(w http.ResponseWriter, r *http.Request, id string)
 	// Update a user
 	// (PUT /api/users/{id})
-	PutApiUsersId(w http.ResponseWriter, r *http.Request, id int)
+	PutApiUsersId(w http.ResponseWriter, r *http.Request, id string)
 	// Get liked posts of user with ID
 	// (GET /api/users/{id}/favourites)
-	GetApiUsersIdFavourites(w http.ResponseWriter, r *http.Request, id int)
+	GetApiUsersIdFavourites(w http.ResponseWriter, r *http.Request, id string)
 	// Get followers of the user with ID
 	// (GET /api/users/{id}/followers)
-	GetApiUsersIdFollowers(w http.ResponseWriter, r *http.Request, id int)
+	GetApiUsersIdFollowers(w http.ResponseWriter, r *http.Request, id string)
 	// Get followed of the user with ID
 	// (GET /api/users/{id}/following)
-	GetApiUsersIdFollowing(w http.ResponseWriter, r *http.Request, id int)
+	GetApiUsersIdFollowing(w http.ResponseWriter, r *http.Request, id string)
 	// Get posts of user with ID
 	// (GET /api/users/{id}/posts)
-	GetApiUsersIdPosts(w http.ResponseWriter, r *http.Request, id int)
+	GetApiUsersIdPosts(w http.ResponseWriter, r *http.Request, id string)
 	// Get shared posts of user with ID
 	// (GET /api/users/{id}/reblogged)
-	GetApiUsersIdReblogged(w http.ResponseWriter, r *http.Request, id int)
+	GetApiUsersIdReblogged(w http.ResponseWriter, r *http.Request, id string)
 	// Get timeline posts of the user with ID (posts from followed users)
 	// (GET /api/users/{id}/timeline)
-	GetApiUsersIdTimeline(w http.ResponseWriter, r *http.Request, id int)
+	GetApiUsersIdTimeline(w http.ResponseWriter, r *http.Request, id string)
 	// Login the user
 	// (POST /auth/login)
 	PostAuthLogin(w http.ResponseWriter, r *http.Request)
@@ -284,7 +284,7 @@ func (_ Unimplemented) GetApiAccountsLookup(w http.ResponseWriter, r *http.Reque
 
 // Follow a user
 // (POST /api/accounts/{id}/follow)
-func (_ Unimplemented) PostApiAccountsIdFollow(w http.ResponseWriter, r *http.Request, id int) {
+func (_ Unimplemented) PostApiAccountsIdFollow(w http.ResponseWriter, r *http.Request, id string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -302,55 +302,55 @@ func (_ Unimplemented) PostApiPosts(w http.ResponseWriter, r *http.Request) {
 
 // Delete a post by ID
 // (DELETE /api/posts/{id})
-func (_ Unimplemented) DeleteApiPostsId(w http.ResponseWriter, r *http.Request, id int) {
+func (_ Unimplemented) DeleteApiPostsId(w http.ResponseWriter, r *http.Request, id string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Get a post by ID
 // (GET /api/posts/{id})
-func (_ Unimplemented) GetApiPostsId(w http.ResponseWriter, r *http.Request, id int) {
+func (_ Unimplemented) GetApiPostsId(w http.ResponseWriter, r *http.Request, id string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Update a post
 // (PUT /api/posts/{id})
-func (_ Unimplemented) PutApiPostsId(w http.ResponseWriter, r *http.Request, id int) {
+func (_ Unimplemented) PutApiPostsId(w http.ResponseWriter, r *http.Request, id string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Get a post's comments by ID
 // (GET /api/posts/{id}/comments)
-func (_ Unimplemented) GetApiPostsIdComments(w http.ResponseWriter, r *http.Request, id int) {
+func (_ Unimplemented) GetApiPostsIdComments(w http.ResponseWriter, r *http.Request, id string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Create a post comment
 // (POST /api/posts/{id}/comments)
-func (_ Unimplemented) PostApiPostsIdComments(w http.ResponseWriter, r *http.Request, id int) {
+func (_ Unimplemented) PostApiPostsIdComments(w http.ResponseWriter, r *http.Request, id string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Get post's likes
 // (GET /api/posts/{id}/likes)
-func (_ Unimplemented) GetApiPostsIdLikes(w http.ResponseWriter, r *http.Request, id int) {
+func (_ Unimplemented) GetApiPostsIdLikes(w http.ResponseWriter, r *http.Request, id string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Create a post like
 // (POST /api/posts/{id}/likes)
-func (_ Unimplemented) PostApiPostsIdLikes(w http.ResponseWriter, r *http.Request, id int) {
+func (_ Unimplemented) PostApiPostsIdLikes(w http.ResponseWriter, r *http.Request, id string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Get post's shares
 // (GET /api/posts/{id}/shares)
-func (_ Unimplemented) GetApiPostsIdShares(w http.ResponseWriter, r *http.Request, id int) {
+func (_ Unimplemented) GetApiPostsIdShares(w http.ResponseWriter, r *http.Request, id string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Create a post share
 // (POST /api/posts/{id}/shares)
-func (_ Unimplemented) PostApiPostsIdShares(w http.ResponseWriter, r *http.Request, id int) {
+func (_ Unimplemented) PostApiPostsIdShares(w http.ResponseWriter, r *http.Request, id string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -362,55 +362,55 @@ func (_ Unimplemented) PostApiUsers(w http.ResponseWriter, r *http.Request) {
 
 // Delete a user by ID
 // (DELETE /api/users/{id})
-func (_ Unimplemented) DeleteApiUsersId(w http.ResponseWriter, r *http.Request, id int) {
+func (_ Unimplemented) DeleteApiUsersId(w http.ResponseWriter, r *http.Request, id string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Get a user by ID
 // (GET /api/users/{id})
-func (_ Unimplemented) GetApiUsersId(w http.ResponseWriter, r *http.Request, id int) {
+func (_ Unimplemented) GetApiUsersId(w http.ResponseWriter, r *http.Request, id string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Update a user
 // (PUT /api/users/{id})
-func (_ Unimplemented) PutApiUsersId(w http.ResponseWriter, r *http.Request, id int) {
+func (_ Unimplemented) PutApiUsersId(w http.ResponseWriter, r *http.Request, id string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Get liked posts of user with ID
 // (GET /api/users/{id}/favourites)
-func (_ Unimplemented) GetApiUsersIdFavourites(w http.ResponseWriter, r *http.Request, id int) {
+func (_ Unimplemented) GetApiUsersIdFavourites(w http.ResponseWriter, r *http.Request, id string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Get followers of the user with ID
 // (GET /api/users/{id}/followers)
-func (_ Unimplemented) GetApiUsersIdFollowers(w http.ResponseWriter, r *http.Request, id int) {
+func (_ Unimplemented) GetApiUsersIdFollowers(w http.ResponseWriter, r *http.Request, id string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Get followed of the user with ID
 // (GET /api/users/{id}/following)
-func (_ Unimplemented) GetApiUsersIdFollowing(w http.ResponseWriter, r *http.Request, id int) {
+func (_ Unimplemented) GetApiUsersIdFollowing(w http.ResponseWriter, r *http.Request, id string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Get posts of user with ID
 // (GET /api/users/{id}/posts)
-func (_ Unimplemented) GetApiUsersIdPosts(w http.ResponseWriter, r *http.Request, id int) {
+func (_ Unimplemented) GetApiUsersIdPosts(w http.ResponseWriter, r *http.Request, id string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Get shared posts of user with ID
 // (GET /api/users/{id}/reblogged)
-func (_ Unimplemented) GetApiUsersIdReblogged(w http.ResponseWriter, r *http.Request, id int) {
+func (_ Unimplemented) GetApiUsersIdReblogged(w http.ResponseWriter, r *http.Request, id string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Get timeline posts of the user with ID (posts from followed users)
 // (GET /api/users/{id}/timeline)
-func (_ Unimplemented) GetApiUsersIdTimeline(w http.ResponseWriter, r *http.Request, id int) {
+func (_ Unimplemented) GetApiUsersIdTimeline(w http.ResponseWriter, r *http.Request, id string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -509,7 +509,7 @@ func (siw *ServerInterfaceWrapper) PostApiAccountsIdFollow(w http.ResponseWriter
 	var err error
 
 	// ------------- Path parameter "id" -------------
-	var id int
+	var id string
 
 	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
@@ -574,7 +574,7 @@ func (siw *ServerInterfaceWrapper) DeleteApiPostsId(w http.ResponseWriter, r *ht
 	var err error
 
 	// ------------- Path parameter "id" -------------
-	var id int
+	var id string
 
 	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
@@ -599,7 +599,7 @@ func (siw *ServerInterfaceWrapper) GetApiPostsId(w http.ResponseWriter, r *http.
 	var err error
 
 	// ------------- Path parameter "id" -------------
-	var id int
+	var id string
 
 	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
@@ -624,7 +624,7 @@ func (siw *ServerInterfaceWrapper) PutApiPostsId(w http.ResponseWriter, r *http.
 	var err error
 
 	// ------------- Path parameter "id" -------------
-	var id int
+	var id string
 
 	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
@@ -649,7 +649,7 @@ func (siw *ServerInterfaceWrapper) GetApiPostsIdComments(w http.ResponseWriter, 
 	var err error
 
 	// ------------- Path parameter "id" -------------
-	var id int
+	var id string
 
 	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
@@ -674,7 +674,7 @@ func (siw *ServerInterfaceWrapper) PostApiPostsIdComments(w http.ResponseWriter,
 	var err error
 
 	// ------------- Path parameter "id" -------------
-	var id int
+	var id string
 
 	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
@@ -705,7 +705,7 @@ func (siw *ServerInterfaceWrapper) GetApiPostsIdLikes(w http.ResponseWriter, r *
 	var err error
 
 	// ------------- Path parameter "id" -------------
-	var id int
+	var id string
 
 	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
@@ -730,7 +730,7 @@ func (siw *ServerInterfaceWrapper) PostApiPostsIdLikes(w http.ResponseWriter, r 
 	var err error
 
 	// ------------- Path parameter "id" -------------
-	var id int
+	var id string
 
 	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
@@ -761,7 +761,7 @@ func (siw *ServerInterfaceWrapper) GetApiPostsIdShares(w http.ResponseWriter, r 
 	var err error
 
 	// ------------- Path parameter "id" -------------
-	var id int
+	var id string
 
 	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
@@ -786,7 +786,7 @@ func (siw *ServerInterfaceWrapper) PostApiPostsIdShares(w http.ResponseWriter, r
 	var err error
 
 	// ------------- Path parameter "id" -------------
-	var id int
+	var id string
 
 	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
@@ -831,7 +831,7 @@ func (siw *ServerInterfaceWrapper) DeleteApiUsersId(w http.ResponseWriter, r *ht
 	var err error
 
 	// ------------- Path parameter "id" -------------
-	var id int
+	var id string
 
 	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
@@ -856,7 +856,7 @@ func (siw *ServerInterfaceWrapper) GetApiUsersId(w http.ResponseWriter, r *http.
 	var err error
 
 	// ------------- Path parameter "id" -------------
-	var id int
+	var id string
 
 	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
@@ -881,7 +881,7 @@ func (siw *ServerInterfaceWrapper) PutApiUsersId(w http.ResponseWriter, r *http.
 	var err error
 
 	// ------------- Path parameter "id" -------------
-	var id int
+	var id string
 
 	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
@@ -906,7 +906,7 @@ func (siw *ServerInterfaceWrapper) GetApiUsersIdFavourites(w http.ResponseWriter
 	var err error
 
 	// ------------- Path parameter "id" -------------
-	var id int
+	var id string
 
 	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
@@ -931,7 +931,7 @@ func (siw *ServerInterfaceWrapper) GetApiUsersIdFollowers(w http.ResponseWriter,
 	var err error
 
 	// ------------- Path parameter "id" -------------
-	var id int
+	var id string
 
 	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
@@ -956,7 +956,7 @@ func (siw *ServerInterfaceWrapper) GetApiUsersIdFollowing(w http.ResponseWriter,
 	var err error
 
 	// ------------- Path parameter "id" -------------
-	var id int
+	var id string
 
 	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
@@ -981,7 +981,7 @@ func (siw *ServerInterfaceWrapper) GetApiUsersIdPosts(w http.ResponseWriter, r *
 	var err error
 
 	// ------------- Path parameter "id" -------------
-	var id int
+	var id string
 
 	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
@@ -1006,7 +1006,7 @@ func (siw *ServerInterfaceWrapper) GetApiUsersIdReblogged(w http.ResponseWriter,
 	var err error
 
 	// ------------- Path parameter "id" -------------
-	var id int
+	var id string
 
 	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
@@ -1031,7 +1031,7 @@ func (siw *ServerInterfaceWrapper) GetApiUsersIdTimeline(w http.ResponseWriter, 
 	var err error
 
 	// ------------- Path parameter "id" -------------
-	var id int
+	var id string
 
 	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
@@ -1276,31 +1276,31 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"H4sIAAAAAAAC/+SaXW/bNhfHv4rA5wG2YW6dbrvynZsig9egDZoGuSh6QUvHNmuKVEmqhhH4uw980ZtF",
+	"ybQTpTNy54hH5Dk//nl4SOUBxTzNOAOmJJo8IBmvIMXm5zSOec6U/pkJnoFQBEwDjmPzVG0zQBMklSBs",
+	"iXYjlBCZUbz9gFPwtpPE+zgX1P9cgmD+vnYjJOB7TgQkaPJFd1wzH1kPm/7YYb6Oip74/BvESg8zzdXq",
+	"iou0HWiGpdxwkTzSu5pjZY8+Ry55moIP+F2WYAXJ1DQtuEixQhOkn71SxPTb8i7mTLm+2m0Cju2uY+Yy",
+	"LICp2Tt/I5ddTZqIt8k3r66f8q0quJoD9ahGNWA+ztdkDW3IT0hluMBLH31xfYBNp4T69PAE/nbPUYej",
+	"/jkYwJOO8W+4PJJSqAOhBG5XWPxUBHcSxE/PeV3zYGR8Wew/7jXCFCxBPF9+o2QNPU5IPYU97fnxebtz",
+	"jk/aDveyZRVOw/dRk3czlea9qbRDxOefS+0OcmyW2HX25F9sc8L9hZKcJilhtbY55xQw6xjiqM5PmJwF",
+	"p5RvQMgesVsbwpY9Nh2T3BPuCHFBlo22mgJOW1+n1ZQaZ+lN5XMLTovEMevpHuZXhC1BXBO2bk/pSsDC",
+	"S0KAv4S2Dw6Fqt92tiM7Rq9vn0BmnEnPuqeErc0PoiA1P/5vPEb/G1fHjLE7Y4ybwVbCxkLgrcmvuR38",
+	"YACF4ch50HZf9wZxLoja3urhrb9vAQsQ+gBgFoz566rQ0T/3n3WeNNZo4mwrTa2UytBOd0zYghd5ARt3",
+	"9VkIZCxIpghn+mUultHHDNj0ZhbJDGKyIDE2jSOkiKJQGE1vZmiEfoCQ9s2L1xev35h1kAHDGUET9Kd5",
+	"pDdWtTJhjF9vgNJXa8Y3bLyB+cJQ1S1LMPT0HJnRZgmaoL9B3QOl77X5fWltimmcggIh0eTLA9KLDn3P",
+	"QWzRCNk1gwRInotY66Tir0QODhT2zdVXbWwlY9z94+JiL43iLKOOx/ibSH7/JjmrTqPBOiqFaaalOQMf",
+	"31sR5GmKxdZSiMo3TdsYZ2SM7alXjinn6zzrgzjNiDsjy2trHMTQHU4H43cUu+KQ7yF2xXOWRGoFkc6C",
+	"e/R0wFGeRbhqbOJ7IMlubDNhUda2Ier9tUZxllzZF/wctd4rjCY/PxrifsgmlSeRzOMYpFzklG4bycN4",
+	"U08bX77qriswtosWFx2/PCCmG2PzyMkOyrymrmkl3MBFgymNbDiuPuuc1yqg7zlI9ZYn2ycTbnGG2zX3",
+	"Ai2DXQMhyyk9Yv4uzV4dYRPi3vwZUVvVUFDQjvudeV5EPkueR8h/tYVsHfHpuAzUmrhAo/k2mr3TE3pI",
+	"n88V1NOluEomIeLew5HlPnnnz4Hj6ddM7VBzcNl0ZEh3s+bbEmxTz8oZu2NmUB6cJZeF9X9Qb0FZtriM",
+	"OznRGpK/yKjgVpPlwbT7DPwGSeoltCHzekHUq1JK1hAo0Wtjeq76NHewp4rTSdPCClTksLgGkaNlNKgW",
+	"qR2iLURzRReoxFtre65StPeIj9Si4xUoxoGJDaJGh2lQOUo3htOj3ujlwRPcnbEaLO47W20ElCxv2iWL",
+	"Dc9bspSRNw9rJubwYt8EfybFvg4tqNh/1qCertivlBJUYDVx9BT7Q+MYqtgPXzknFvtdK2e8wD+4zj8H",
+	"dzCH9qqyP9dd7FHXKroMSOzFSsQXVpkbolZGmz6+xWeHQLyl+bnStVI+kW5JS7Mt7jQD+Or4juCrzV8y",
+	"3yQYb8iFqENbXCO+wKQQng4EzClfLiEJY/qpNH+RXE2Re0y2VSQFShiE0f1cWL9IuAWrCu9+Roh+tU0L",
+	"wdMqdRjcvzn8uVqNKXdf/nvOHrlaXXP7SX6IKqr859BTa6jbWlEeSbJkkESEtb6mLQlrfmqzBAQsiVTu",
+	"vzt6IXwqLM+IQ57tcSiCqKPY7f4NAAD//62X26CkLAAA",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

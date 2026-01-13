@@ -69,15 +69,15 @@ func (s *federationService) GetStatus(
 		return nil, err
 	}
 	reply := ap.NewNote(nil)
-	if statusDB.InReplyToID.Valid {
-		inreply, err := s.store.Statuses().GetByID(ctx, int(statusDB.InReplyToID.Int32))
+	if statusDB.InReplyToID != nil {
+		inReplyTo, err := s.store.Statuses().GetByID(ctx, *statusDB.InReplyToID)
 		if err != nil {
 			return nil, err
 		}
 
-		reply.SetLink(inreply.Uri)
+		reply.SetLink(inReplyTo.Uri)
 	}
-	accountDB, err := s.store.Accounts().GetByID(ctx, int(statusDB.AccountID))
+	accountDB, err := s.store.Accounts().GetByID(ctx, statusDB.AccountID)
 	if err != nil {
 		return nil, err
 	}
@@ -110,11 +110,11 @@ func (s *federationService) GetLike(
 	if err != nil {
 		return nil, err
 	}
-	accountDB, err := s.store.Accounts().GetByID(ctx, int(likeDB.AccountID))
+	accountDB, err := s.store.Accounts().GetByID(ctx, likeDB.AccountID)
 	if err != nil {
 		return nil, err
 	}
-	postDB, err := s.store.Statuses().GetByID(ctx, int(likeDB.StatusID))
+	postDB, err := s.store.Statuses().GetByID(ctx, likeDB.StatusID)
 	if err != nil {
 		return nil, err
 	}
@@ -144,11 +144,11 @@ func (s *federationService) GetFollow(
 	if err != nil {
 		return nil, err
 	}
-	followerDB, err := s.store.Accounts().GetByID(ctx, int(followDB.AccountID))
+	followerDB, err := s.store.Accounts().GetByID(ctx, followDB.AccountID)
 	if err != nil {
 		return nil, err
 	}
-	followeeDB, err := s.store.Accounts().GetByID(ctx, int(followDB.TargetAccountID))
+	followeeDB, err := s.store.Accounts().GetByID(ctx, followDB.TargetAccountID)
 	if err != nil {
 		return nil, err
 	}
@@ -184,7 +184,7 @@ func (s *federationService) GetActorFollowers(
 		return nil, err
 	}
 	if pageSelection != nil {
-		followers, _ := s.store.Accounts().GetFollowers(ctx, int(local.ID))
+		followers, _ := s.store.Accounts().GetFollowers(ctx, local.ID)
 		links := make([]ap.Objecter[ap.Actor], 0, len(followers))
 		for _, acc := range followers {
 			actor := ap.NewActor(nil)
@@ -229,7 +229,7 @@ func (s *federationService) GetActorFollowing(
 		return nil, err
 	}
 	if pageSelection != nil {
-		following, err := s.store.Accounts().GetFollowing(ctx, int(local.ID))
+		following, err := s.store.Accounts().GetFollowing(ctx, local.ID)
 		if err != nil {
 			return nil, err
 		}

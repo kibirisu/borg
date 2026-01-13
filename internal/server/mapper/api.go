@@ -9,7 +9,7 @@ func AccountToAPI(account *db.Account) *api.Account {
 	return &api.Account{
 		Acct:        "", // TODO
 		DisplayName: account.DisplayName.String,
-		Id:          int(account.ID),
+		Id:          account.ID.String(),
 		Url:         account.Url,
 		Username:    account.Username,
 	}
@@ -20,11 +20,11 @@ func PostToAPI(post *db.Status) *api.Post {
 		CommentCount: -1,
 		Content:      post.Content,
 		CreatedAt:    post.CreatedAt,
-		Id:           int(post.ID),
+		Id:           post.ID.String(),
 		LikeCount:    -1,
 		ShareCount:   -1,
 		UpdatedAt:    post.UpdatedAt,
-		UserID:       int(post.AccountID),
+		UserID:       post.AccountID.String(),
 		Username:     nil,
 	}
 }
@@ -40,11 +40,11 @@ func PostToAPIWithMetadata(
 		CommentCount: CommentCount,
 		Content:      post.Content,
 		CreatedAt:    post.CreatedAt,
-		Id:           int(post.ID),
+		Id:           post.ID.String(),
 		LikeCount:    LikeCount,
 		ShareCount:   ShareCount,
 		UpdatedAt:    post.UpdatedAt,
-		UserID:       int(post.AccountID),
+		UserID:       post.AccountID.String(),
 		Username:     &acc.Username,
 	}
 }
@@ -52,9 +52,9 @@ func PostToAPIWithMetadata(
 func LikeToAPI(like *db.Favourite) *api.Like {
 	return &api.Like{
 		CreatedAt: like.CreatedAt,
-		Id:        int(like.ID),
-		PostID:    int(like.StatusID),
-		UserID:    int(like.AccountID),
+		Id:        like.ID.String(),
+		PostID:    like.StatusID.String(),
+		UserID:    like.AccountID.String(),
 	}
 }
 
@@ -64,7 +64,7 @@ func AccountToUserAPI(account *db.Account, followersCount int, followingCount in
 		origin = account.Domain.String
 	}
 	return &api.User{
-		Id:             int(account.ID),
+		Id:             account.ID.String(),
 		Username:       account.Username,
 		Bio:            account.DisplayName.String,
 		Origin:         origin,

@@ -3,7 +3,6 @@ package mapper
 import (
 	"database/sql"
 	"encoding/json"
-	"strconv"
 
 	"github.com/kibirisu/borg/internal/db"
 	"github.com/kibirisu/borg/internal/domain"
@@ -108,7 +107,7 @@ func PostToCreateNote(post *db.Status, poster *db.Account, followersURI string) 
 	}
 
 	activity := domain.Create{
-		ID:     poster.Uri + "/posts/" + strconv.Itoa(int(post.ID)),
+		ID:     poster.Uri + "/posts/" + post.ID.String(),
 		Type:   "Create",
 		Actor:  json.RawMessage(actorBytes),
 		Object: json.RawMessage(noteBytes),

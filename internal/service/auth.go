@@ -1,15 +1,10 @@
 package service
 
-import (
-	"strconv"
+import "github.com/golang-jwt/jwt/v5"
 
-	"github.com/golang-jwt/jwt/v5"
-)
-
-func issueToken(userID int32, username, addr, key string) (string, error) {
-	id := strconv.Itoa(int(userID))
+func issueToken(userID, username, addr, key string) (string, error) {
 	jwt := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"sub":  id,
+		"sub":  userID,
 		"iss":  "http://" + addr,
 		"name": username,
 	})

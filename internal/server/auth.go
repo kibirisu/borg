@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/getkin/kin-openapi/openapi3filter"
@@ -17,7 +16,7 @@ import (
 type ContextKey string
 
 type tokenContainer struct {
-	id       *int
+	id       *string
 	username *string
 }
 
@@ -76,13 +75,9 @@ func authFunc(ctx context.Context, ai *openapi3filter.AuthenticationInput) error
 	if err != nil {
 		return err
 	}
-	id, err := strconv.Atoi(claims.Subject)
-	if err != nil {
-		return err
-	}
 
 	if container != nil {
-		container.id = &id
+		container.id = &claims.Subject
 		container.username = &claims.Name
 	}
 

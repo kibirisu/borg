@@ -9,16 +9,16 @@ SELECT a.id, u.password_hash FROM accounts a JOIN users u ON a.id = u.account_id
 
 -- name: CreateActor :one
 INSERT INTO accounts (
-    username, uri, display_name, domain, inbox_uri, outbox_uri, url, followers_uri, following_uri
+    id, username, uri, display_name, domain, inbox_uri, outbox_uri, url, followers_uri, following_uri
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
 ) RETURNING *;
 
 -- name: CreateUser :exec
 INSERT INTO users (
-    account_id, password_hash
+    id, account_id, password_hash
 ) VALUES (
-    $1, $2
+    $1, $2, $3
 );
 
 -- name: GetAccount :one
@@ -78,9 +78,9 @@ WHERE s.account_id = $1;
 
 -- name: CreateFollow :one
 INSERT INTO follows (
-    uri, account_id, target_account_id
+    id, uri, account_id, target_account_id
 ) VALUES (
-    $1, $2, $3
+    $1, $2, $3, $4
 ) ON CONFLICT (account_id, target_account_id) 
 DO UPDATE SET 
     uri = EXCLUDED.uri,
@@ -99,24 +99,24 @@ SELECT
 
 -- name: CreateFollowRequest :exec
 INSERT INTO follow_requests (
-    uri, account_id, target_account_id
+    id, uri, account_id, target_account_id
 ) VALUES (
-    $1, $2, $3
+    $1, $2, $3, $4
 );
 
 -- name: CreateStatus :one
 INSERT INTO statuses (
-    url, local, content, account_id, in_reply_to_id, reblog_of_id, uri
+    id, url, local, content, account_id, account_uri, in_reply_to_id, reblog_of_id, uri
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7
+    $1, $2, $3, $4, $5, $6, $7, $8, $9
 )
 RETURNING *;
 
 -- name: AddStatus :exec
 INSERT INTO statuses (
-    uri, url, content, account_id, in_reply_to_id, reblog_of_id
+    id, uri, url, content, account_id, in_reply_to_id, reblog_of_id
 ) VALUES (
-    $1, $2, $3, $4, $5, $6
+    $1, $2, $3, $4, $5, $6, $7
 );
 
 -- name: DeleteStatusByID :exec
@@ -124,11 +124,12 @@ DELETE FROM statuses WHERE id = $1;
 
 -- name: CreateFavourite :one
 INSERT INTO favourites (
+    id,
     account_id, 
     status_id,
     uri
 ) VALUES (
-    $1, $2, $3
+    $1, $2, $3, $4
 )
 RETURNING *;
 

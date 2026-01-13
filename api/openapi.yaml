@@ -26,7 +26,7 @@ paths:
           in: path
           required: true
           schema:
-            type: integer
+            type: string
       responses:
         "200":
           description: OK
@@ -42,7 +42,7 @@ paths:
           in: path
           required: true
           schema:
-            type: integer
+            type: string
       responses:
         "204":
           description: Deleted successfully
@@ -54,7 +54,7 @@ paths:
           in: path
           required: true
           schema:
-            type: integer
+            type: string
       requestBody:
         required: true
         content:
@@ -72,7 +72,7 @@ paths:
           in: path
           required: true
           schema:
-            type: integer
+            type: string
       responses:
         "200":
           description: OK
@@ -90,7 +90,7 @@ paths:
           in: path
           required: true
           schema:
-            type: integer
+            type: string
       responses:
         "200":
           description: OK
@@ -108,7 +108,7 @@ paths:
           in: path
           required: true
           schema:
-            type: integer
+            type: string
       responses:
         "200":
           description: OK
@@ -126,7 +126,7 @@ paths:
           in: path
           required: true
           schema:
-            type: integer
+            type: string
       responses:
         "200":
           description: OK
@@ -144,7 +144,7 @@ paths:
           in: path
           required: true
           schema:
-            type: integer
+            type: string
       responses:
         "200":
           description: OK
@@ -162,7 +162,7 @@ paths:
           in: path
           required: true
           schema:
-            type: integer
+            type: string
       responses:
         "200":
           description: OK
@@ -202,7 +202,7 @@ paths:
           in: path
           required: true
           schema:
-            type: integer
+            type: string
       responses:
         "200":
           description: OK
@@ -217,7 +217,7 @@ paths:
           in: path
           required: true
           schema:
-            type: integer
+            type: string
       responses:
         "204":
           description: Deleted successfully
@@ -228,7 +228,7 @@ paths:
           in: path
           required: true
           schema:
-            type: integer
+            type: string
       requestBody:
         required: true
         content:
@@ -246,7 +246,7 @@ paths:
           in: path
           required: true
           schema:
-            type: integer
+            type: string
       responses:
         "200":
           description: OK
@@ -263,7 +263,7 @@ paths:
           in: path
           required: true
           schema:
-            type: integer
+            type: string
       requestBody:
         required: true
         content:
@@ -280,7 +280,7 @@ paths:
           in: path
           required: true
           schema:
-            type: integer
+            type: string
       responses:
         "200":
           description: OK
@@ -297,7 +297,7 @@ paths:
           in: path
           required: true
           schema:
-            type: integer
+            type: string
       requestBody:
         required: true
         content:
@@ -314,7 +314,7 @@ paths:
           in: path
           required: true
           schema:
-            type: integer
+            type: string
       responses:
         "200":
           description: OK
@@ -331,7 +331,7 @@ paths:
           in: path
           required: true
           schema:
-            type: integer
+            type: string
       requestBody:
         required: true
         content:
@@ -404,7 +404,7 @@ paths:
           in: path
           required: true
           schema:
-            type: integer
+            type: string
       responses:
         "200":
           description: Followed successfully
@@ -438,7 +438,7 @@ components:
         - url
       properties:
         id:
-          type: integer
+          type: string
         username:
           type: string
         acct:
@@ -486,7 +486,7 @@ components:
         - updatedAt
       properties:
         id:
-          type: integer
+          type: string
         username:
           type: string
         bio:
@@ -534,11 +534,11 @@ components:
         - createdAt
       properties:
         id:
-          type: integer
+          type: string
         postID:
-          type: integer
+          type: string
         userID:
-          type: integer
+          type: string
         createdAt:
           type: string
           format: date-time
@@ -549,9 +549,9 @@ components:
         - userID
       properties:
         postID:
-          type: integer
+          type: string
         userID:
-          type: integer
+          type: string
     Comment:
       type: object
       required:
@@ -564,15 +564,15 @@ components:
         - UpdatedAt
       properties:
         id:
-          type: integer
+          type: string
         postID:
-          type: integer
+          type: string
         userID:
-          type: integer
+          type: string
         content:
           type: string
         parentID:
-          type: integer
+          type: string
         createdAt:
           type: string
           format: date-time
@@ -587,9 +587,9 @@ components:
         - content
       properties:
         postID:
-          type: integer
+          type: string
         userID:
-          type: integer
+          type: string
         content:
           type: string
     Like:
@@ -601,11 +601,11 @@ components:
         - createdAt
       properties:
         id:
-          type: integer
+          type: string
         postID:
-          type: integer
+          type: string
         userID:
-          type: integer
+          type: string
         createdAt:
           type: string
           format: date-time
@@ -616,9 +616,9 @@ components:
         - userID
       properties:
         postID:
-          type: integer
+          type: string
         userID:
-          type: integer
+          type: string
     Post:
       type: object
       required:
@@ -632,9 +632,9 @@ components:
         - updatedAt
       properties:
         id:
-          type: integer
+          type: string
         userID:
-          type: integer
+          type: string
         content:
           type: string
         likeCount:
@@ -658,7 +658,7 @@ components:
         - content
       properties:
         userID:
-          type: integer
+          type: string
         content:
           type: string
     UpdatePost:
