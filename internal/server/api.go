@@ -248,7 +248,6 @@ func (s *Server) PostApiUsers(w http.ResponseWriter, r *http.Request) {
 
 // PutApiUsersId implements api.ServerInterface.
 func (s *Server) PutApiUsersId(w http.ResponseWriter, r *http.Request, id int) {
-	// 1. Authorization - check if user is authenticated
 	container, ok := r.Context().Value(TokenContextKey).(*tokenContainer)
 	if !ok || container == nil || container.id == nil {
 		util.WriteError(w, http.StatusUnauthorized, "User not authenticated")
@@ -256,27 +255,23 @@ func (s *Server) PutApiUsersId(w http.ResponseWriter, r *http.Request, id int) {
 	}
 	currentUserID := *container.id
 
-	// 2. Check ownership - only owner can update their own account
 	if id != currentUserID {
 		util.WriteError(w, http.StatusForbidden, "Forbidden: You can only update your own account")
 		return
 	}
 
-	// 3. Check if account exists
 	_, err := s.service.App.GetAccountByID(r.Context(), id)
 	if err != nil {
-		http.Error(w, "User not found", http.StatusNotFound)
+		util.WriteError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
-	// 4. Read request body
 	var update api.UpdateUser
 	if err := util.ReadJSON(r, &update); err != nil {
-		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+		util.WriteError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	// 5. Update the account (only bio is supported, isAdmin is ignored as it's not in DB)
 	var bio *string
 	if update.Bio != nil {
 		bio = update.Bio
@@ -284,11 +279,10 @@ func (s *Server) PutApiUsersId(w http.ResponseWriter, r *http.Request, id int) {
 
 	updatedAccount, err := s.service.App.UpdateAccount(r.Context(), id, bio)
 	if err != nil {
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		util.WriteError(w, http.StatusInternalServerError, "Internal server error")
 		return
 	}
 
-	// 6. Get followers and following counts for response
 	followers, err := s.service.App.GetAccountFollowers(r.Context(), id)
 	if err != nil {
 		log.Println(err)
@@ -301,16 +295,12 @@ func (s *Server) PutApiUsersId(w http.ResponseWriter, r *http.Request, id int) {
 		following = []db.Account{}
 	}
 
-	// 7. Return updated user with metadata
 	user := mapper.AccountToUserAPI(&updatedAccount, len(followers), len(following))
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
 	util.WriteJSON(w, http.StatusOK, *user)
 }
 
 // DeleteApiPostsId implements api.ServerInterface.
 func (s *Server) DeleteApiPostsId(w http.ResponseWriter, r *http.Request, id int) {
-	// 1. Authorization - check if user is authenticated
 	container, ok := r.Context().Value(TokenContextKey).(*tokenContainer)
 	if !ok || container == nil || container.id == nil {
 		util.WriteError(w, http.StatusUnauthorized, "User not authenticated")
@@ -318,27 +308,23 @@ func (s *Server) DeleteApiPostsId(w http.ResponseWriter, r *http.Request, id int
 	}
 	currentUserID := *container.id
 
-	// 2. Check if post exists and get current post data
 	post, err := s.service.App.GetPostByID(r.Context(), id)
 	if err != nil {
-		http.Error(w, "Post not found", http.StatusNotFound)
+		util.WriteError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
-	// 3. Check ownership - only owner can delete their post
 	if int(post.AccountID) != currentUserID {
 		util.WriteError(w, http.StatusForbidden, "Forbidden: You can only delete your own posts")
 		return
 	}
 
-	// 4. Delete the post
 	err = s.service.App.DeletePost(r.Context(), id)
 	if err != nil {
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		util.WriteError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	// 5. Return 204 No Content
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -349,8 +335,6 @@ func (s *Server) GetApiPostsId(w http.ResponseWriter, r *http.Request, id int) {
 		http.Error(w, "Database error", http.StatusInternalServerError)
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
 	util.WriteJSON(w, http.StatusOK, *mapper.PostToAPIWithMetadata(&info.Status,
 		&info.Account,
 		int(info.LikeCount),
