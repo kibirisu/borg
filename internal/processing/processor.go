@@ -7,6 +7,7 @@ import (
 
 	"github.com/kibirisu/borg/internal/ap"
 	"github.com/kibirisu/borg/internal/db"
+	"github.com/kibirisu/borg/internal/domain"
 	repo "github.com/kibirisu/borg/internal/repository"
 	"github.com/kibirisu/borg/internal/transport"
 )
@@ -17,7 +18,7 @@ type Processor interface {
 	AnnounceStatus(context.Context, ap.AnnounceActivitier) (db.Status, error)
 	AcceptFollow(context.Context, ap.FollowActivitier) error
 	LikeStatus(context.Context, ap.LikeActivitier) (db.Favourite, error)
-	DistributeStatus(context.Context, ap.CreateActivitier, xid.ID) error
+	DistributeObject(context.Context, *domain.Object, xid.ID) error
 }
 
 type processor struct {

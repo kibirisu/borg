@@ -178,7 +178,7 @@ func (s *appService) CreateStatus(
 	})
 
 	return func(ctx context.Context) error {
-		return s.prcessor.DistributeStatus(ctx, create, accountID)
+		return s.prcessor.DistributeObject(ctx, create.GetRaw().Object, accountID)
 	}, nil
 }
 
