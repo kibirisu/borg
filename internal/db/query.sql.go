@@ -436,6 +436,33 @@ func (q *Queries) GetAccountFollowing(ctx context.Context, accountID xid.ID) ([]
 	return items, nil
 }
 
+const getAccountRemoteFollowersInboxes = `-- name: GetAccountRemoteFollowersInboxes :many
+SELECT inbox_uri FROM accounts a JOIN follows f ON a.id = f.account_id WHERE f.target_account_id = $1 AND a.domain IS NOT NULL
+`
+
+func (q *Queries) GetAccountRemoteFollowersInboxes(ctx context.Context, targetAccountID xid.ID) ([]string, error) {
+	rows, err := q.db.QueryContext(ctx, getAccountRemoteFollowersInboxes, targetAccountID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var inbox_uri string
+		if err := rows.Scan(&inbox_uri); err != nil {
+			return nil, err
+		}
+		items = append(items, inbox_uri)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getActor = `-- name: GetActor :one
 SELECT id, created_at, updated_at, username, uri, display_name, domain, inbox_uri, outbox_uri, followers_uri, following_uri, url FROM accounts WHERE username = $1 AND domain IS NULL
 `

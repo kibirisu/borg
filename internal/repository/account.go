@@ -17,6 +17,7 @@ type AccountRepository interface {
 	GetFollowers(context.Context, xid.ID) ([]db.Account, error)
 	GetFollowing(context.Context, xid.ID) ([]db.Account, error)
 	GetPosts(context.Context, xid.ID) ([]db.GetStatusesByAccountIdRow, error)
+	GetAccountRemoteFollowerInboxes(context.Context, xid.ID) ([]string, error)
 }
 
 type accountRepository struct {
@@ -81,4 +82,12 @@ func (r *accountRepository) GetPosts(
 	id xid.ID,
 ) ([]db.GetStatusesByAccountIdRow, error) {
 	return r.q.GetStatusesByAccountId(ctx, id)
+}
+
+// GetAccountRemoteFollowerInboxes implements AccountRepository.
+func (r *accountRepository) GetAccountRemoteFollowerInboxes(
+	ctx context.Context,
+	id xid.ID,
+) ([]string, error) {
+	return r.q.GetAccountRemoteFollowersInboxes(ctx, id)
 }

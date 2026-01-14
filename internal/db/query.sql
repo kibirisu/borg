@@ -27,6 +27,9 @@ SELECT * FROM accounts WHERE username = $1 AND domain = $2;
 -- name: GetAccountById :one
 SELECT * FROM accounts WHERE id = $1;
 
+-- name: GetAccountRemoteFollowersInboxes :many
+SELECT inbox_uri FROM accounts a JOIN follows f ON a.id = f.account_id WHERE f.target_account_id = $1 AND a.domain IS NOT NULL;
+
 -- name: GetLocalStatuses :many
 SELECT 
     sqlc.embed(s),

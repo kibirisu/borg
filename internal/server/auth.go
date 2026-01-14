@@ -16,8 +16,8 @@ import (
 type ContextKey string
 
 type tokenContainer struct {
-	id       *string
-	username *string
+	id  *string
+	uri *string
 }
 
 var (
@@ -66,7 +66,7 @@ func authFunc(ctx context.Context, ai *openapi3filter.AuthenticationInput) error
 
 	var claims struct {
 		jwt.RegisteredClaims
-		Name string `json:"name"`
+		URI string `json:"uri"`
 	}
 
 	_, err := jwt.ParseWithClaims(token, &claims, func(t *jwt.Token) (any, error) {
@@ -78,7 +78,7 @@ func authFunc(ctx context.Context, ai *openapi3filter.AuthenticationInput) error
 
 	if container != nil {
 		container.id = &claims.Subject
-		container.username = &claims.Name
+		container.uri = &claims.URI
 	}
 
 	return nil

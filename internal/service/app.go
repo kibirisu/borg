@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/rs/xid"
@@ -58,8 +59,8 @@ type appService struct {
 }
 
 type LoginData struct {
-	ID       string
-	Username string
+	ID  string
+	URI string
 }
 
 var _ AppService = (*appService)(nil)
@@ -127,60 +128,57 @@ func (s *appService) CreateStatus(
 ) (worker.Job, error) {
 	statusID := xid.New()
 	statusURIs := s.builder.StatusURIs(login.ID, statusID.String())
+
 	accountID, err := xid.FromString(login.ID)
 	if err != nil {
 		return nil, err
 	}
-	createdStatus, err := s.store.Statuses().Create(ctx, db.CreateStatusParams{
+
+	createStatus := db.CreateStatusParams{
 		ID: statusID,
 		Local: sql.NullBool{
 			Bool:  true,
 			Valid: true,
 		},
-		Content:   status.Content,
-		AccountID: accountID,
-		Uri:       statusURIs.Status,
-	})
-	if err != nil {
+		Content:    status.Content,
+		AccountID:  accountID,
+		AccountUri: login.URI,
+		Uri:        statusURIs.Status,
+	}
+	if _, err = s.store.Statuses().Create(ctx, createStatus); err != nil {
 		return nil, err
 	}
-	return func(ctx context.Context) error {
-		actor := ap.NewActor(nil)
-		actor.SetLink(createdStatus.AccountUri)
-		status := ap.NewNote(nil)
-		replies := ap.NewNoteCollection(nil)
-		page := ap.NewNoteCollectionPage(nil)
-		page.SetObject(ap.CollectionPage[ap.Note]{
-			ID:     "None",
-			Type:   "CollectionPage",
-			Next:   ap.NewNoteCollectionPage(nil),
-			PartOf: replies,
-			Items:  []ap.Objecter[ap.Note]{},
-		})
-		replies.SetObject(ap.Collection[ap.Note]{
-			ID:    statusURIs.Replies,
-			Type:  "Collection",
-			First: nil,
-		})
-		status.SetObject(ap.Note{
-			ID:           createdStatus.Uri,
+
+	actor := ap.NewEmptyActor().WithLink(login.URI)
+	create := ap.NewEmptyCreateActivity().WithObject(ap.Activity[ap.Note]{
+		ID:    statusURIs.Create,
+		Type:  "Create",
+		Actor: actor,
+		Object: ap.NewEmptyNote().WithObject(ap.Note{
+			ID:           statusURIs.Status,
 			Type:         "Note",
-			Content:      createdStatus.Content,
-			InReplyTo:    ap.NewNote(nil),
-			Published:    createdStatus.CreatedAt,
+			Content:      status.Content,
+			InReplyTo:    ap.NewEmptyNote(),
+			Published:    time.Now(),
 			AttributedTo: actor,
 			To:           []string{},
 			CC:           []string{},
-			Replies:      replies,
-		})
-		create := ap.NewCreateActivity(nil)
-		create.SetObject(ap.Activity[ap.Note]{
-			ID:     statusURIs.Create,
-			Type:   "Create",
-			Actor:  actor,
-			Object: status,
-		})
-		panic("unimplemented")
+			Replies: ap.NewEmptyNoteCollection().WithObject(ap.Collection[ap.Note]{
+				ID:   statusURIs.Replies,
+				Type: "Collection",
+				First: ap.NewEmptyNoteCollectionPage().WithObject(ap.CollectionPage[ap.Note]{
+					ID:     "None",
+					Type:   "CollectionPage",
+					Next:   ap.NewEmptyNoteCollectionPage(),
+					PartOf: ap.NewEmptyNoteCollection().WithLink(statusURIs.Replies),
+					Items:  []ap.Objecter[ap.Note]{},
+				}),
+			}),
+		}),
+	})
+
+	return func(ctx context.Context) error {
+		return s.prcessor.DistributeStatus(ctx, create, accountID)
 	}, nil
 }
 

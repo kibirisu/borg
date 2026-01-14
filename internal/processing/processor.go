@@ -3,6 +3,8 @@ package processing
 import (
 	"context"
 
+	"github.com/rs/xid"
+
 	"github.com/kibirisu/borg/internal/ap"
 	"github.com/kibirisu/borg/internal/db"
 	repo "github.com/kibirisu/borg/internal/repository"
@@ -15,6 +17,7 @@ type Processor interface {
 	AnnounceStatus(context.Context, ap.AnnounceActivitier) (db.Status, error)
 	AcceptFollow(context.Context, ap.FollowActivitier) error
 	LikeStatus(context.Context, ap.LikeActivitier) (db.Favourite, error)
+	DistributeStatus(context.Context, ap.CreateActivitier, xid.ID) error
 }
 
 type processor struct {

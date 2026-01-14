@@ -16,6 +16,10 @@ func NewCreateActivity(from *domain.ObjectOrLink) CreateActivitier {
 	return &createActivity{activity{object{from}}}
 }
 
+func NewEmptyCreateActivity() CreateActivitier {
+	return &createActivity{activity{object{}}}
+}
+
 // GetObject implements CreateActivitier.
 // Subtle: this method shadows the method (activity).GetObject of createActivity.activity.
 func (c *createActivity) GetObject() Activity[Note] {
