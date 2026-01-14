@@ -1,6 +1,9 @@
 package util
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 type URIBuilder struct {
 	base string
@@ -45,4 +48,9 @@ func (b URIBuilder) StatusURIs(actorID, statusID string) StatusURIs {
 		Replies: fmt.Sprintf("%s/replies", baseURI),
 		Create:  fmt.Sprintf("%s/create", baseURI),
 	}
+}
+
+func ExtractDomainFromURI(uri string) string {
+	res := strings.SplitN(uri, "/", 4)
+	return res[2]
 }

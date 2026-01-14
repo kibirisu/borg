@@ -7,6 +7,7 @@ import (
 
 	"github.com/kibirisu/borg/internal/ap"
 	"github.com/kibirisu/borg/internal/db"
+	"github.com/kibirisu/borg/internal/util"
 )
 
 func (p *processor) LookupActor(ctx context.Context, object ap.Actorer) (db.Account, error) {
@@ -23,10 +24,13 @@ func (p *processor) LookupActor(ctx context.Context, object ap.Actorer) (db.Acco
 		fetchedActor := ap.NewActor(object)
 		actorData := fetchedActor.GetObject()
 		account, err = p.store.Accounts().Create(ctx, db.CreateActorParams{
-			Username:     actorData.PreferredUsername,
-			Uri:          actorData.ID,
-			DisplayName:  sql.NullString{},
-			Domain:       sql.NullString{},
+			Username:    actorData.PreferredUsername,
+			Uri:         actorData.ID,
+			DisplayName: sql.NullString{},
+			Domain: sql.NullString{
+				String: util.ExtractDomainFromURI(uri),
+				Valid:  true,
+			},
 			InboxUri:     actorData.Inbox,
 			OutboxUri:    actorData.Outbox,
 			Url:          "nope",
