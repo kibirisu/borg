@@ -898,11 +898,11 @@ export interface components {
             userID: number;
             content: string;
             parentID: number;
+            username?: string;
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
             UpdatedAt: string;
-            username?: string;
         };
         NewComment: {
             postID: number;
