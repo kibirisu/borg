@@ -31,8 +31,8 @@ SELECT * FROM accounts WHERE id = $1;
 SELECT 
     sqlc.embed(s),
     sqlc.embed(a),
-    CASE WHEN s_share.reblog_of_id IS NOT NULL THEN ra.username ELSE NULL END AS reshared_by,
-    CASE WHEN s_share.reblog_of_id IS NOT NULL THEN ra.id ELSE NULL END AS reshared_by_id,
+    (CASE WHEN s_share.reblog_of_id IS NOT NULL THEN ra.username ELSE NULL END)::text AS reshared_by,
+    (CASE WHEN s_share.reblog_of_id IS NOT NULL THEN ra.id ELSE NULL END)::int AS reshared_by_id,
     (SELECT COUNT(*) FROM favourites f WHERE f.status_id = s.id) AS like_count,
     (SELECT COUNT(*) FROM statuses r WHERE r.in_reply_to_id = s.id) AS comment_count,
     (SELECT COUNT(*) FROM statuses b WHERE b.reblog_of_id = s.id) AS share_count
@@ -73,8 +73,8 @@ WHERE reblog_of_id = $1;
 SELECT 
     sqlc.embed(s),
     sqlc.embed(a),
-    CASE WHEN s_share.reblog_of_id IS NOT NULL THEN ra.username ELSE NULL END AS reshared_by,
-    CASE WHEN s_share.reblog_of_id IS NOT NULL THEN ra.id ELSE NULL END AS reshared_by_id,
+    (CASE WHEN s_share.reblog_of_id IS NOT NULL THEN ra.username ELSE NULL END)::text AS reshared_by,
+    (CASE WHEN s_share.reblog_of_id IS NOT NULL THEN ra.id ELSE NULL END)::int AS reshared_by_id,
     (SELECT COUNT(*) FROM favourites f WHERE f.status_id = s.id) AS like_count,
     (SELECT COUNT(*) FROM statuses r WHERE r.in_reply_to_id = s.id) AS comment_count,
     (SELECT COUNT(*) FROM statuses b WHERE b.reblog_of_id = s.id) AS share_count
@@ -184,8 +184,8 @@ WHERE f.account_id = $1;
 SELECT 
     sqlc.embed(s),
     sqlc.embed(a),
-    CASE WHEN s_share.reblog_of_id IS NOT NULL THEN ra.username ELSE NULL END AS reshared_by,
-    CASE WHEN s_share.reblog_of_id IS NOT NULL THEN ra.id ELSE NULL END AS reshared_by_id,
+    (CASE WHEN s_share.reblog_of_id IS NOT NULL THEN ra.username ELSE NULL END)::text AS reshared_by,
+    (CASE WHEN s_share.reblog_of_id IS NOT NULL THEN ra.id ELSE NULL END)::int AS reshared_by_id,
     (SELECT COUNT(*) FROM favourites f WHERE f.status_id = s.id) AS like_count,
     (SELECT COUNT(*) FROM statuses r WHERE r.in_reply_to_id = s.id) AS comment_count,
     (SELECT COUNT(*) FROM statuses b WHERE b.reblog_of_id = s.id) AS share_count
@@ -199,8 +199,8 @@ WHERE s_share.account_id = $1 AND s_share.reblog_of_id IS NOT NULL;
 SELECT 
     sqlc.embed(s),
     sqlc.embed(a),
-    CASE WHEN s_share.reblog_of_id IS NOT NULL THEN ra.username ELSE NULL END AS reshared_by,
-    CASE WHEN s_share.reblog_of_id IS NOT NULL THEN ra.id ELSE NULL END AS reshared_by_id,
+    (CASE WHEN s_share.reblog_of_id IS NOT NULL THEN ra.username ELSE NULL END)::text AS reshared_by,
+    (CASE WHEN s_share.reblog_of_id IS NOT NULL THEN ra.id ELSE NULL END)::int AS reshared_by_id,
     (SELECT COUNT(*) FROM favourites f WHERE f.status_id = s.id) AS like_count,
     (SELECT COUNT(*) FROM statuses r WHERE r.in_reply_to_id = s.id) AS comment_count,
     (SELECT COUNT(*) FROM statuses b WHERE b.reblog_of_id = s.id) AS share_count
