@@ -1,5 +1,7 @@
 import {
+  type QueryKey,
   type UseQueryOptions,
+  type UseSuspenseQueryOptions,
   useQuery,
   useSuspenseQuery,
 } from "@tanstack/react-query";
@@ -58,16 +60,25 @@ export default function CommentView() {
     ReturnType<ReturnType<typeof loader>>
   >;
 
-  const postQueryOptions =
-    postOpts ??
+  const postQueryOptions = (postOpts ??
     ({
       queryKey: ["post-view-disabled", postId],
       queryFn: async () => null,
       // Suspense queries are always “enabled”; fallback keeps the shape but
       // returns null immediately so UI can handle missing data.
-    } satisfies Parameters<typeof useSuspenseQuery>[0]);
+    } satisfies UseSuspenseQueryOptions<
+      components["schemas"]["Post"] | null,
+      Error,
+      components["schemas"]["Post"] | null,
+      QueryKey
+    >)) as UseSuspenseQueryOptions<
+    components["schemas"]["Post"] | null,
+    Error,
+    components["schemas"]["Post"] | null,
+    QueryKey
+  >;
 
-  const postData = useSuspenseQuery(postQueryOptions as any);
+  const postData = useSuspenseQuery(postQueryOptions);
 
   if (!client) {
     return null;
@@ -75,7 +86,7 @@ export default function CommentView() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <div className="w-full bg-white border border-gray-200 shadow-sm">
-        {postData && postData.data ? (
+        {postData?.data ? (
           <PostItem
             post={{ data: postData.data as components["schemas"]["Post"] }}
             client={client}
@@ -101,26 +112,33 @@ export function CommentsFeed({
   opts?:
     | UseQueryOptions<
         components["schemas"]["Comment"][],
-        any,
+        Error,
         components["schemas"]["Comment"][],
-        any
+        QueryKey
       >
-    | any;
+    | undefined;
   postId?: number;
 }) {
   const client = useContext(ClientContext);
 
-  const queryOptions =
-    opts ??
+  const queryOptions = (opts ??
     ({
       queryKey: ["comments-feed-disabled", _postId],
       queryFn: async () => [] as components["schemas"]["Comment"][],
       enabled: false,
-    } satisfies Parameters<typeof useQuery>[0]);
+    } satisfies UseQueryOptions<
+      components["schemas"]["Comment"][],
+      Error,
+      components["schemas"]["Comment"][],
+      QueryKey
+    >)) as UseQueryOptions<
+    components["schemas"]["Comment"][],
+    Error,
+    components["schemas"]["Comment"][],
+    QueryKey
+  >;
 
-  const { data, isPending } = useQuery<components["schemas"]["Comment"][]>(
-    queryOptions as any,
-  );
+  const { data, isPending } = useQuery(queryOptions);
 
   if (!opts) {
     return (
@@ -135,15 +153,19 @@ export function CommentsFeed({
       <div className="p-6 text-center text-gray-600">Loading comments…</div>
     );
   }
+  if (!client) {
+    return (
+      <div className="p-6 text-center text-gray-600">
+        Client is not ready yet. Please try again.
+      </div>
+    );
+  }
+
   return (
     <div className="divide-y divide-gray-200">
       {data && data.length > 0 ? (
         data.map((comment: components["schemas"]["Comment"]) => (
-          <PostItem
-            key={comment.id}
-            post={{ data: comment }}
-            client={client!}
-          />
+          <PostItem key={comment.id} post={{ data: comment }} client={client} />
         ))
       ) : (
         <div className="p-6 text-center text-gray-600">No comments yet.</div>

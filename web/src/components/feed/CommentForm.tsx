@@ -43,7 +43,13 @@ export const action =
       return { form: "Failed to post comment" };
     }
 
-    client.queryClient.invalidateQueries({ queryKey: ["comments", postId] });
+    client.queryClient.invalidateQueries({
+      queryKey: [
+        "get",
+        "/api/posts/{id}/comments",
+        { params: { path: { id: postId } } },
+      ],
+    });
     client.queryClient.invalidateQueries({ queryKey: ["user-posts"] });
     return null;
   };

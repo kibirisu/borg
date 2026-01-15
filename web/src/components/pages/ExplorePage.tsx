@@ -260,19 +260,25 @@ export default function ExplorePage() {
               <FoundUserItem account={searchResult} />
             </div>
           )}
-          <section className="bg-white rounded-2xl border border-gray-200 p-4 space-y-4 min-h-[400px]">
+          <section className="space-y-2 min-h-[400px]">
             {isPending && <p className="text-gray-500 text-center">Loading…</p>}
             {!isPending &&
+              client &&
               data?.map((post: components["schemas"]["Post"]) => (
                 <PostItem
                   key={post.id}
                   post={{ data: post }}
-                  client={client!}
+                  client={client}
                   onSelect={handlePostSelect}
                   onCommentClick={handleCommentClick}
                 />
               ))}
-            {!isPending && !data?.length && (
+            {!isPending && !client && (
+              <p className="text-center text-gray-500">
+                Client is not ready yet. Please try again.
+              </p>
+            )}
+            {!isPending && client && !data?.length && (
               <p className="text-center text-gray-500">Nothing posted yet.</p>
             )}
           </section>

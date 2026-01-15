@@ -31,11 +31,15 @@ SELECT * FROM accounts WHERE id = $1;
 SELECT 
     sqlc.embed(s),
     sqlc.embed(a),
+    CASE WHEN s_share.reblog_of_id IS NOT NULL THEN ra.username ELSE NULL END AS reshared_by,
+    CASE WHEN s_share.reblog_of_id IS NOT NULL THEN ra.id ELSE NULL END AS reshared_by_id,
     (SELECT COUNT(*) FROM favourites f WHERE f.status_id = s.id) AS like_count,
     (SELECT COUNT(*) FROM statuses r WHERE r.in_reply_to_id = s.id) AS comment_count,
     (SELECT COUNT(*) FROM statuses b WHERE b.reblog_of_id = s.id) AS share_count
-FROM statuses s
+FROM statuses s_share
+JOIN statuses s ON s.id = COALESCE(s_share.reblog_of_id, s_share.id)
 JOIN accounts a ON s.account_id = a.id
+LEFT JOIN accounts ra ON ra.id = s_share.account_id
 WHERE a.domain is null and s.in_reply_to_id is null;
 
 -- name: GetStatusById :one
@@ -69,12 +73,16 @@ WHERE reblog_of_id = $1;
 SELECT 
     sqlc.embed(s),
     sqlc.embed(a),
+    CASE WHEN s_share.reblog_of_id IS NOT NULL THEN ra.username ELSE NULL END AS reshared_by,
+    CASE WHEN s_share.reblog_of_id IS NOT NULL THEN ra.id ELSE NULL END AS reshared_by_id,
     (SELECT COUNT(*) FROM favourites f WHERE f.status_id = s.id) AS like_count,
     (SELECT COUNT(*) FROM statuses r WHERE r.in_reply_to_id = s.id) AS comment_count,
     (SELECT COUNT(*) FROM statuses b WHERE b.reblog_of_id = s.id) AS share_count
-FROM statuses s
+FROM statuses s_share
+JOIN statuses s ON s.id = COALESCE(s_share.reblog_of_id, s_share.id)
 JOIN accounts a ON s.account_id = a.id
-WHERE s.account_id = $1;
+LEFT JOIN accounts ra ON ra.id = s_share.account_id
+WHERE s_share.account_id = $1;
 
 -- name: CreateFollow :one
 INSERT INTO follows (
@@ -176,23 +184,31 @@ WHERE f.account_id = $1;
 SELECT 
     sqlc.embed(s),
     sqlc.embed(a),
+    CASE WHEN s_share.reblog_of_id IS NOT NULL THEN ra.username ELSE NULL END AS reshared_by,
+    CASE WHEN s_share.reblog_of_id IS NOT NULL THEN ra.id ELSE NULL END AS reshared_by_id,
     (SELECT COUNT(*) FROM favourites f WHERE f.status_id = s.id) AS like_count,
     (SELECT COUNT(*) FROM statuses r WHERE r.in_reply_to_id = s.id) AS comment_count,
     (SELECT COUNT(*) FROM statuses b WHERE b.reblog_of_id = s.id) AS share_count
-FROM statuses s
+FROM statuses s_share
+JOIN statuses s ON s_share.reblog_of_id = s.id
 JOIN accounts a ON s.account_id = a.id
-WHERE s.account_id = $1 AND s.reblog_of_id IS NOT NULL;
+LEFT JOIN accounts ra ON ra.id = s_share.account_id
+WHERE s_share.account_id = $1 AND s_share.reblog_of_id IS NOT NULL;
 
 -- name: GetTimelinePostsByAccountId :many
 SELECT 
     sqlc.embed(s),
     sqlc.embed(a),
+    CASE WHEN s_share.reblog_of_id IS NOT NULL THEN ra.username ELSE NULL END AS reshared_by,
+    CASE WHEN s_share.reblog_of_id IS NOT NULL THEN ra.id ELSE NULL END AS reshared_by_id,
     (SELECT COUNT(*) FROM favourites f WHERE f.status_id = s.id) AS like_count,
     (SELECT COUNT(*) FROM statuses r WHERE r.in_reply_to_id = s.id) AS comment_count,
     (SELECT COUNT(*) FROM statuses b WHERE b.reblog_of_id = s.id) AS share_count
-FROM statuses s
+FROM statuses s_share
+JOIN statuses s ON s.id = COALESCE(s_share.reblog_of_id, s_share.id)
 JOIN accounts a ON s.account_id = a.id
-JOIN follows f ON a.id = f.target_account_id
+LEFT JOIN accounts ra ON ra.id = s_share.account_id
+JOIN follows f ON s_share.account_id = f.target_account_id
 WHERE f.account_id = $1 AND s.in_reply_to_id IS NULL
 ORDER BY s.created_at DESC;
 
@@ -203,8 +219,10 @@ SELECT
     s.updated_at,
     s.content,
     s.account_id,
-    s.in_reply_to_id
+    s.in_reply_to_id,
+    a.username
 FROM statuses s
+JOIN accounts a ON a.id = s.account_id
 WHERE s.in_reply_to_id = $1
 ORDER BY s.created_at ASC;
 

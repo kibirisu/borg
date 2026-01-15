@@ -11,7 +11,7 @@ import { PostItem } from "../common/PostItem";
 import Sidebar from "../common/Sidebar";
 
 export const loader =
-  (client: AppClient) =>
+  (_client: AppClient) =>
   async ({ params }: LoaderFunctionArgs) => {
     // Backend profile endpoints are unimplemented; pass handle for display only.
     return { handle: params.handle };
@@ -53,7 +53,7 @@ export default function OtherUserPage() {
       if (!id) {
         return { username: derivedUsername, bio: derivedBio };
       }
-      const res = await client!.fetchClient.GET("/api/users/{id}", {
+      const res = await client?.fetchClient.GET("/api/users/{id}", {
         params: { path: { id } },
       });
       if (res.error || !res.data) {
@@ -142,7 +142,7 @@ export default function OtherUserPage() {
         setIsFollowed(true);
         queryClient.invalidateQueries({ queryKey: ["followers", userId] });
       }
-    } catch (err) {
+    } catch (_err) {
       setFollowError("Failed to follow user");
     } finally {
       setFollowPending(false);
@@ -233,7 +233,7 @@ export default function OtherUserPage() {
             )}
           </section>
           {/* POSTS */}
-          <section className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+          <section className="space-y-2">
             {postsPending && (
               <div className="p-4 text-sm text-gray-500">Loading posts…</div>
             )}
@@ -242,18 +242,24 @@ export default function OtherUserPage() {
                 Failed to load posts.
               </div>
             )}
-            {!postsPending && !postsError && posts && posts.length > 0
+            {!postsPending && !postsError && client && posts && posts.length > 0
               ? posts.map((post) => (
                   <PostItem
                     key={post.id}
                     post={{ data: post }}
-                    client={client!}
+                    client={client}
                   />
                 ))
               : !postsPending &&
-                !postsError && (
+                !postsError &&
+                client && (
                   <div className="p-4 text-sm text-gray-500">No posts yet.</div>
                 )}
+            {!postsPending && !postsError && !client && (
+              <div className="p-4 text-sm text-gray-500">
+                Client is not ready yet. Please try again.
+              </div>
+            )}
           </section>
         </main>
         <Sidebar onPostClick={openComposerForNewPost} />

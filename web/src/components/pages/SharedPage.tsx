@@ -9,31 +9,36 @@ import PostComposerOverlay from "../common/PostComposerOverlay";
 import { PostItem, type PostPresentable } from "../common/PostItem";
 import Sidebar from "../common/Sidebar";
 
-export const loader = (client: AppClient) => async () => {
-  // const opts = client.$api.queryOptions("get", "/api/posts", {});
-  // await client.queryClient.ensureQueryData(opts);
-  // return { opts };
-  return { opts: undefined };
+export const loader = (_client: AppClient) => async () => {
+  return {};
 };
 
 export default function SharedPage() {
   const client = useContext(ClientContext);
   const appState = useContext(AppContext);
-  const { opts } = useLoaderData() as Awaited<
-    ReturnType<ReturnType<typeof loader>>
-  >;
+  useLoaderData();
+  const userId = appState?.userId ?? null;
 
-  const queryOptions =
-    opts ??
-    ({
-      queryKey: ["shared-feed-disabled"],
-      queryFn: async () => [] as components["schemas"]["Post"][],
-      enabled: false,
-    } satisfies Parameters<typeof useQuery>[0]);
-
-  const { data, isPending } = useQuery<components["schemas"]["Post"][]>(
-    queryOptions as any,
-  );
+  const {
+    data: sharedPosts,
+    isPending: sharedPending,
+    isError: sharedError,
+  } = useQuery<components["schemas"]["Post"][]>({
+    queryKey: ["user-shared", userId],
+    enabled: Boolean(client) && userId !== null,
+    queryFn: async () => {
+      if (!client || userId === null) {
+        throw new Error("Client or user not ready");
+      }
+      const res = await client.fetchClient.GET("/api/users/{id}/reblogged", {
+        params: { path: { id: userId } },
+      });
+      if (res.error) {
+        throw new Error("Failed to fetch shared posts");
+      }
+      return res.data ?? [];
+    },
+  });
   const [isComposerOpen, setIsComposerOpen] = useState(false);
   const [selectedPost, setSelectedPost] = useState<PostPresentable | null>(
     null,
@@ -76,37 +81,46 @@ export default function SharedPage() {
         <main className="px-6 py-6 space-y-6">
           <section className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
             <h1 className="text-2xl font-semibold text-gray-800">Shared</h1>
-            <p className="text-gray-500">
-              Posts you share will live here. We&apos;ll plug in the sharing
-              logic soon, so we are reusing a general feed for now.
-            </p>
+            <p className="text-gray-500">Posts you share will live here.</p>
           </section>
-          <section className="bg-white rounded-2xl border border-gray-200 p-4 space-y-4 min-h-[400px]">
-            {isPending && <p className="text-center text-gray-500">Loading…</p>}
-            {!isPending &&
-              opts &&
+          <section className="space-y-2">
+            {sharedPending && (
+              <div className="p-4 text-sm text-gray-500">
+                Loading shared posts…
+              </div>
+            )}
+            {sharedError && (
+              <div className="p-4 text-sm text-red-600">
+                Failed to load shared posts.
+              </div>
+            )}
+            {!sharedPending &&
+              !sharedError &&
               client &&
-              data?.map((post: components["schemas"]["Post"]) => (
+              sharedPosts &&
+              sharedPosts.length > 0 &&
+              sharedPosts.map((post) => (
                 <PostItem
                   key={post.id}
                   post={{ data: post }}
                   client={client}
                   onSelect={handlePostSelect}
+                  shareActive
                 />
               ))}
-            {!isPending && opts && client && (!data || data.length === 0) && (
-              <p className="text-center text-gray-500">Nothing shared yet.</p>
-            )}
-            {!opts && (
-              <p className="text-center text-gray-500">
-                Posts feed is not available yet. Check back soon.
-              </p>
-            )}
-            {!client && (
-              <p className="text-center text-gray-500">
+            {!sharedPending && !sharedError && !client && (
+              <div className="p-4 text-sm text-gray-500">
                 Client is not ready yet. Please try again.
-              </p>
+              </div>
             )}
+            {!sharedPending &&
+              !sharedError &&
+              client &&
+              (!sharedPosts || sharedPosts.length === 0) && (
+                <div className="p-4 text-sm text-gray-500">
+                  Nothing shared yet.
+                </div>
+              )}
           </section>
         </main>
         <Sidebar onPostClick={openComposerForNewPost} />

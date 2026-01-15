@@ -898,6 +898,7 @@ export interface components {
             userID: number;
             content: string;
             parentID: number;
+            username?: string;
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
@@ -923,6 +924,8 @@ export interface components {
             id: number;
             userID: number;
             content: string;
+            resharedBy?: string;
+            resharedById?: number;
             likeCount: number;
             shareCount: number;
             commentCount: number;

@@ -6,6 +6,9 @@ interface PostComposerOverlayProps {
   onClose: () => void;
   replyTo?: PostPresentable | null;
   onSubmit?: (content: string) => Promise<void> | void;
+  initialContent?: string;
+  title?: string;
+  submitLabel?: string;
 }
 
 const PostComposerOverlay = ({
@@ -13,15 +16,20 @@ const PostComposerOverlay = ({
   onClose,
   replyTo,
   onSubmit,
+  initialContent,
+  title = "Share with others ❤️",
+  submitLabel = "Post me",
 }: PostComposerOverlayProps) => {
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!isOpen) {
+    if (isOpen) {
+      setMessage(initialContent ?? "");
+    } else {
       setMessage("");
     }
-  }, [isOpen]);
+  }, [initialContent, isOpen]);
 
   if (!isOpen) {
     return null;
@@ -78,9 +86,7 @@ const PostComposerOverlay = ({
         </button>
         <div className="space-y-4">
           <div>
-            <p className="text-2xl font-semibold text-gray-900">
-              Share with others ❤️
-            </p>
+            <p className="text-2xl font-semibold text-gray-900">{title}</p>
             {replyTo && "username" in replyTo.data && replyTo.data.username && (
               <p className="text-sm text-gray-500">
                 Responding to{" "}
@@ -128,7 +134,7 @@ const PostComposerOverlay = ({
                 className="rounded-full bg-indigo-600 px-6 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-300"
                 disabled={isSubmitting}
               >
-                {isSubmitting ? "Posting…" : "Post me"}
+                {isSubmitting ? "Posting…" : submitLabel}
               </button>
             </div>
           </form>

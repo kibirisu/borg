@@ -583,6 +583,8 @@ components:
           type: string
         parentID:
           type: integer
+        username:
+          type: string
         createdAt:
           type: string
           format: date-time
@@ -647,6 +649,10 @@ components:
           type: integer
         content:
           type: string
+        resharedBy:
+          type: string
+        resharedById:
+          type: integer
         likeCount:
           type: integer
         shareCount:

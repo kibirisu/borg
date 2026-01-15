@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgconn"
+
 	"github.com/kibirisu/borg/internal/ap"
 	"github.com/kibirisu/borg/internal/api"
 	"github.com/kibirisu/borg/internal/db"
@@ -500,6 +502,10 @@ func (s *Server) PostApiPostsIdLikes(w http.ResponseWriter, r *http.Request, id 
 
 	like, err := s.service.App.AddFavourite(r.Context(), currentUserID, id)
 	if err != nil {
+		if isUniqueViolation(err) {
+			util.WriteError(w, http.StatusConflict, "Post already liked")
+			return
+		}
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -563,6 +569,10 @@ func (s *Server) PostApiPostsIdShares(w http.ResponseWriter, r *http.Request, id
 
 	share, err := s.service.App.AddNote(r.Context(), *status)
 	if err != nil {
+		if isUniqueViolation(err) {
+			util.WriteError(w, http.StatusConflict, "Post already shared")
+			return
+		}
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -581,6 +591,25 @@ func (s *Server) PostApiPostsIdShares(w http.ResponseWriter, r *http.Request, id
 	})
 
 	util.WriteJSON(w, http.StatusCreated, nil)
+}
+
+func isUniqueViolation(err error) bool {
+	var pgErr *pgconn.PgError
+	return errors.As(err, &pgErr) && pgErr.Code == "23505"
+}
+
+func applyReshareInfo(
+	post *api.Post,
+	resharedBy sql.NullString,
+	resharedByID sql.NullInt32,
+) {
+	if resharedBy.Valid {
+		post.ResharedBy = &resharedBy.String
+	}
+	if resharedByID.Valid {
+		value := int(resharedByID.Int32)
+		post.ResharedById = &value
+	}
 }
 
 // PostApiPosts implements api.ServerInterface.
@@ -693,6 +722,7 @@ func (s *Server) GetApiUsersIdPosts(w http.ResponseWriter, r *http.Request, id i
 			int(info.LikeCount),
 			int(info.ShareCount),
 			int(info.CommentCount))
+		applyReshareInfo(converted, info.ResharedBy, info.ResharedByID)
 		apiLikes = append(apiLikes, *converted)
 	}
 
@@ -757,6 +787,7 @@ func (s *Server) GetApiPosts(w http.ResponseWriter, r *http.Request) {
 			int(info.LikeCount),
 			int(info.ShareCount),
 			int(info.CommentCount))
+		applyReshareInfo(converted, info.ResharedBy, info.ResharedByID)
 		apiLikes = append(apiLikes, *converted)
 	}
 
@@ -801,6 +832,7 @@ func (s *Server) GetApiUsersIdReblogged(w http.ResponseWriter, r *http.Request, 
 			int(info.LikeCount),
 			int(info.ShareCount),
 			int(info.CommentCount))
+		applyReshareInfo(converted, info.ResharedBy, info.ResharedByID)
 		apiPosts = append(apiPosts, *converted)
 	}
 
@@ -823,6 +855,7 @@ func (s *Server) GetApiUsersIdTimeline(w http.ResponseWriter, r *http.Request, i
 			int(info.LikeCount),
 			int(info.ShareCount),
 			int(info.CommentCount))
+		applyReshareInfo(converted, info.ResharedBy, info.ResharedByID)
 		apiPosts = append(apiPosts, *converted)
 	}
 

@@ -21,6 +21,10 @@ interface PostProps {
   onSelect?: (post: PostPresentable) => void;
   showActions?: boolean;
   onCommentClick?: (post: PostPresentable) => void;
+  likeActive?: boolean;
+  shareActive?: boolean;
+  onEdit?: (post: PostPresentable) => void;
+  onDelete?: (post: PostPresentable) => void;
 }
 
 export const PostItem = ({
@@ -29,10 +33,16 @@ export const PostItem = ({
   onSelect,
   showActions = false,
   onCommentClick,
+  likeActive = false,
+  shareActive = false,
+  onEdit,
+  onDelete,
 }: PostProps) => {
   const appState = useContext(AppContext);
   const currentUserId = appState?.userId ?? null;
   const navigate = useNavigate();
+  const resharedBy =
+    "resharedBy" in post.data ? post.data.resharedBy : undefined;
 
   const likeAction = async () => {
     if (!("id" in post.data)) return;
@@ -86,7 +96,7 @@ export const PostItem = ({
 
   return (
     <div
-      className="border-b border-gray-200 p-4 hover:bg-gray-50 transition-colors cursor-pointer"
+      className="border border-gray-200 rounded-xl p-4 hover:bg-gray-50 transition-colors cursor-pointer mb-2 last:mb-0 bg-white"
       onClick={handleSelect}
       role="button"
       tabIndex={0}
@@ -99,6 +109,11 @@ export const PostItem = ({
     >
       <div className="flex space-x-3">
         <div className="flex-1">
+          {resharedBy && (
+            <div className="mb-2 text-xs uppercase tracking-wide text-gray-500">
+              Reshared by @{resharedBy}
+            </div>
+          )}
           <div className="flex items-start justify-between mb-2">
             {"username" in post.data && (
               <div className="flex items-center space-x-1">
@@ -111,13 +126,14 @@ export const PostItem = ({
                 </Link>
               </div>
             )}
-            {showActions && (
+            {showActions && !resharedBy && (
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   className="text-black bg-white box-border border border-black hover:bg-gray-100 hover:cursor-pointer shadow-xs font-medium leading-5 rounded-full text-sm px-4 py-2.5 focus:outline-none"
                   onClick={(event) => {
                     event.stopPropagation();
+                    onEdit?.(post);
                   }}
                 >
                   <i className="bi bi-pencil mr-1" aria-hidden="true"></i>
@@ -128,6 +144,7 @@ export const PostItem = ({
                   className="text-black bg-white box-border border border-black hover:bg-gray-100 hover:cursor-pointer shadow-xs font-medium leading-5 rounded-full text-sm px-4 py-2.5 focus:outline-none"
                   onClick={(event) => {
                     event.stopPropagation();
+                    onDelete?.(post);
                   }}
                 >
                   <i className="bi bi-trash3 mr-1" aria-hidden="true"></i>
@@ -164,7 +181,9 @@ export const PostItem = ({
             {"shareCount" in post.data && (
               <button
                 type="button"
-                className="flex items-center space-x-1 hover:text-green-500 transition"
+                className={`flex items-center space-x-1 transition ${
+                  shareActive ? "text-green-500" : "hover:text-green-500"
+                }`}
                 onClick={(event) => {
                   event.stopPropagation();
                   void shareAction();
@@ -176,13 +195,15 @@ export const PostItem = ({
             {"likeCount" in post.data && (
               <button
                 type="button"
-                className="flex items-center space-x-1 hover:text-pink-500 transition"
+                className={`flex items-center space-x-1 transition ${
+                  likeActive ? "text-red-500" : "hover:text-pink-500"
+                }`}
                 onClick={(event) => {
                   event.stopPropagation();
                   void likeAction();
                 }}
               >
-                <Heart size={16} />
+                <Heart size={16} fill={likeActive ? "currentColor" : "none"} />
                 <span>{post.data.likeCount}</span>
               </button>
             )}

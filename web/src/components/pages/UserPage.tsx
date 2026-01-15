@@ -15,7 +15,7 @@ import { PostItem } from "../common/PostItem";
 import Sidebar from "../common/Sidebar";
 
 export const loader =
-  (client: AppClient) =>
+  (_client: AppClient) =>
   async ({ params }: LoaderFunctionArgs) => {
     // Backend profile endpoints are unimplemented; pass handle for display only.
     return { handle: params.handle };
@@ -51,10 +51,10 @@ export default function UserPage() {
       if (!id) {
         return { username: derivedUsername, bio: derivedBio };
       }
-      const res = await client!.fetchClient.GET("/api/users/{id}", {
+      const res = await client?.fetchClient.GET("/api/users/{id}", {
         params: { path: { id: Number(id) } },
       });
-      if (res.error || !res.data) {
+      if (!res || res.error || !res.data) {
         console.warn("[UserPage] profile fetch failed");
         return {
           username: derivedUsername,
@@ -82,8 +82,11 @@ export default function UserPage() {
     queryKey: ["user-posts", userId],
     enabled: Boolean(client) && userId !== null,
     queryFn: async () => {
-      const res = await client!.fetchClient.GET("/api/users/{id}/posts", {
-        params: { path: { id: userId! } },
+      if (!client || userId === null) {
+        throw new Error("Client or user not ready");
+      }
+      const res = await client.fetchClient.GET("/api/users/{id}/posts", {
+        params: { path: { id: userId } },
       });
       if (res.error) {
         throw new Error("Failed to fetch posts");
@@ -93,6 +96,9 @@ export default function UserPage() {
   });
 
   const [isComposerOpen, setComposerOpen] = useState(false);
+  const [editingPost, setEditingPost] = useState<
+    components["schemas"]["Post"] | null
+  >(null);
   const { data: followers } = useQuery<components["schemas"]["User"][]>({
     queryKey: ["followers", userId],
     enabled: Boolean(client) && userId !== null,
@@ -128,9 +134,13 @@ export default function UserPage() {
   });
   const openComposer = () => {
     console.log("[UserPage] open composer", { userId });
+    setEditingPost(null);
     setComposerOpen(true);
   };
-  const closeComposer = () => setComposerOpen(false);
+  const closeComposer = () => {
+    setComposerOpen(false);
+    setEditingPost(null);
+  };
 
   const handleCreatePost = async (content: string) => {
     if (!client || userId === null) {
@@ -139,6 +149,60 @@ export default function UserPage() {
     await client.fetchClient.POST("/api/posts", {
       body: { userID: userId, content },
     });
+    await client.queryClient.invalidateQueries({
+      queryKey: ["user-posts", userId],
+    });
+    await client.queryClient.invalidateQueries({
+      queryKey: ["get", "/api/posts", {}],
+    });
+  };
+
+  const handleUpdatePost = async (content: string) => {
+    if (!client || userId === null || !editingPost) {
+      throw new Error("User not authenticated");
+    }
+    const nextContent = content.trim();
+    if (!nextContent || nextContent === editingPost.content) {
+      return;
+    }
+    const res = await client.fetchClient.PUT("/api/posts/{id}", {
+      params: { path: { id: Number(editingPost.id) } },
+      body: { content: nextContent },
+    });
+    if (res.error) {
+      throw new Error("Failed to update post");
+    }
+    await client.queryClient.invalidateQueries({
+      queryKey: ["user-posts", userId],
+    });
+    await client.queryClient.invalidateQueries({
+      queryKey: ["get", "/api/posts", {}],
+    });
+    setEditingPost(null);
+  };
+
+  const handleSubmitPost = async (content: string) => {
+    if (editingPost) {
+      await handleUpdatePost(content);
+      return;
+    }
+    await handleCreatePost(content);
+  };
+
+  const handleDeletePost = async (post: components["schemas"]["Post"]) => {
+    if (!client || userId === null) {
+      throw new Error("User not authenticated");
+    }
+    const confirmed = window.confirm("Delete this post?");
+    if (!confirmed) {
+      return;
+    }
+    const res = await client.fetchClient.DELETE("/api/posts/{id}", {
+      params: { path: { id: Number(post.id) } },
+    });
+    if (res.error) {
+      throw new Error("Failed to delete post");
+    }
     await client.queryClient.invalidateQueries({
       queryKey: ["user-posts", userId],
     });
@@ -185,7 +249,7 @@ export default function UserPage() {
             </div>
           </section>
           {/* POSTS */}
-          <section className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+          <section className="space-y-2">
             {postsPending && (
               <div className="p-4 text-sm text-gray-500">Loading posts…</div>
             )}
@@ -194,26 +258,43 @@ export default function UserPage() {
                 Failed to load posts.
               </div>
             )}
-            {!postsPending && !postsError && (
-              <>
-                {posts && posts.length > 0 ? (
-                  posts.map((post) => (
-                    <PostItem
-                      key={post.id}
-                      post={{ data: post }}
-                      client={client!}
-                      showActions
-                      onCommentClick={(p) => {
-                        if ("id" in p.data) {
-                          navigate(`/post/${p.data.id}`);
-                        }
-                      }}
-                    />
-                  ))
-                ) : (
-                  <div className="p-4 text-sm text-gray-500">No posts yet.</div>
-                )}
-              </>
+            {!postsPending &&
+              !postsError &&
+              client &&
+              (posts && posts.length > 0 ? (
+                posts.map((post) => (
+                  <PostItem
+                    key={post.id}
+                    post={{ data: post }}
+                    client={client}
+                    showActions
+                    onEdit={(p) => {
+                      if ("content" in p.data && "likeCount" in p.data) {
+                        setEditingPost(p.data as components["schemas"]["Post"]);
+                        setComposerOpen(true);
+                      }
+                    }}
+                    onDelete={(p) => {
+                      if ("id" in p.data && "likeCount" in p.data) {
+                        void handleDeletePost(
+                          p.data as components["schemas"]["Post"],
+                        );
+                      }
+                    }}
+                    onCommentClick={(p) => {
+                      if ("id" in p.data) {
+                        navigate(`/post/${p.data.id}`);
+                      }
+                    }}
+                  />
+                ))
+              ) : (
+                <div className="p-4 text-sm text-gray-500">No posts yet.</div>
+              ))}
+            {!postsPending && !postsError && !client && (
+              <div className="p-4 text-sm text-gray-500">
+                Client is not ready yet. Please try again.
+              </div>
             )}
           </section>
         </main>
@@ -223,7 +304,10 @@ export default function UserPage() {
         isOpen={isComposerOpen}
         onClose={closeComposer}
         replyTo={null}
-        onSubmit={handleCreatePost}
+        onSubmit={handleSubmitPost}
+        initialContent={editingPost?.content}
+        title={editingPost ? "Edit post" : "Share with others ❤️"}
+        submitLabel={editingPost ? "Save changes" : "Post me"}
       />
     </div>
   );
