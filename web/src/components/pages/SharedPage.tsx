@@ -9,7 +9,7 @@ import PostComposerOverlay from "../common/PostComposerOverlay";
 import { PostItem, type PostPresentable } from "../common/PostItem";
 import Sidebar from "../common/Sidebar";
 
-export const loader = (client: AppClient) => async () => {
+export const loader = (_client: AppClient) => async () => {
   return {};
 };
 
@@ -81,9 +81,7 @@ export default function SharedPage() {
         <main className="px-6 py-6 space-y-6">
           <section className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
             <h1 className="text-2xl font-semibold text-gray-800">Shared</h1>
-            <p className="text-gray-500">
-              Posts you share will live here.
-            </p>
+            <p className="text-gray-500">Posts you share will live here.</p>
           </section>
           <section className="space-y-2">
             {sharedPending && (
@@ -98,19 +96,26 @@ export default function SharedPage() {
             )}
             {!sharedPending &&
               !sharedError &&
+              client &&
               sharedPosts &&
               sharedPosts.length > 0 &&
               sharedPosts.map((post) => (
                 <PostItem
                   key={post.id}
                   post={{ data: post }}
-                  client={client!}
+                  client={client}
                   onSelect={handlePostSelect}
                   shareActive
                 />
               ))}
+            {!sharedPending && !sharedError && !client && (
+              <div className="p-4 text-sm text-gray-500">
+                Client is not ready yet. Please try again.
+              </div>
+            )}
             {!sharedPending &&
               !sharedError &&
+              client &&
               (!sharedPosts || sharedPosts.length === 0) && (
                 <div className="p-4 text-sm text-gray-500">
                   Nothing shared yet.

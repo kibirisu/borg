@@ -76,15 +76,11 @@ export default function TimelinePage() {
         <main className="px-6 py-6 space-y-6">
           <section className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
             <h1 className="text-2xl font-semibold text-gray-800">Timeline</h1>
-            <p className="text-gray-500">
-              Posts from accounts you follow.
-            </p>
+            <p className="text-gray-500">Posts from accounts you follow.</p>
           </section>
           <section className="space-y-2">
             {timelinePending && (
-              <div className="p-4 text-sm text-gray-500">
-                Loading timeline…
-              </div>
+              <div className="p-4 text-sm text-gray-500">Loading timeline…</div>
             )}
             {timelineError && (
               <div className="p-4 text-sm text-red-600">
@@ -93,17 +89,20 @@ export default function TimelinePage() {
             )}
             {!timelinePending &&
               !timelineError &&
+              client &&
               timelinePosts &&
               timelinePosts.length > 0 &&
               timelinePosts.map((post) => (
-                <PostItem
-                  key={post.id}
-                  post={{ data: post }}
-                  client={client!}
-                />
+                <PostItem key={post.id} post={{ data: post }} client={client} />
               ))}
+            {!timelinePending && !timelineError && !client && (
+              <div className="p-4 text-sm text-gray-500">
+                Client is not ready yet. Please try again.
+              </div>
+            )}
             {!timelinePending &&
               !timelineError &&
+              client &&
               (!timelinePosts || timelinePosts.length === 0) && (
                 <div className="p-4 text-sm text-gray-500">
                   Timeline is empty.

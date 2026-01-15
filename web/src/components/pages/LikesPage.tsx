@@ -90,18 +90,25 @@ export default function LikesPage() {
             )}
             {!likesPending &&
               !likesError &&
+              client &&
               likedPosts &&
               likedPosts.length > 0 &&
               likedPosts.map((post) => (
                 <PostItem
                   key={post.id}
                   post={{ data: post }}
-                  client={client!}
+                  client={client}
                   likeActive
                 />
               ))}
+            {!likesPending && !likesError && !client && (
+              <div className="p-4 text-sm text-gray-500">
+                Client is not ready yet. Please try again.
+              </div>
+            )}
             {!likesPending &&
               !likesError &&
+              client &&
               (!likedPosts || likedPosts.length === 0) && (
                 <div className="p-4 text-sm text-gray-500">
                   No liked posts yet.

@@ -1,4 +1,8 @@
-import { useQuery } from "@tanstack/react-query";
+import {
+  type QueryKey,
+  type UseQueryOptions,
+  useQuery,
+} from "@tanstack/react-query";
 import { useContext } from "react";
 import { type LoaderFunctionArgs, useLoaderData } from "react-router";
 import type { components } from "../../lib/api/v1";
@@ -28,15 +32,24 @@ export default function Feed() {
     ReturnType<ReturnType<typeof loader>>
   >;
 
-  const queryOptions =
-    opts ??
+  const queryOptions = (opts ??
     ({
       queryKey: ["posts-feed-disabled"],
       queryFn: async () => [] as components["schemas"]["Post"][],
       enabled: false,
-    } satisfies Parameters<typeof useQuery>[0]);
+    } satisfies UseQueryOptions<
+      components["schemas"]["Post"][],
+      Error,
+      components["schemas"]["Post"][],
+      QueryKey
+    >)) as UseQueryOptions<
+    components["schemas"]["Post"][],
+    Error,
+    components["schemas"]["Post"][],
+    QueryKey
+  >;
 
-  const { data, isPending } = useQuery(queryOptions as any);
+  const { data, isPending } = useQuery(queryOptions);
 
   if (!opts || !client) {
     return null;

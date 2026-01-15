@@ -44,7 +44,11 @@ export const action =
     }
 
     client.queryClient.invalidateQueries({
-      queryKey: ["get", "/api/posts/{id}/comments", { params: { path: { id: postId } } }],
+      queryKey: [
+        "get",
+        "/api/posts/{id}/comments",
+        { params: { path: { id: postId } } },
+      ],
     });
     client.queryClient.invalidateQueries({ queryKey: ["user-posts"] });
     return null;

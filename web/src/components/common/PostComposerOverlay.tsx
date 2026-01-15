@@ -86,9 +86,7 @@ const PostComposerOverlay = ({
         </button>
         <div className="space-y-4">
           <div>
-            <p className="text-2xl font-semibold text-gray-900">
-              {title}
-            </p>
+            <p className="text-2xl font-semibold text-gray-900">{title}</p>
             {replyTo && "username" in replyTo.data && replyTo.data.username && (
               <p className="text-sm text-gray-500">
                 Responding to{" "}

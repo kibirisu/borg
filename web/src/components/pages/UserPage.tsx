@@ -15,7 +15,7 @@ import { PostItem } from "../common/PostItem";
 import Sidebar from "../common/Sidebar";
 
 export const loader =
-  (client: AppClient) =>
+  (_client: AppClient) =>
   async ({ params }: LoaderFunctionArgs) => {
     // Backend profile endpoints are unimplemented; pass handle for display only.
     return { handle: params.handle };
@@ -51,10 +51,10 @@ export default function UserPage() {
       if (!id) {
         return { username: derivedUsername, bio: derivedBio };
       }
-      const res = await client!.fetchClient.GET("/api/users/{id}", {
+      const res = await client?.fetchClient.GET("/api/users/{id}", {
         params: { path: { id: Number(id) } },
       });
-      if (res.error || !res.data) {
+      if (!res || res.error || !res.data) {
         console.warn("[UserPage] profile fetch failed");
         return {
           username: derivedUsername,
@@ -82,8 +82,11 @@ export default function UserPage() {
     queryKey: ["user-posts", userId],
     enabled: Boolean(client) && userId !== null,
     queryFn: async () => {
-      const res = await client!.fetchClient.GET("/api/users/{id}/posts", {
-        params: { path: { id: userId! } },
+      if (!client || userId === null) {
+        throw new Error("Client or user not ready");
+      }
+      const res = await client.fetchClient.GET("/api/users/{id}/posts", {
+        params: { path: { id: userId } },
       });
       if (res.error) {
         throw new Error("Failed to fetch posts");
@@ -255,37 +258,43 @@ export default function UserPage() {
                 Failed to load posts.
               </div>
             )}
-            {!postsPending && !postsError && (
-              <>
-                {posts && posts.length > 0 ? (
-                  posts.map((post) => (
-                    <PostItem
-                      key={post.id}
-                      post={{ data: post }}
-                      client={client!}
-                      showActions
-                      onEdit={(p) => {
-                        if ("content" in p.data && "likeCount" in p.data) {
-                          setEditingPost(p.data as components["schemas"]["Post"]);
-                          setComposerOpen(true);
-                        }
-                      }}
-                      onDelete={(p) => {
-                        if ("id" in p.data && "likeCount" in p.data) {
-                          void handleDeletePost(p.data as components["schemas"]["Post"]);
-                        }
-                      }}
-                      onCommentClick={(p) => {
-                        if ("id" in p.data) {
-                          navigate(`/post/${p.data.id}`);
-                        }
-                      }}
-                    />
-                  ))
-                ) : (
-                  <div className="p-4 text-sm text-gray-500">No posts yet.</div>
-                )}
-              </>
+            {!postsPending &&
+              !postsError &&
+              client &&
+              (posts && posts.length > 0 ? (
+                posts.map((post) => (
+                  <PostItem
+                    key={post.id}
+                    post={{ data: post }}
+                    client={client}
+                    showActions
+                    onEdit={(p) => {
+                      if ("content" in p.data && "likeCount" in p.data) {
+                        setEditingPost(p.data as components["schemas"]["Post"]);
+                        setComposerOpen(true);
+                      }
+                    }}
+                    onDelete={(p) => {
+                      if ("id" in p.data && "likeCount" in p.data) {
+                        void handleDeletePost(
+                          p.data as components["schemas"]["Post"],
+                        );
+                      }
+                    }}
+                    onCommentClick={(p) => {
+                      if ("id" in p.data) {
+                        navigate(`/post/${p.data.id}`);
+                      }
+                    }}
+                  />
+                ))
+              ) : (
+                <div className="p-4 text-sm text-gray-500">No posts yet.</div>
+              ))}
+            {!postsPending && !postsError && !client && (
+              <div className="p-4 text-sm text-gray-500">
+                Client is not ready yet. Please try again.
+              </div>
             )}
           </section>
         </main>
