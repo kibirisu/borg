@@ -923,6 +923,8 @@ export interface components {
             id: number;
             userID: number;
             content: string;
+            resharedBy?: string;
+            resharedById?: number;
             likeCount: number;
             shareCount: number;
             commentCount: number;

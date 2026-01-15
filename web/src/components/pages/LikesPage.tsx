@@ -77,7 +77,7 @@ export default function LikesPage() {
               Posts you have liked will appear here.
             </p>
           </section>
-          <section className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+          <section className="space-y-2">
             {likesPending && (
               <div className="p-4 text-sm text-gray-500">
                 Loading liked posts…

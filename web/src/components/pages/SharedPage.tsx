@@ -85,7 +85,7 @@ export default function SharedPage() {
               Posts you share will live here.
             </p>
           </section>
-          <section className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+          <section className="space-y-2">
             {sharedPending && (
               <div className="p-4 text-sm text-gray-500">
                 Loading shared posts…

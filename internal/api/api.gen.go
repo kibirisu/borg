@@ -96,6 +96,8 @@ type Post struct {
 	CreatedAt    time.Time `json:"createdAt"`
 	Id           int       `json:"id"`
 	LikeCount    int       `json:"likeCount"`
+	ResharedBy   *string   `json:"resharedBy,omitempty"`
+	ResharedById *int      `json:"resharedById,omitempty"`
 	ShareCount   int       `json:"shareCount"`
 	UpdatedAt    time.Time `json:"updatedAt"`
 	UserID       int       `json:"userID"`

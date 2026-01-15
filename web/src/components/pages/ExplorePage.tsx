@@ -260,7 +260,7 @@ export default function ExplorePage() {
               <FoundUserItem account={searchResult} />
             </div>
           )}
-          <section className="bg-white rounded-2xl border border-gray-200 p-4 space-y-4 min-h-[400px]">
+          <section className="space-y-2 min-h-[400px]">
             {isPending && <p className="text-gray-500 text-center">Loading…</p>}
             {!isPending &&
               data?.map((post: components["schemas"]["Post"]) => (

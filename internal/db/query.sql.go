@@ -661,17 +661,23 @@ const getLocalStatuses = `-- name: GetLocalStatuses :many
 SELECT 
     s.id, s.created_at, s.updated_at, s.uri, s.url, s.local, s.content, s.account_id, s.in_reply_to_id, s.reblog_of_id,
     a.id, a.created_at, a.updated_at, a.username, a.uri, a.display_name, a.domain, a.inbox_uri, a.outbox_uri, a.followers_uri, a.following_uri, a.url,
+    CASE WHEN s_share.reblog_of_id IS NOT NULL THEN ra.username ELSE NULL END AS reshared_by,
+    CASE WHEN s_share.reblog_of_id IS NOT NULL THEN ra.id ELSE NULL END AS reshared_by_id,
     (SELECT COUNT(*) FROM favourites f WHERE f.status_id = s.id) AS like_count,
     (SELECT COUNT(*) FROM statuses r WHERE r.in_reply_to_id = s.id) AS comment_count,
     (SELECT COUNT(*) FROM statuses b WHERE b.reblog_of_id = s.id) AS share_count
-FROM statuses s
+FROM statuses s_share
+JOIN statuses s ON s.id = COALESCE(s_share.reblog_of_id, s_share.id)
 JOIN accounts a ON s.account_id = a.id
+LEFT JOIN accounts ra ON ra.id = s_share.account_id
 WHERE a.domain is null and s.in_reply_to_id is null
 `
 
 type GetLocalStatusesRow struct {
 	Status       Status
 	Account      Account
+	ResharedBy   sql.NullString
+	ResharedByID sql.NullInt32
 	LikeCount    int64
 	CommentCount int64
 	ShareCount   int64
@@ -709,6 +715,8 @@ func (q *Queries) GetLocalStatuses(ctx context.Context) ([]GetLocalStatusesRow, 
 			&i.Account.FollowersUri,
 			&i.Account.FollowingUri,
 			&i.Account.Url,
+			&i.ResharedBy,
+			&i.ResharedByID,
 			&i.LikeCount,
 			&i.CommentCount,
 			&i.ShareCount,
@@ -730,17 +738,23 @@ const getSharedPostsByAccountId = `-- name: GetSharedPostsByAccountId :many
 SELECT 
     s.id, s.created_at, s.updated_at, s.uri, s.url, s.local, s.content, s.account_id, s.in_reply_to_id, s.reblog_of_id,
     a.id, a.created_at, a.updated_at, a.username, a.uri, a.display_name, a.domain, a.inbox_uri, a.outbox_uri, a.followers_uri, a.following_uri, a.url,
+    CASE WHEN s_share.reblog_of_id IS NOT NULL THEN ra.username ELSE NULL END AS reshared_by,
+    CASE WHEN s_share.reblog_of_id IS NOT NULL THEN ra.id ELSE NULL END AS reshared_by_id,
     (SELECT COUNT(*) FROM favourites f WHERE f.status_id = s.id) AS like_count,
     (SELECT COUNT(*) FROM statuses r WHERE r.in_reply_to_id = s.id) AS comment_count,
     (SELECT COUNT(*) FROM statuses b WHERE b.reblog_of_id = s.id) AS share_count
-FROM statuses s
+FROM statuses s_share
+JOIN statuses s ON s_share.reblog_of_id = s.id
 JOIN accounts a ON s.account_id = a.id
-WHERE s.account_id = $1 AND s.reblog_of_id IS NOT NULL
+LEFT JOIN accounts ra ON ra.id = s_share.account_id
+WHERE s_share.account_id = $1 AND s_share.reblog_of_id IS NOT NULL
 `
 
 type GetSharedPostsByAccountIdRow struct {
 	Status       Status
 	Account      Account
+	ResharedBy   sql.NullString
+	ResharedByID sql.NullInt32
 	LikeCount    int64
 	CommentCount int64
 	ShareCount   int64
@@ -778,6 +792,8 @@ func (q *Queries) GetSharedPostsByAccountId(ctx context.Context, accountID int32
 			&i.Account.FollowersUri,
 			&i.Account.FollowingUri,
 			&i.Account.Url,
+			&i.ResharedBy,
+			&i.ResharedByID,
 			&i.LikeCount,
 			&i.CommentCount,
 			&i.ShareCount,
@@ -972,17 +988,23 @@ const getStatusesByAccountId = `-- name: GetStatusesByAccountId :many
 SELECT 
     s.id, s.created_at, s.updated_at, s.uri, s.url, s.local, s.content, s.account_id, s.in_reply_to_id, s.reblog_of_id,
     a.id, a.created_at, a.updated_at, a.username, a.uri, a.display_name, a.domain, a.inbox_uri, a.outbox_uri, a.followers_uri, a.following_uri, a.url,
+    CASE WHEN s_share.reblog_of_id IS NOT NULL THEN ra.username ELSE NULL END AS reshared_by,
+    CASE WHEN s_share.reblog_of_id IS NOT NULL THEN ra.id ELSE NULL END AS reshared_by_id,
     (SELECT COUNT(*) FROM favourites f WHERE f.status_id = s.id) AS like_count,
     (SELECT COUNT(*) FROM statuses r WHERE r.in_reply_to_id = s.id) AS comment_count,
     (SELECT COUNT(*) FROM statuses b WHERE b.reblog_of_id = s.id) AS share_count
-FROM statuses s
+FROM statuses s_share
+JOIN statuses s ON s.id = COALESCE(s_share.reblog_of_id, s_share.id)
 JOIN accounts a ON s.account_id = a.id
-WHERE s.account_id = $1
+LEFT JOIN accounts ra ON ra.id = s_share.account_id
+WHERE s_share.account_id = $1
 `
 
 type GetStatusesByAccountIdRow struct {
 	Status       Status
 	Account      Account
+	ResharedBy   sql.NullString
+	ResharedByID sql.NullInt32
 	LikeCount    int64
 	CommentCount int64
 	ShareCount   int64
@@ -1020,6 +1042,8 @@ func (q *Queries) GetStatusesByAccountId(ctx context.Context, accountID int32) (
 			&i.Account.FollowersUri,
 			&i.Account.FollowingUri,
 			&i.Account.Url,
+			&i.ResharedBy,
+			&i.ResharedByID,
 			&i.LikeCount,
 			&i.CommentCount,
 			&i.ShareCount,
@@ -1041,12 +1065,16 @@ const getTimelinePostsByAccountId = `-- name: GetTimelinePostsByAccountId :many
 SELECT 
     s.id, s.created_at, s.updated_at, s.uri, s.url, s.local, s.content, s.account_id, s.in_reply_to_id, s.reblog_of_id,
     a.id, a.created_at, a.updated_at, a.username, a.uri, a.display_name, a.domain, a.inbox_uri, a.outbox_uri, a.followers_uri, a.following_uri, a.url,
+    CASE WHEN s_share.reblog_of_id IS NOT NULL THEN ra.username ELSE NULL END AS reshared_by,
+    CASE WHEN s_share.reblog_of_id IS NOT NULL THEN ra.id ELSE NULL END AS reshared_by_id,
     (SELECT COUNT(*) FROM favourites f WHERE f.status_id = s.id) AS like_count,
     (SELECT COUNT(*) FROM statuses r WHERE r.in_reply_to_id = s.id) AS comment_count,
     (SELECT COUNT(*) FROM statuses b WHERE b.reblog_of_id = s.id) AS share_count
-FROM statuses s
+FROM statuses s_share
+JOIN statuses s ON s.id = COALESCE(s_share.reblog_of_id, s_share.id)
 JOIN accounts a ON s.account_id = a.id
-JOIN follows f ON a.id = f.target_account_id
+LEFT JOIN accounts ra ON ra.id = s_share.account_id
+JOIN follows f ON s_share.account_id = f.target_account_id
 WHERE f.account_id = $1 AND s.in_reply_to_id IS NULL
 ORDER BY s.created_at DESC
 `
@@ -1054,6 +1082,8 @@ ORDER BY s.created_at DESC
 type GetTimelinePostsByAccountIdRow struct {
 	Status       Status
 	Account      Account
+	ResharedBy   sql.NullString
+	ResharedByID sql.NullInt32
 	LikeCount    int64
 	CommentCount int64
 	ShareCount   int64
@@ -1091,6 +1121,8 @@ func (q *Queries) GetTimelinePostsByAccountId(ctx context.Context, accountID int
 			&i.Account.FollowersUri,
 			&i.Account.FollowingUri,
 			&i.Account.Url,
+			&i.ResharedBy,
+			&i.ResharedByID,
 			&i.LikeCount,
 			&i.CommentCount,
 			&i.ShareCount,

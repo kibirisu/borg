@@ -37,6 +37,8 @@ export const PostItem = ({
   const appState = useContext(AppContext);
   const currentUserId = appState?.userId ?? null;
   const navigate = useNavigate();
+  const resharedBy =
+    "resharedBy" in post.data ? post.data.resharedBy : undefined;
 
   const likeAction = async () => {
     if (!("id" in post.data)) return;
@@ -90,7 +92,7 @@ export const PostItem = ({
 
   return (
     <div
-      className="border-b border-gray-200 p-4 hover:bg-gray-50 transition-colors cursor-pointer"
+      className="border border-gray-200 rounded-xl p-4 hover:bg-gray-50 transition-colors cursor-pointer mb-2 last:mb-0 bg-white"
       onClick={handleSelect}
       role="button"
       tabIndex={0}
@@ -103,6 +105,11 @@ export const PostItem = ({
     >
       <div className="flex space-x-3">
         <div className="flex-1">
+          {resharedBy && (
+            <div className="mb-2 text-xs uppercase tracking-wide text-gray-500">
+              Reshared by @{resharedBy}
+            </div>
+          )}
           <div className="flex items-start justify-between mb-2">
             {"username" in post.data && (
               <div className="flex items-center space-x-1">
@@ -115,7 +122,7 @@ export const PostItem = ({
                 </Link>
               </div>
             )}
-            {showActions && (
+            {showActions && !resharedBy && (
               <div className="flex items-center gap-2">
                 <button
                   type="button"

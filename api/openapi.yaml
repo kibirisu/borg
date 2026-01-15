@@ -647,6 +647,10 @@ components:
           type: integer
         content:
           type: string
+        resharedBy:
+          type: string
+        resharedById:
+          type: integer
         likeCount:
           type: integer
         shareCount:

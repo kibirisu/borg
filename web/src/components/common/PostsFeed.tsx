@@ -53,7 +53,7 @@ export default function Feed() {
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm divide-y">
+    <div className="space-y-2">
       {posts.map((post: components["schemas"]["Post"]) => (
         <PostItem key={post.id} post={{ data: post }} client={client} />
       ))}

@@ -233,7 +233,7 @@ export default function OtherUserPage() {
             )}
           </section>
           {/* POSTS */}
-          <section className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+          <section className="space-y-2">
             {postsPending && (
               <div className="p-4 text-sm text-gray-500">Loading posts…</div>
             )}
