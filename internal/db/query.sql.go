@@ -665,8 +665,8 @@ const getLocalStatuses = `-- name: GetLocalStatuses :many
 SELECT 
     s.id, s.created_at, s.updated_at, s.uri, s.url, s.local, s.content, s.account_id, s.in_reply_to_id, s.reblog_of_id,
     a.id, a.created_at, a.updated_at, a.username, a.uri, a.display_name, a.domain, a.inbox_uri, a.outbox_uri, a.followers_uri, a.following_uri, a.url,
-    (CASE WHEN s_share.reblog_of_id IS NOT NULL THEN ra.username ELSE NULL END)::text AS reshared_by,
-    (CASE WHEN s_share.reblog_of_id IS NOT NULL THEN ra.id ELSE NULL END)::int AS reshared_by_id,
+    CASE WHEN s_share.reblog_of_id IS NOT NULL THEN ra.username ELSE NULL END AS reshared_by,
+    CASE WHEN s_share.reblog_of_id IS NOT NULL THEN ra.id ELSE NULL END AS reshared_by_id,
     (SELECT COUNT(*) FROM favourites f WHERE f.status_id = s.id) AS like_count,
     (SELECT COUNT(*) FROM statuses r WHERE r.in_reply_to_id = s.id) AS comment_count,
     (SELECT COUNT(*) FROM statuses b WHERE b.reblog_of_id = s.id) AS share_count
@@ -680,8 +680,8 @@ WHERE a.domain is null and s.in_reply_to_id is null
 type GetLocalStatusesRow struct {
 	Status       Status
 	Account      Account
-	ResharedBy   string
-	ResharedByID int32
+	ResharedBy   sql.NullString
+	ResharedByID sql.NullInt32
 	LikeCount    int64
 	CommentCount int64
 	ShareCount   int64
@@ -742,8 +742,8 @@ const getSharedPostsByAccountId = `-- name: GetSharedPostsByAccountId :many
 SELECT 
     s.id, s.created_at, s.updated_at, s.uri, s.url, s.local, s.content, s.account_id, s.in_reply_to_id, s.reblog_of_id,
     a.id, a.created_at, a.updated_at, a.username, a.uri, a.display_name, a.domain, a.inbox_uri, a.outbox_uri, a.followers_uri, a.following_uri, a.url,
-    (CASE WHEN s_share.reblog_of_id IS NOT NULL THEN ra.username ELSE NULL END)::text AS reshared_by,
-    (CASE WHEN s_share.reblog_of_id IS NOT NULL THEN ra.id ELSE NULL END)::int AS reshared_by_id,
+    CASE WHEN s_share.reblog_of_id IS NOT NULL THEN ra.username ELSE NULL END AS reshared_by,
+    CASE WHEN s_share.reblog_of_id IS NOT NULL THEN ra.id ELSE NULL END AS reshared_by_id,
     (SELECT COUNT(*) FROM favourites f WHERE f.status_id = s.id) AS like_count,
     (SELECT COUNT(*) FROM statuses r WHERE r.in_reply_to_id = s.id) AS comment_count,
     (SELECT COUNT(*) FROM statuses b WHERE b.reblog_of_id = s.id) AS share_count
@@ -757,8 +757,8 @@ WHERE s_share.account_id = $1 AND s_share.reblog_of_id IS NOT NULL
 type GetSharedPostsByAccountIdRow struct {
 	Status       Status
 	Account      Account
-	ResharedBy   string
-	ResharedByID int32
+	ResharedBy   sql.NullString
+	ResharedByID sql.NullInt32
 	LikeCount    int64
 	CommentCount int64
 	ShareCount   int64
@@ -992,8 +992,8 @@ const getStatusesByAccountId = `-- name: GetStatusesByAccountId :many
 SELECT 
     s.id, s.created_at, s.updated_at, s.uri, s.url, s.local, s.content, s.account_id, s.in_reply_to_id, s.reblog_of_id,
     a.id, a.created_at, a.updated_at, a.username, a.uri, a.display_name, a.domain, a.inbox_uri, a.outbox_uri, a.followers_uri, a.following_uri, a.url,
-    (CASE WHEN s_share.reblog_of_id IS NOT NULL THEN ra.username ELSE NULL END)::text AS reshared_by,
-    (CASE WHEN s_share.reblog_of_id IS NOT NULL THEN ra.id ELSE NULL END)::int AS reshared_by_id,
+    CASE WHEN s_share.reblog_of_id IS NOT NULL THEN ra.username ELSE NULL END AS reshared_by,
+    CASE WHEN s_share.reblog_of_id IS NOT NULL THEN ra.id ELSE NULL END AS reshared_by_id,
     (SELECT COUNT(*) FROM favourites f WHERE f.status_id = s.id) AS like_count,
     (SELECT COUNT(*) FROM statuses r WHERE r.in_reply_to_id = s.id) AS comment_count,
     (SELECT COUNT(*) FROM statuses b WHERE b.reblog_of_id = s.id) AS share_count
@@ -1007,8 +1007,8 @@ WHERE s_share.account_id = $1
 type GetStatusesByAccountIdRow struct {
 	Status       Status
 	Account      Account
-	ResharedBy   string
-	ResharedByID int32
+	ResharedBy   sql.NullString
+	ResharedByID sql.NullInt32
 	LikeCount    int64
 	CommentCount int64
 	ShareCount   int64
@@ -1069,8 +1069,8 @@ const getTimelinePostsByAccountId = `-- name: GetTimelinePostsByAccountId :many
 SELECT 
     s.id, s.created_at, s.updated_at, s.uri, s.url, s.local, s.content, s.account_id, s.in_reply_to_id, s.reblog_of_id,
     a.id, a.created_at, a.updated_at, a.username, a.uri, a.display_name, a.domain, a.inbox_uri, a.outbox_uri, a.followers_uri, a.following_uri, a.url,
-    (CASE WHEN s_share.reblog_of_id IS NOT NULL THEN ra.username ELSE NULL END)::text AS reshared_by,
-    (CASE WHEN s_share.reblog_of_id IS NOT NULL THEN ra.id ELSE NULL END)::int AS reshared_by_id,
+    CASE WHEN s_share.reblog_of_id IS NOT NULL THEN ra.username ELSE NULL END AS reshared_by,
+    CASE WHEN s_share.reblog_of_id IS NOT NULL THEN ra.id ELSE NULL END AS reshared_by_id,
     (SELECT COUNT(*) FROM favourites f WHERE f.status_id = s.id) AS like_count,
     (SELECT COUNT(*) FROM statuses r WHERE r.in_reply_to_id = s.id) AS comment_count,
     (SELECT COUNT(*) FROM statuses b WHERE b.reblog_of_id = s.id) AS share_count
@@ -1086,8 +1086,8 @@ ORDER BY s.created_at DESC
 type GetTimelinePostsByAccountIdRow struct {
 	Status       Status
 	Account      Account
-	ResharedBy   string
-	ResharedByID int32
+	ResharedBy   sql.NullString
+	ResharedByID sql.NullInt32
 	LikeCount    int64
 	CommentCount int64
 	ShareCount   int64
