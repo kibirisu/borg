@@ -115,6 +115,13 @@ INSERT INTO statuses (
 )
 RETURNING *;
 
+-- name: CreateStatusNew :one
+INSERT INTO statuses (
+    id, uri, url, local, content, account_id, account_uri, in_reply_to_id, in_reply_to_uri
+) VALUES (
+    $1, $2, $3, true, $4, $5, $6, $7, (SELECT uri FROM statuses WHERE id = $7)
+) RETURNING *;
+
 -- name: AddStatus :exec
 INSERT INTO statuses (
     id, uri, url, content, account_id, in_reply_to_id, reblog_of_id

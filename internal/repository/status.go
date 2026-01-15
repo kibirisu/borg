@@ -9,6 +9,7 @@ import (
 )
 
 type StatusRepository interface {
+	CreateNew(context.Context, db.CreateStatusNewParams) (db.Status, error)
 	Create(context.Context, db.CreateStatusParams) (db.Status, error)
 	Add(context.Context, db.AddStatusParams) error
 	GetByID(context.Context, xid.ID) (db.Status, error)
@@ -29,6 +30,14 @@ type statusRepository struct {
 }
 
 var _ StatusRepository = (*statusRepository)(nil)
+
+// CreateNew implements StatusRepository.
+func (r *statusRepository) CreateNew(
+	ctx context.Context,
+	status db.CreateStatusNewParams,
+) (db.Status, error) {
+	return r.q.CreateStatusNew(ctx, status)
+}
 
 // Create implements StatusRepository.
 func (r *statusRepository) Create(

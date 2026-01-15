@@ -11,6 +11,7 @@ import (
 
 	"github.com/kibirisu/borg/internal/api"
 	"github.com/kibirisu/borg/internal/config"
+	"github.com/kibirisu/borg/internal/server/auth"
 	"github.com/kibirisu/borg/internal/service"
 	"github.com/kibirisu/borg/internal/worker"
 	"github.com/kibirisu/borg/web"
@@ -39,14 +40,14 @@ func New(ctx context.Context, conf *config.Config) *http.Server {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
-	r.Use(preAuthMiddleware)
+	r.Use(auth.PreAuthMiddleware)
 	r.Group(server.federationRoutes())
 
 	h := api.HandlerWithOptions(
 		server,
 		api.ChiServerOptions{
 			BaseRouter:  r,
-			Middlewares: []api.MiddlewareFunc{server.createAuthMiddleware()},
+			Middlewares: []api.MiddlewareFunc{auth.CreateAuthMiddleware(conf.JWTSecret)},
 		},
 	)
 	r.Group(server.staticRoutes())

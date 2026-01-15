@@ -9,6 +9,7 @@ import (
 	"github.com/kibirisu/borg/internal/ap"
 	"github.com/kibirisu/borg/internal/api"
 	"github.com/kibirisu/borg/internal/db"
+	"github.com/kibirisu/borg/internal/server/auth"
 	"github.com/kibirisu/borg/internal/server/mapper"
 	"github.com/kibirisu/borg/internal/util"
 )
@@ -49,6 +50,26 @@ func (s *Server) PostAuthRegister(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("auth register: user %s created successfully", form.Username)
 	w.WriteHeader(http.StatusCreated)
+}
+
+// PostApiStatuses implements api.ServerInterface.
+func (s *Server) PostApiStatuses(w http.ResponseWriter, r *http.Request) {
+	var status api.Status
+	if err := util.ReadJSON(r, &status); err != nil {
+		log.Println(err)
+		util.WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	job, err := s.service.App.CreateStatus(r.Context(), status)
+	if err != nil {
+		log.Println(err)
+		util.WriteError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	s.worker.Enqueue(job)
 }
 
 // GetApiAccountsLookup implements api.ServerInterface.
@@ -124,13 +145,13 @@ func (s *Server) GetApiAccountsLookup(
 
 // PostApiAccountsIdFollow implements api.ServerInterface.
 func (s *Server) PostApiAccountsIdFollow(w http.ResponseWriter, r *http.Request, id string) {
-	container, ok := r.Context().Value(TokenContextKey).(*tokenContainer)
+	container, ok := r.Context().Value(auth.TokenContextKey).(*auth.TokenData)
 
-	if !ok || container == nil || container.id == nil {
+	if !ok || container == nil {
 		util.WriteError(w, http.StatusUnauthorized, "User not authenticated")
 		return
 	}
-	currentUserID := *container.id
+	currentUserID := container.ID
 	if currentUserID == id {
 		http.Error(w, "Tried to follow oneself", http.StatusBadRequest)
 		return
@@ -402,12 +423,12 @@ func (s *Server) PostApiPostsIdShares(w http.ResponseWriter, r *http.Request, id
 
 // PostApiPosts implements api.ServerInterface.
 func (s *Server) PostApiPosts(w http.ResponseWriter, r *http.Request) {
-	container, ok := r.Context().Value(TokenContextKey).(*tokenContainer)
-	if !ok || container == nil || container.id == nil {
+	container, ok := r.Context().Value(auth.TokenContextKey).(*auth.TokenData)
+	if !ok || container == nil {
 		util.WriteError(w, http.StatusUnauthorized, "User not authenticated")
 		return
 	}
-	currentUserID := *container.id
+	currentUserID := container.ID
 	poster, err := s.service.App.GetAccountByID(r.Context(), currentUserID)
 	var newPost api.NewPost
 	if err := util.ReadJSON(r, &newPost); err != nil {

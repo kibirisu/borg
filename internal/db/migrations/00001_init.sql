@@ -26,6 +26,7 @@ CREATE TABLE statuses (
     account_id VARCHAR(20) NOT NULL REFERENCES accounts (id),
     account_uri TEXT NOT NULL REFERENCES accounts (uri),
     in_reply_to_id VARCHAR(20) REFERENCES statuses,
+    in_reply_to_uri TEXT REFERENCES statuses (uri),
     reblog_of_id VARCHAR(20) REFERENCES statuses
 );
 

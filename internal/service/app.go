@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -18,6 +19,7 @@ import (
 	"github.com/kibirisu/borg/internal/db"
 	proc "github.com/kibirisu/borg/internal/processing"
 	repo "github.com/kibirisu/borg/internal/repository"
+	"github.com/kibirisu/borg/internal/server/auth"
 	"github.com/kibirisu/borg/internal/util"
 	"github.com/kibirisu/borg/internal/worker"
 )
@@ -25,7 +27,7 @@ import (
 type AppService interface {
 	Register(context.Context, api.AuthForm) error
 	Login(context.Context, api.AuthForm) (string, error)
-	CreateStatus(context.Context, api.NewPost, LoginData) (worker.Job, error)
+	CreateStatus(context.Context, api.Status) (worker.Job, error)
 	GetAccountFollowers(context.Context, string) ([]db.Account, error)
 	GetAccountFollowing(context.Context, string) ([]db.Account, error)
 	GetLocalAccount(context.Context, string) (*db.Account, error)
@@ -56,11 +58,6 @@ type appService struct {
 	prcessor proc.Processor
 	conf     *config.Config
 	builder  util.URIBuilder
-}
-
-type LoginData struct {
-	ID  string
-	URI string
 }
 
 var _ AppService = (*appService)(nil)
@@ -123,33 +120,48 @@ func (s *appService) Login(ctx context.Context, form api.AuthForm) (string, erro
 // CreateStatus implements AppService.
 func (s *appService) CreateStatus(
 	ctx context.Context,
-	status api.NewPost,
-	login LoginData,
+	status api.Status,
 ) (worker.Job, error) {
+	token, ok := ctx.Value(auth.TokenContextKey).(*auth.TokenData)
+	if !ok {
+		return nil, errors.New("auth failure")
+	}
 	statusID := xid.New()
-	statusURIs := s.builder.StatusURIs(login.ID, statusID.String())
+	statusURIs := s.builder.StatusURIs(token.ID, statusID.String())
 
-	accountID, err := xid.FromString(login.ID)
+	accountID, err := xid.FromString(token.ID)
 	if err != nil {
 		return nil, err
 	}
 
-	createStatus := db.CreateStatusParams{
-		ID: statusID,
-		Local: sql.NullBool{
-			Bool:  true,
-			Valid: true,
-		},
-		Content:    status.Content,
-		AccountID:  accountID,
-		AccountUri: login.URI,
-		Uri:        statusURIs.Status,
+	var inReplyToID *xid.ID
+	if status.InReplyToID != nil {
+		id, err := xid.FromString(*status.InReplyToID)
+		if err != nil {
+			return nil, err
+		}
+		inReplyToID = &id
 	}
-	if _, err = s.store.Statuses().Create(ctx, createStatus); err != nil {
+
+	createdStatus, err := s.store.Statuses().CreateNew(ctx, db.CreateStatusNewParams{
+		ID:          statusID,
+		Uri:         statusURIs.Status,
+		Url:         "not needed rn",
+		Content:     status.Status,
+		AccountID:   accountID,
+		AccountUri:  token.URI,
+		InReplyToID: inReplyToID,
+	})
+	if err != nil {
 		return nil, err
 	}
 
-	actor := ap.NewEmptyActor().WithLink(login.URI)
+	inReplyTo := ap.NewEmptyNote()
+	if createdStatus.InReplyToUri.Valid {
+		inReplyTo.SetLink(createdStatus.InReplyToUri.String)
+	}
+
+	actor := ap.NewEmptyActor().WithLink(token.URI)
 	create := ap.NewEmptyCreateActivity().WithObject(ap.Activity[ap.Note]{
 		ID:    statusURIs.Create,
 		Type:  "Create",
@@ -157,8 +169,8 @@ func (s *appService) CreateStatus(
 		Object: ap.NewEmptyNote().WithObject(ap.Note{
 			ID:           statusURIs.Status,
 			Type:         "Note",
-			Content:      status.Content,
-			InReplyTo:    ap.NewEmptyNote(),
+			Content:      status.Status,
+			InReplyTo:    inReplyTo,
 			Published:    time.Now(),
 			AttributedTo: actor,
 			To:           []string{},

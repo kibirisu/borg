@@ -54,17 +54,18 @@ type FollowRequest struct {
 }
 
 type Status struct {
-	ID          xid.ID
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
-	Uri         string
-	Url         string
-	Local       sql.NullBool
-	Content     string
-	AccountID   xid.ID
-	AccountUri  string
-	InReplyToID *xid.ID
-	ReblogOfID  *xid.ID
+	ID           xid.ID
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+	Uri          string
+	Url          string
+	Local        sql.NullBool
+	Content      string
+	AccountID    xid.ID
+	AccountUri   string
+	InReplyToID  *xid.ID
+	InReplyToUri sql.NullString
+	ReblogOfID   *xid.ID
 }
 
 type User struct {

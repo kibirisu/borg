@@ -6,6 +6,18 @@ info:
   contact: {}
 
 paths:
+  /api/statuses:
+    post:
+      summary: Publish a status with the given parameters.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Status"
+      responses:
+        "200":
+          description: OK
   /api/users:
     post:
       summary: Create a user
@@ -418,6 +430,17 @@ components:
       scheme: Bearer
       bearerFormat: JWT
   schemas:
+    Status:
+      type: object
+      required:
+        - status
+        - inReplyToID
+      properties:
+        status:
+          type: string
+        inReplyToID:
+          type: string
+          nullable: true
     AuthForm:
       type: object
       required:
