@@ -219,8 +219,10 @@ SELECT
     s.updated_at,
     s.content,
     s.account_id,
-    s.in_reply_to_id
+    s.in_reply_to_id,
+    a.username
 FROM statuses s
+JOIN accounts a ON a.id = s.account_id
 WHERE s.in_reply_to_id = $1
 ORDER BY s.created_at ASC;
 

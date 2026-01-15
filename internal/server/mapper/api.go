@@ -81,6 +81,7 @@ func StatusToComment(status *db.GetCommentsByPostIdRow) *api.Comment {
 	if status.InReplyToID.Valid {
 		postID = int(status.InReplyToID.Int32)
 	}
+	username := status.Username
 	return &api.Comment{
 		Id:        int(status.ID),
 		PostID:    postID,
@@ -89,5 +90,6 @@ func StatusToComment(status *db.GetCommentsByPostIdRow) *api.Comment {
 		ParentID:  postID, // Comments have parentID same as postID
 		CreatedAt: status.CreatedAt,
 		UpdatedAt: status.UpdatedAt,
+		Username:  &username,
 	}
 }

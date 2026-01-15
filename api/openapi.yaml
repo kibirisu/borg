@@ -583,6 +583,8 @@ components:
           type: string
         parentID:
           type: integer
+        username:
+          type: string
         createdAt:
           type: string
           format: date-time

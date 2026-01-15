@@ -902,6 +902,7 @@ export interface components {
             createdAt: string;
             /** Format: date-time */
             UpdatedAt: string;
+            username?: string;
         };
         NewComment: {
             postID: number;

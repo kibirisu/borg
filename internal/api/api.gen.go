@@ -48,6 +48,7 @@ type Comment struct {
 	ParentID  int       `json:"parentID"`
 	PostID    int       `json:"postID"`
 	UserID    int       `json:"userID"`
+	Username  *string   `json:"username,omitempty"`
 }
 
 // Like defines model for Like.
