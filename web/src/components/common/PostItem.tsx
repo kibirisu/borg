@@ -23,6 +23,8 @@ interface PostProps {
   onCommentClick?: (post: PostPresentable) => void;
   likeActive?: boolean;
   shareActive?: boolean;
+  onEdit?: (post: PostPresentable) => void;
+  onDelete?: (post: PostPresentable) => void;
 }
 
 export const PostItem = ({
@@ -33,6 +35,8 @@ export const PostItem = ({
   onCommentClick,
   likeActive = false,
   shareActive = false,
+  onEdit,
+  onDelete,
 }: PostProps) => {
   const appState = useContext(AppContext);
   const currentUserId = appState?.userId ?? null;
@@ -129,6 +133,7 @@ export const PostItem = ({
                   className="text-black bg-white box-border border border-black hover:bg-gray-100 hover:cursor-pointer shadow-xs font-medium leading-5 rounded-full text-sm px-4 py-2.5 focus:outline-none"
                   onClick={(event) => {
                     event.stopPropagation();
+                    onEdit?.(post);
                   }}
                 >
                   <i className="bi bi-pencil mr-1" aria-hidden="true"></i>
@@ -139,6 +144,7 @@ export const PostItem = ({
                   className="text-black bg-white box-border border border-black hover:bg-gray-100 hover:cursor-pointer shadow-xs font-medium leading-5 rounded-full text-sm px-4 py-2.5 focus:outline-none"
                   onClick={(event) => {
                     event.stopPropagation();
+                    onDelete?.(post);
                   }}
                 >
                   <i className="bi bi-trash3 mr-1" aria-hidden="true"></i>

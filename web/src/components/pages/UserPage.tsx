@@ -93,6 +93,9 @@ export default function UserPage() {
   });
 
   const [isComposerOpen, setComposerOpen] = useState(false);
+  const [editingPost, setEditingPost] = useState<
+    components["schemas"]["Post"] | null
+  >(null);
   const { data: followers } = useQuery<components["schemas"]["User"][]>({
     queryKey: ["followers", userId],
     enabled: Boolean(client) && userId !== null,
@@ -128,9 +131,13 @@ export default function UserPage() {
   });
   const openComposer = () => {
     console.log("[UserPage] open composer", { userId });
+    setEditingPost(null);
     setComposerOpen(true);
   };
-  const closeComposer = () => setComposerOpen(false);
+  const closeComposer = () => {
+    setComposerOpen(false);
+    setEditingPost(null);
+  };
 
   const handleCreatePost = async (content: string) => {
     if (!client || userId === null) {
@@ -139,6 +146,60 @@ export default function UserPage() {
     await client.fetchClient.POST("/api/posts", {
       body: { userID: userId, content },
     });
+    await client.queryClient.invalidateQueries({
+      queryKey: ["user-posts", userId],
+    });
+    await client.queryClient.invalidateQueries({
+      queryKey: ["get", "/api/posts", {}],
+    });
+  };
+
+  const handleUpdatePost = async (content: string) => {
+    if (!client || userId === null || !editingPost) {
+      throw new Error("User not authenticated");
+    }
+    const nextContent = content.trim();
+    if (!nextContent || nextContent === editingPost.content) {
+      return;
+    }
+    const res = await client.fetchClient.PUT("/api/posts/{id}", {
+      params: { path: { id: Number(editingPost.id) } },
+      body: { content: nextContent },
+    });
+    if (res.error) {
+      throw new Error("Failed to update post");
+    }
+    await client.queryClient.invalidateQueries({
+      queryKey: ["user-posts", userId],
+    });
+    await client.queryClient.invalidateQueries({
+      queryKey: ["get", "/api/posts", {}],
+    });
+    setEditingPost(null);
+  };
+
+  const handleSubmitPost = async (content: string) => {
+    if (editingPost) {
+      await handleUpdatePost(content);
+      return;
+    }
+    await handleCreatePost(content);
+  };
+
+  const handleDeletePost = async (post: components["schemas"]["Post"]) => {
+    if (!client || userId === null) {
+      throw new Error("User not authenticated");
+    }
+    const confirmed = window.confirm("Delete this post?");
+    if (!confirmed) {
+      return;
+    }
+    const res = await client.fetchClient.DELETE("/api/posts/{id}", {
+      params: { path: { id: Number(post.id) } },
+    });
+    if (res.error) {
+      throw new Error("Failed to delete post");
+    }
     await client.queryClient.invalidateQueries({
       queryKey: ["user-posts", userId],
     });
@@ -203,6 +264,17 @@ export default function UserPage() {
                       post={{ data: post }}
                       client={client!}
                       showActions
+                      onEdit={(p) => {
+                        if ("content" in p.data && "likeCount" in p.data) {
+                          setEditingPost(p.data as components["schemas"]["Post"]);
+                          setComposerOpen(true);
+                        }
+                      }}
+                      onDelete={(p) => {
+                        if ("id" in p.data && "likeCount" in p.data) {
+                          void handleDeletePost(p.data as components["schemas"]["Post"]);
+                        }
+                      }}
                       onCommentClick={(p) => {
                         if ("id" in p.data) {
                           navigate(`/post/${p.data.id}`);
@@ -223,7 +295,10 @@ export default function UserPage() {
         isOpen={isComposerOpen}
         onClose={closeComposer}
         replyTo={null}
-        onSubmit={handleCreatePost}
+        onSubmit={handleSubmitPost}
+        initialContent={editingPost?.content}
+        title={editingPost ? "Edit post" : "Share with others ❤️"}
+        submitLabel={editingPost ? "Save changes" : "Post me"}
       />
     </div>
   );
