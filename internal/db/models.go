@@ -45,12 +45,13 @@ type Follow struct {
 }
 
 type FollowRequest struct {
-	ID              xid.ID
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
-	Uri             string
-	AccountID       xid.ID
-	TargetAccountID xid.ID
+	ID               xid.ID
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
+	Uri              string
+	AccountID        xid.ID
+	TargetAccountID  xid.ID
+	TargetAccountUri string
 }
 
 type Status struct {

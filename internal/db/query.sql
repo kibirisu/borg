@@ -30,6 +30,9 @@ SELECT * FROM accounts WHERE id = $1;
 -- name: GetAccountRemoteFollowersInboxes :many
 SELECT inbox_uri FROM accounts a JOIN follows f ON a.id = f.account_id WHERE f.target_account_id = $1 AND a.domain IS NOT NULL;
 
+-- name: GetAccountInbox :one
+SELECT inbox_uri FROM accounts WHERE id = $1;
+
 -- name: GetLocalStatuses :many
 SELECT 
     sqlc.embed(s),
@@ -110,12 +113,12 @@ SELECT
     (SELECT following_uri FROM accounts a WHERE a.username = $1),
     (SELECT COUNT(*) FROM follows f JOIN accounts a ON f.account_id = a.id WHERE a.username = $1);
 
--- name: CreateFollowRequest :exec
+-- name: CreateFollowRequest :one
 INSERT INTO follow_requests (
-    id, uri, account_id, target_account_id
+    id, uri, account_id, target_account_id, target_account_uri
 ) VALUES (
-    $1, $2, $3, $4
-);
+    $1, $2, $3, $4, (SELECT uri FROM accounts WHERE id = $4)
+) RETURNING *;
 
 -- name: CreateStatus :one
 INSERT INTO statuses (
@@ -126,8 +129,9 @@ INSERT INTO statuses (
 RETURNING *;
 
 -- name: CreateStatusNew :one
-WITH parent AS (SELECT uri, account_id FROM statuses WHERE id = $7)
-INSERT INTO statuses (
+WITH parent AS (
+    SELECT uri, account_id FROM statuses WHERE id = $7
+) INSERT INTO statuses (
     id, uri, url, local, content, account_id, account_uri, 
     in_reply_to_id, in_reply_to_uri, in_reply_to_account_id
 ) VALUES (

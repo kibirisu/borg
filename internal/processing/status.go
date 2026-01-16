@@ -4,13 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"log"
 
 	"github.com/rs/xid"
 
 	"github.com/kibirisu/borg/internal/ap"
 	"github.com/kibirisu/borg/internal/db"
-	"github.com/kibirisu/borg/internal/domain"
 )
 
 func (p *processor) LookupStatus(ctx context.Context, object ap.Noter) (db.Status, error) {
@@ -50,21 +48,4 @@ func (p *processor) LookupStatus(ctx context.Context, object ap.Noter) (db.Statu
 		}
 	}
 	return status, nil
-}
-
-func (p *processor) DistributeObject(
-	ctx context.Context,
-	object *domain.Object,
-	actorID xid.ID,
-) error {
-	inboxes, err := p.store.Accounts().GetAccountRemoteFollowerInboxes(ctx, actorID)
-	if err != nil {
-		return err
-	}
-	for _, inbox := range inboxes {
-		if err = p.client.Post(ctx, inbox, object); err != nil {
-			log.Println(err)
-		}
-	}
-	return nil
 }

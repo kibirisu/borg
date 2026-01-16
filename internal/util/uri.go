@@ -50,6 +50,10 @@ func (b URIBuilder) StatusURIs(actorID, statusID string) StatusURIs {
 	}
 }
 
+func (b URIBuilder) FollowRequestURI(actorID, requestID string) string {
+	return fmt.Sprintf("%s/%s/requests/%s", b.base, actorID, requestID)
+}
+
 func ExtractDomainFromURI(uri string) string {
 	res := strings.SplitN(uri, "/", 4)
 	return res[2]

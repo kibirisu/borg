@@ -11,12 +11,13 @@ type Store interface {
 	Accounts() AccountRepository
 	Users() UserRepository
 	Follows() FollowRepository
+	FollowRequests() FollowRequestRepository
 	Statuses() StatusRepository
 	Favourites() FavouriteRepository
 	WithTX(context.Context, Tx) (any, error)
 }
 
-type Tx func(Store) (any, error)
+type Tx func(context.Context, Store) (any, error)
 
 var _ Store = (*store)(nil)
 
@@ -44,6 +45,10 @@ func (s *store) Follows() FollowRepository {
 	return &followRepository{s.q}
 }
 
+func (s *store) FollowRequests() FollowRequestRepository {
+	return &followRequestRepository{s.q}
+}
+
 // Statuses implements Store.
 func (s *store) Statuses() StatusRepository {
 	return &statusRepository{s.q}
@@ -66,12 +71,11 @@ func (s *store) WithTX(ctx context.Context, fn Tx) (any, error) {
 
 	qtx := s.q.WithTx(tx)
 	store := store{q: qtx}
-	res, err := fn(&store)
+
+	res, err := fn(ctx, &store)
 	if err != nil {
 		return nil, err
 	}
-	if err = tx.Commit(); err != nil {
-		return nil, err
-	}
-	return res, nil
+	err = tx.Commit()
+	return res, err
 }

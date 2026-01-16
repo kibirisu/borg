@@ -12,7 +12,6 @@ type StatusRepository interface {
 	GetByIDNew(context.Context, db.GetStatusByIDNewParams) (db.GetStatusByIDNewRow, error)
 	CreateNew(context.Context, db.CreateStatusNewParams) (db.Status, error)
 	Create(context.Context, db.CreateStatusParams) (db.Status, error)
-	Add(context.Context, db.AddStatusParams) error
 	GetByID(context.Context, xid.ID) (db.Status, error)
 	GetByURI(context.Context, string) (db.Status, error)
 	GetShares(context.Context, xid.ID) ([]db.Status, error)

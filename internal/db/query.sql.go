@@ -187,12 +187,12 @@ func (q *Queries) CreateFollow(ctx context.Context, arg CreateFollowParams) (Fol
 	return i, err
 }
 
-const createFollowRequest = `-- name: CreateFollowRequest :exec
+const createFollowRequest = `-- name: CreateFollowRequest :one
 INSERT INTO follow_requests (
-    id, uri, account_id, target_account_id
+    id, uri, account_id, target_account_id, target_account_uri
 ) VALUES (
-    $1, $2, $3, $4
-)
+    $1, $2, $3, $4, (SELECT uri FROM accounts WHERE id = $4)
+) RETURNING id, created_at, updated_at, uri, account_id, target_account_id, target_account_uri
 `
 
 type CreateFollowRequestParams struct {
@@ -202,14 +202,24 @@ type CreateFollowRequestParams struct {
 	TargetAccountID xid.ID
 }
 
-func (q *Queries) CreateFollowRequest(ctx context.Context, arg CreateFollowRequestParams) error {
-	_, err := q.db.ExecContext(ctx, createFollowRequest,
+func (q *Queries) CreateFollowRequest(ctx context.Context, arg CreateFollowRequestParams) (FollowRequest, error) {
+	row := q.db.QueryRowContext(ctx, createFollowRequest,
 		arg.ID,
 		arg.Uri,
 		arg.AccountID,
 		arg.TargetAccountID,
 	)
-	return err
+	var i FollowRequest
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Uri,
+		&i.AccountID,
+		&i.TargetAccountID,
+		&i.TargetAccountUri,
+	)
+	return i, err
 }
 
 const createStatus = `-- name: CreateStatus :one
@@ -265,8 +275,9 @@ func (q *Queries) CreateStatus(ctx context.Context, arg CreateStatusParams) (Sta
 }
 
 const createStatusNew = `-- name: CreateStatusNew :one
-WITH parent AS (SELECT uri, account_id FROM statuses WHERE id = $7)
-INSERT INTO statuses (
+WITH parent AS (
+    SELECT uri, account_id FROM statuses WHERE id = $7
+) INSERT INTO statuses (
     id, uri, url, local, content, account_id, account_uri, 
     in_reply_to_id, in_reply_to_uri, in_reply_to_account_id
 ) VALUES (
@@ -487,6 +498,17 @@ func (q *Queries) GetAccountFollowing(ctx context.Context, accountID xid.ID) ([]
 		return nil, err
 	}
 	return items, nil
+}
+
+const getAccountInbox = `-- name: GetAccountInbox :one
+SELECT inbox_uri FROM accounts WHERE id = $1
+`
+
+func (q *Queries) GetAccountInbox(ctx context.Context, id xid.ID) (string, error) {
+	row := q.db.QueryRowContext(ctx, getAccountInbox, id)
+	var inbox_uri string
+	err := row.Scan(&inbox_uri)
+	return inbox_uri, err
 }
 
 const getAccountRemoteFollowersInboxes = `-- name: GetAccountRemoteFollowersInboxes :many

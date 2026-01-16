@@ -49,6 +49,7 @@ CREATE TABLE follow_requests (
     uri TEXT UNIQUE NOT NULL,
     account_id VARCHAR(20) NOT NULL REFERENCES accounts (id),
     target_account_id VARCHAR(20) NOT NULL REFERENCES accounts (id),
+    target_account_uri TEXT NOT NULL REFERENCES accounts (uri),
     UNIQUE (account_id, target_account_id),
     CHECK (account_id != target_account_id)
 );

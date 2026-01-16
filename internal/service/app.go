@@ -25,6 +25,7 @@ import (
 )
 
 type AppService interface {
+	FollowAccount(context.Context, string) (worker.Job, error)
 	Register(context.Context, api.AuthForm) error
 	Login(context.Context, api.AuthForm) (string, error)
 	CreateStatus(context.Context, api.PostApiStatusesJSONBody) (worker.Job, error)
@@ -34,7 +35,6 @@ type AppService interface {
 	GetLocalAccount(context.Context, string) (*db.Account, error)
 	AddNote(context.Context, db.CreateStatusParams) (db.Status, error)
 	AddFavourite(context.Context, string, string) (db.Favourite, error)
-	FollowAccount(context.Context, string, string) (*db.Follow, error)
 	GetAccountByID(context.Context, string) (db.Account, error)
 	GetAccount(context.Context, db.GetAccountParams) (*db.Account, error)
 	GetLocalPosts(context.Context) ([]db.GetLocalStatusesRow, error)
@@ -62,62 +62,101 @@ type appService struct {
 
 var _ AppService = (*appService)(nil)
 
+// FollowAccount implements AppService.
+func (s *appService) FollowAccount(ctx context.Context, accountID string) (worker.Job, error) {
+	token, ok := ctx.Value(auth.TokenContextKey).(*auth.TokenData)
+	if !ok {
+		return nil, errors.New("auth failure")
+	}
+	id := xid.New()
+	followerID, err := xid.FromString(token.ID)
+	if err != nil {
+		return nil, err
+	}
+	targetAccountID, err := xid.FromString(accountID)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := s.store.FollowRequests().Create(ctx, db.CreateFollowRequestParams{
+		ID:              id,
+		Uri:             s.builder.FollowRequestURI(token.ID, id.String()),
+		AccountID:       followerID,
+		TargetAccountID: targetAccountID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	follow := ap.NewEmptyFollowActivity().WithObject(ap.Activity[ap.Actor]{
+		ID:     req.Uri,
+		Type:   "Follow",
+		Actor:  ap.NewEmptyActor().WithLink(token.URI),
+		Object: ap.NewEmptyActor().WithLink(req.TargetAccountUri),
+	})
+
+	return func(ctx context.Context) error {
+		return s.prcessor.SendObject(ctx, follow.GetRaw().Object, req.AccountID)
+	}, nil
+}
+
 // Register implements AppService.
 func (s *appService) Register(ctx context.Context, form api.AuthForm) error {
 	id := xid.New()
 	actorURIs := s.builder.ActorURIs(id.String())
 
 	log.Printf("register: creating actor username=%s uri=%s", form.Username, actorURIs.Actor)
-	actor, err := s.store.Accounts().Create(ctx, db.CreateActorParams{
-		ID:           id,
-		Username:     form.Username,
-		Uri:          actorURIs.Actor,
-		DisplayName:  sql.NullString{}, // hassle to maintain that, gonna abandon display name
-		InboxUri:     actorURIs.Inbox,
-		OutboxUri:    actorURIs.Outbox,
-		Url:          "not gonna use that rn",
-		Domain:       sql.NullString{},
-		FollowersUri: actorURIs.Followers,
-		FollowingUri: actorURIs.Following,
+
+	_, err := s.store.WithTX(ctx, func(ctx context.Context, s repo.Store) (any, error) {
+		actor, err := s.Accounts().Create(ctx, db.CreateActorParams{
+			ID:           id,
+			Username:     form.Username,
+			Uri:          actorURIs.Actor,
+			DisplayName:  sql.NullString{},
+			InboxUri:     actorURIs.Inbox,
+			OutboxUri:    actorURIs.Outbox,
+			Url:          "not gonna use that rn",
+			Domain:       sql.NullString{},
+			FollowersUri: actorURIs.Followers,
+			FollowingUri: actorURIs.Following,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		hash, err := bcrypt.GenerateFromPassword([]byte(form.Password), bcrypt.DefaultCost)
+		if err != nil {
+			return nil, err
+		}
+		if err = s.Users().Create(ctx, db.CreateUserParams{
+			ID:           xid.New(),
+			AccountID:    actor.ID,
+			PasswordHash: string(hash),
+		}); err != nil {
+			return nil, err
+		}
+
+		log.Printf(
+			"register: user and actor created username=%s account_id=%d",
+			form.Username,
+			actor.ID,
+		)
+		return nil, nil
 	})
-	if err != nil {
-		return err
-	}
-
-	hash, err := bcrypt.GenerateFromPassword([]byte(form.Password), bcrypt.DefaultCost)
-	if err != nil {
-		return err
-	}
-	if err = s.store.Users().Create(ctx, db.CreateUserParams{
-		ID:           xid.New(),
-		AccountID:    actor.ID,
-		PasswordHash: string(hash),
-	}); err != nil {
-		return err
-	}
-
-	log.Printf(
-		"register: user and actor created username=%s account_id=%d",
-		form.Username,
-		actor.ID,
-	)
-	return nil
+	return err
 }
 
 // Login implements AppService.
-func (s *appService) Login(ctx context.Context, form api.AuthForm) (string, error) {
+func (s *appService) Login(ctx context.Context, form api.AuthForm) (token string, err error) {
 	auth, err := s.store.Users().GetByUsername(ctx, form.Username)
 	if err != nil {
-		return "", err
+		return
 	}
 	if err = bcrypt.CompareHashAndPassword([]byte(auth.PasswordHash), []byte(form.Password)); err != nil {
-		return "", err
+		return
 	}
-	token, err := issueToken(auth.ID.String(), form.Username, s.conf.ListenHost, s.conf.JWTSecret)
-	if err != nil {
-		return "", err
-	}
-	return token, nil
+	token, err = issueToken(auth.ID.String(), form.Username, s.conf.JWTSecret)
+	return
 }
 
 // CreateStatus implements AppService.
@@ -370,28 +409,6 @@ func (s *appService) GetPostShares(ctx context.Context, id string) ([]db.Status,
 		return []db.Status{}, err
 	}
 	return s.store.Statuses().GetShares(ctx, statusID)
-}
-
-// FollowAccount implements AppService.
-func (s *appService) FollowAccount(
-	ctx context.Context,
-	follower string,
-	followee string,
-) (*db.Follow, error) {
-	followerID, err := xid.FromString(follower)
-	if err != nil {
-		return nil, err
-	}
-	followedID, err := xid.FromString(followee)
-	if err != nil {
-		return nil, err
-	}
-	createParams := db.CreateFollowParams{
-		Uri:             fmt.Sprintf("http://%s/follows/%s", s.conf.ListenHost, uuid.NewString()),
-		AccountID:       followerID,
-		TargetAccountID: followedID,
-	}
-	return s.store.Follows().Create(ctx, createParams)
 }
 
 func (s *appService) DeliverToFollowers(

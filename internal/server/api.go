@@ -14,6 +14,17 @@ import (
 	"github.com/kibirisu/borg/internal/util"
 )
 
+// PostApiAccountsIdFollow implements api.ServerInterface.
+func (s *Server) PostApiAccountsIdFollow(w http.ResponseWriter, r *http.Request, id string) {
+	job, err := s.service.App.FollowAccount(r.Context(), id)
+	if err != nil {
+		log.Println(err)
+		util.WriteError(w, http.StatusBadRequest, err.Error())
+	}
+	w.WriteHeader(http.StatusOK)
+	s.worker.Enqueue(job)
+}
+
 // PostAuthLogin implements api.ServerInterface.
 func (s *Server) PostAuthLogin(w http.ResponseWriter, r *http.Request) {
 	var form api.AuthForm
@@ -152,45 +163,6 @@ func (s *Server) GetApiAccountsLookup(
 	// }
 	// log.Printf("lookup: remote actor stored with username=%s domain=%s", row.Username, row.Domain.String)
 	// util.WriteJSON(w, http.StatusOK, mapper.AccountToAPI(row))
-}
-
-// PostApiAccountsIdFollow implements api.ServerInterface.
-func (s *Server) PostApiAccountsIdFollow(w http.ResponseWriter, r *http.Request, id string) {
-	container, ok := r.Context().Value(auth.TokenContextKey).(*auth.TokenData)
-
-	if !ok || container == nil {
-		util.WriteError(w, http.StatusUnauthorized, "User not authenticated")
-		return
-	}
-	currentUserID := container.ID
-	if currentUserID == id {
-		http.Error(w, "Tried to follow oneself", http.StatusBadRequest)
-		return
-	}
-	follower, err := s.service.App.GetAccountByID(r.Context(), currentUserID)
-	followee, err := s.service.App.GetAccountByID(r.Context(), id)
-	follow, err := s.service.App.FollowAccount(r.Context(), currentUserID, id)
-	if err != nil {
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
-		return
-	}
-	// APfollow := mapper.DBToFollow(follow, &follower, &followee)
-	followActivity := ap.NewActivity(nil)
-	actor := ap.NewActor(nil)
-	actor.SetLink(follower.Uri)
-	object := ap.NewActor(nil)
-	object.SetLink(followee.Uri)
-	followActivity.SetObject(ap.Activity[any]{
-		ID:     follow.Uri,
-		Type:   "Follow",
-		Actor:  actor,
-		Object: object.(ap.Objecter[any]),
-	})
-	log.Println(followee.InboxUri)
-	if follower.Domain != followee.Domain {
-		util.DeliverToEndpoint(followee.InboxUri, followActivity.GetRaw())
-	}
-	util.WriteJSON(w, http.StatusCreated, nil)
 }
 
 // DeleteApiUsersId implements api.ServerInterface.

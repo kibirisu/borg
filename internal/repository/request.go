@@ -7,7 +7,7 @@ import (
 )
 
 type FollowRequestRepository interface {
-	Create(context.Context, db.CreateFollowRequestParams) error
+	Create(context.Context, db.CreateFollowRequestParams) (db.FollowRequest, error)
 }
 
 type followRequestRepository struct {
@@ -20,6 +20,6 @@ var _ FollowRequestRepository = (*followRequestRepository)(nil)
 func (r *followRequestRepository) Create(
 	ctx context.Context,
 	request db.CreateFollowRequestParams,
-) error {
+) (db.FollowRequest, error) {
 	return r.q.CreateFollowRequest(ctx, request)
 }
