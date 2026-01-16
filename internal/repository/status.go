@@ -9,6 +9,7 @@ import (
 )
 
 type StatusRepository interface {
+	GetByIDNew(context.Context, db.GetStatusByIDNewParams) (db.GetStatusByIDNewRow, error)
 	CreateNew(context.Context, db.CreateStatusNewParams) (db.Status, error)
 	Create(context.Context, db.CreateStatusParams) (db.Status, error)
 	Add(context.Context, db.AddStatusParams) error
@@ -27,6 +28,14 @@ type StatusRepository interface {
 
 type statusRepository struct {
 	q *db.Queries
+}
+
+// GetByIDNew implements StatusRepository.
+func (r *statusRepository) GetByIDNew(
+	ctx context.Context,
+	ids db.GetStatusByIDNewParams,
+) (db.GetStatusByIDNewRow, error) {
+	return r.q.GetStatusByIDNew(ctx, ids)
 }
 
 var _ StatusRepository = (*statusRepository)(nil)

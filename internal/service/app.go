@@ -27,7 +27,8 @@ import (
 type AppService interface {
 	Register(context.Context, api.AuthForm) error
 	Login(context.Context, api.AuthForm) (string, error)
-	CreateStatus(context.Context, api.Status) (worker.Job, error)
+	CreateStatus(context.Context, api.PostApiStatusesJSONBody) (worker.Job, error)
+	ViewStatus(context.Context, string) (*api.Status, error)
 	GetAccountFollowers(context.Context, string) ([]db.Account, error)
 	GetAccountFollowing(context.Context, string) ([]db.Account, error)
 	GetLocalAccount(context.Context, string) (*db.Account, error)
@@ -120,15 +121,15 @@ func (s *appService) Login(ctx context.Context, form api.AuthForm) (string, erro
 // CreateStatus implements AppService.
 func (s *appService) CreateStatus(
 	ctx context.Context,
-	status api.Status,
+	status api.PostApiStatusesJSONBody,
 ) (worker.Job, error) {
 	token, ok := ctx.Value(auth.TokenContextKey).(*auth.TokenData)
 	if !ok {
 		return nil, errors.New("auth failure")
 	}
+
 	statusID := xid.New()
 	statusURIs := s.builder.StatusURIs(token.ID, statusID.String())
-
 	accountID, err := xid.FromString(token.ID)
 	if err != nil {
 		return nil, err
@@ -192,6 +193,54 @@ func (s *appService) CreateStatus(
 	return func(ctx context.Context) error {
 		return s.prcessor.DistributeObject(ctx, create.GetRaw().Object, accountID)
 	}, nil
+}
+
+// ViewStatus implements AppService.
+func (s *appService) ViewStatus(ctx context.Context, id string) (*api.Status, error) {
+	token, ok := ctx.Value(auth.TokenContextKey).(*auth.TokenData)
+	if !ok {
+		return nil, errors.New("auth failure")
+	}
+
+	statusID, err := xid.FromString(id)
+	if err != nil {
+		return nil, err
+	}
+	accountID, err := xid.FromString(token.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	status, err := s.store.Statuses().GetByIDNew(ctx, db.GetStatusByIDNewParams{
+		ID:        statusID,
+		AccountID: accountID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var inReplyToID, inReplyToAccountID *string
+	if status.Status.InReplyToID != nil {
+		id := status.Status.InReplyToID.String()
+		inReplyToID = &id
+	}
+	if status.Status.InReplyToAccountID.Valid {
+		inReplyToAccountID = &status.Status.InReplyToAccountID.String
+	}
+
+	res := api.Status{
+		Content:            status.Status.Content,
+		Favourited:         status.Favourited,
+		FavouritesCount:    int(status.FavouritesCount),
+		Id:                 status.Status.ID.String(),
+		InReplyToAccountId: inReplyToAccountID,
+		InReplyToId:        inReplyToID,
+		Reblogged:          status.Reblogged,
+		ReblogsCount:       int(status.ReblogsCount),
+		RepliesCount:       int(status.RepliesCount),
+		Uri:                status.Status.Uri,
+	}
+	return &res, nil
 }
 
 // GetLocalAccount implements AppService.

@@ -44,6 +44,16 @@ WHERE a.domain is null and s.in_reply_to_id is null;
 -- name: GetStatusById :one
 SELECT * FROM statuses WHERE id = $1;
 
+-- name: GetStatusByIDNew :one
+SELECT 
+    sqlc.embed(s),
+    (SELECT COUNT(*) FROM statuses r WHERE r.in_reply_to_id = s.id) AS replies_count,
+    (SELECT COUNT(*) FROM favourites f WHERE f.status_id = s.id) AS favourites_count,
+    (SELECT COUNT(*) FROM statuses r WHERE r.reblog_of_id = s.id) AS reblogs_count,
+    EXISTS(SELECT 1 FROM favourites f WHERE f.status_id = s.id AND f.account_id = $2) AS favourited,
+    EXISTS(SELECT 1 FROM statuses r WHERE r.reblog_of_id = s.id AND r.account_id = $2) AS reblogged
+FROM statuses s WHERE s.id = $1;
+
 -- name: GetStatusByURI :one
 SELECT * FROM statuses WHERE uri LIKE '%' || $1::text;
 
@@ -117,10 +127,17 @@ RETURNING *;
 
 -- name: CreateStatusNew :one
 INSERT INTO statuses (
-    id, uri, url, local, content, account_id, account_uri, in_reply_to_id, in_reply_to_uri
-) VALUES (
-    $1, $2, $3, true, $4, $5, $6, $7, (SELECT uri FROM statuses WHERE id = $7)
-) RETURNING *;
+    id, uri, url, local, content, account_id, account_uri, 
+    in_reply_to_id, in_reply_to_uri, in_reply_to_account_id
+)
+SELECT 
+    $1, $2, $3, true, $4, $5, $6, 
+    $7,
+    parent.uri, 
+    parent.account_id
+FROM (SELECT $7::text AS id) AS lookup
+LEFT JOIN statuses parent ON parent.id = lookup.id
+RETURNING *;
 
 -- name: AddStatus :exec
 INSERT INTO statuses (

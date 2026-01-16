@@ -6,6 +6,20 @@ info:
   contact: {}
 
 paths:
+  /api/accounts/{id}/follow:
+    post:
+      summary: Follow the given account.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+      security:
+        - BearerAuth: []
   /api/statuses:
     post:
       summary: Publish a status with the given parameters.
@@ -14,10 +28,37 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Status"
+              type: object
+              required:
+                - status
+                - inReplyToID
+              properties:
+                status:
+                  type: string
+                inReplyToID:
+                  type: string
+                  nullable: true
       responses:
         "200":
           description: OK
+      security:
+        - BearerAuth: []
+  /api/statuses/{id}:
+    get:
+      summary: Obtain information about a status.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: "Status"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Status"
   /api/users:
     post:
       summary: Create a user
@@ -408,20 +449,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Account"
-  /api/accounts/{id}/follow:
-    post:
-      summary: Follow a user
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        "200":
-          description: Followed successfully
-      security:
-        - BearerAuth: []
 
 components:
   securitySchemes:
@@ -433,14 +460,39 @@ components:
     Status:
       type: object
       required:
-        - status
-        - inReplyToID
+        - id
+        - uri
+        - content
+        - reblogs_count
+        - favourites_count
+        - replies_count
+        - in_reply_to_id
+        - in_reply_to_account_id
+        - favourited
+        - reblogged
       properties:
-        status:
+        id:
           type: string
-        inReplyToID:
+        uri:
+          type: string
+        content:
+          type: string
+        reblogs_count:
+          type: integer
+        favourites_count:
+          type: integer
+        replies_count:
+          type: integer
+        in_reply_to_id:
           type: string
           nullable: true
+        in_reply_to_account_id:
+          type: string
+          nullable: true
+        favourited:
+          type: boolean
+        reblogged:
+          type: boolean
     AuthForm:
       type: object
       required:

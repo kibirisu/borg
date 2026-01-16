@@ -112,8 +112,16 @@ type Share struct {
 
 // Status defines model for Status.
 type Status struct {
-	InReplyToID *string `json:"inReplyToID"`
-	Status      string  `json:"status"`
+	Content            string  `json:"content"`
+	Favourited         bool    `json:"favourited"`
+	FavouritesCount    int     `json:"favourites_count"`
+	Id                 string  `json:"id"`
+	InReplyToAccountId *string `json:"in_reply_to_account_id"`
+	InReplyToId        *string `json:"in_reply_to_id"`
+	Reblogged          bool    `json:"reblogged"`
+	ReblogsCount       int     `json:"reblogs_count"`
+	RepliesCount       int     `json:"replies_count"`
+	Uri                string  `json:"uri"`
 }
 
 // UpdatePost defines model for UpdatePost.
@@ -163,6 +171,12 @@ type GetApiAccountsLookupParams struct {
 	Acct string `form:"acct" json:"acct"`
 }
 
+// PostApiStatusesJSONBody defines parameters for PostApiStatuses.
+type PostApiStatusesJSONBody struct {
+	InReplyToID *string `json:"inReplyToID"`
+	Status      string  `json:"status"`
+}
+
 // PostApiPostsJSONRequestBody defines body for PostApiPosts for application/json ContentType.
 type PostApiPostsJSONRequestBody = NewPost
 
@@ -179,7 +193,7 @@ type PostApiPostsIdLikesJSONRequestBody = NewLike
 type PostApiPostsIdSharesJSONRequestBody = NewShare
 
 // PostApiStatusesJSONRequestBody defines body for PostApiStatuses for application/json ContentType.
-type PostApiStatusesJSONRequestBody = Status
+type PostApiStatusesJSONRequestBody PostApiStatusesJSONBody
 
 // PostApiUsersJSONRequestBody defines body for PostApiUsers for application/json ContentType.
 type PostApiUsersJSONRequestBody = NewUser
@@ -201,7 +215,7 @@ type ServerInterface interface {
 	// Look up a user
 	// (GET /api/accounts/lookup)
 	GetApiAccountsLookup(w http.ResponseWriter, r *http.Request, params GetApiAccountsLookupParams)
-	// Follow a user
+	// Follow the given account.
 	// (POST /api/accounts/{id}/follow)
 	PostApiAccountsIdFollow(w http.ResponseWriter, r *http.Request, id string)
 	// Get all posts
@@ -240,6 +254,9 @@ type ServerInterface interface {
 	// Publish a status with the given parameters.
 	// (POST /api/statuses)
 	PostApiStatuses(w http.ResponseWriter, r *http.Request)
+	// Obtain information about a status.
+	// (GET /api/statuses/{id})
+	GetApiStatusesId(w http.ResponseWriter, r *http.Request, id string)
 	// Create a user
 	// (POST /api/users)
 	PostApiUsers(w http.ResponseWriter, r *http.Request)
@@ -294,7 +311,7 @@ func (_ Unimplemented) GetApiAccountsLookup(w http.ResponseWriter, r *http.Reque
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Follow a user
+// Follow the given account.
 // (POST /api/accounts/{id}/follow)
 func (_ Unimplemented) PostApiAccountsIdFollow(w http.ResponseWriter, r *http.Request, id string) {
 	w.WriteHeader(http.StatusNotImplemented)
@@ -369,6 +386,12 @@ func (_ Unimplemented) PostApiPostsIdShares(w http.ResponseWriter, r *http.Reque
 // Publish a status with the given parameters.
 // (POST /api/statuses)
 func (_ Unimplemented) PostApiStatuses(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Obtain information about a status.
+// (GET /api/statuses/{id})
+func (_ Unimplemented) GetApiStatusesId(w http.ResponseWriter, r *http.Request, id string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -832,8 +855,39 @@ func (siw *ServerInterfaceWrapper) PostApiPostsIdShares(w http.ResponseWriter, r
 // PostApiStatuses operation middleware
 func (siw *ServerInterfaceWrapper) PostApiStatuses(w http.ResponseWriter, r *http.Request) {
 
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.PostApiStatuses(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetApiStatusesId operation middleware
+func (siw *ServerInterfaceWrapper) GetApiStatusesId(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetApiStatusesId(w, r, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1269,6 +1323,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Post(options.BaseURL+"/api/statuses", wrapper.PostApiStatuses)
 	})
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/statuses/{id}", wrapper.GetApiStatusesId)
+	})
+	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/users", wrapper.PostApiUsers)
 	})
 	r.Group(func(r chi.Router) {
@@ -1311,32 +1368,34 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

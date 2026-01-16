@@ -54,7 +54,7 @@ func (s *Server) PostAuthRegister(w http.ResponseWriter, r *http.Request) {
 
 // PostApiStatuses implements api.ServerInterface.
 func (s *Server) PostApiStatuses(w http.ResponseWriter, r *http.Request) {
-	var status api.Status
+	var status api.PostApiStatusesJSONBody
 	if err := util.ReadJSON(r, &status); err != nil {
 		log.Println(err)
 		util.WriteError(w, http.StatusBadRequest, err.Error())
@@ -70,6 +70,17 @@ func (s *Server) PostApiStatuses(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	s.worker.Enqueue(job)
+}
+
+// GetApiStatusesId implements api.ServerInterface.
+func (s *Server) GetApiStatusesId(w http.ResponseWriter, r *http.Request, id string) {
+	status, err := s.service.App.ViewStatus(r.Context(), id)
+	if err != nil {
+		log.Println(err)
+		util.WriteError(w, http.StatusNotFound, err.Error())
+	}
+
+	util.WriteJSON(w, http.StatusOK, &status)
 }
 
 // GetApiAccountsLookup implements api.ServerInterface.
