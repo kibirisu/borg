@@ -14,8 +14,6 @@ type StatusRepository interface {
 	Create(context.Context, db.CreateStatusParams) (db.Status, error)
 	GetByID(context.Context, xid.ID) (db.Status, error)
 	GetByURI(context.Context, string) (db.Status, error)
-	GetShares(context.Context, xid.ID) ([]db.Status, error)
-	GetLocalStatuses(context.Context) ([]db.GetLocalStatusesRow, error)
 	GetByIDWithMetadata(context.Context, xid.ID) (db.GetStatusByIdWithMetadataRow, error)
 	GetSharedPostsByAccountId(context.Context, xid.ID) ([]db.GetSharedPostsByAccountIdRow, error)
 	GetTimelinePostsByAccountId(
@@ -76,16 +74,6 @@ func (r *statusRepository) GetByIDWithMetadata(
 	id xid.ID,
 ) (db.GetStatusByIdWithMetadataRow, error) {
 	return r.q.GetStatusByIdWithMetadata(ctx, id)
-}
-
-// GetShares implements StatusRepository.
-func (r *statusRepository) GetShares(ctx context.Context, id xid.ID) ([]db.Status, error) {
-	return r.q.GetStatusShares(ctx, &id)
-}
-
-// GetLocalStatuses implements StatusRepository.
-func (r *statusRepository) GetLocalStatuses(ctx context.Context) ([]db.GetLocalStatusesRow, error) {
-	return r.q.GetLocalStatuses(ctx)
 }
 
 // GetSharedPostsByAccountId implements StatusRepository.

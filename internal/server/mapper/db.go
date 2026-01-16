@@ -9,22 +9,6 @@ import (
 	"github.com/kibirisu/borg/internal/db"
 )
 
-func NewPostToDB(newPost *api.NewPost, isLocal bool) *db.CreateStatusParams {
-	actorID, err := xid.FromString(newPost.UserID)
-	if err != nil {
-		return nil
-	}
-	return &db.CreateStatusParams{
-		ID:          xid.New(),
-		Url:         "TODO",
-		Local:       sql.NullBool{Bool: isLocal, Valid: true},
-		Content:     newPost.Content,
-		AccountID:   actorID,
-		InReplyToID: nil,
-		ReblogOfID:  nil,
-	}
-}
-
 func NewCommentToDB(comment *api.NewComment) *db.CreateStatusParams {
 	actorID, err := xid.FromString(comment.UserID)
 	if err != nil {

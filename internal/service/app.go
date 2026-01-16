@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"net/http"
 	"time"
 
 	"github.com/google/uuid"
@@ -25,23 +24,17 @@ import (
 )
 
 type AppService interface {
-	FollowAccount(context.Context, string) (worker.Job, error)
 	Register(context.Context, api.AuthForm) error
 	Login(context.Context, api.AuthForm) (string, error)
-	CreateStatus(context.Context, api.PostApiStatusesJSONBody) (worker.Job, error)
+	GetAccount(context.Context, string) (*api.Account, error)
+	GetAccountStatuses(context.Context, string) ([]api.Status, error)
+	GetAccountFollowers(context.Context, string) ([]api.Account, error)
+	GetAccountFollowing(context.Context, string) ([]api.Account, error)
+	FollowAccount(context.Context, string) (worker.Job, error)
+	UnfollowAccount(context.Context, string) (worker.Job, error)
 	ViewStatus(context.Context, string) (*api.Status, error)
-	GetAccountFollowers(context.Context, string) ([]db.Account, error)
-	GetAccountFollowing(context.Context, string) ([]db.Account, error)
-	GetLocalAccount(context.Context, string) (*db.Account, error)
-	AddNote(context.Context, db.CreateStatusParams) (db.Status, error)
+	CreateStatus(context.Context, api.PostApiStatusesJSONBody) (worker.Job, error)
 	AddFavourite(context.Context, string, string) (db.Favourite, error)
-	GetAccountByID(context.Context, string) (db.Account, error)
-	GetAccount(context.Context, db.GetAccountParams) (*db.Account, error)
-	GetLocalPosts(context.Context) ([]db.GetLocalStatusesRow, error)
-	GetPostByAccountID(context.Context, string) ([]db.GetStatusesByAccountIdRow, error)
-	GetPostByID(context.Context, string) (*db.Status, error)
-	GetPostLikes(context.Context, string) ([]db.Favourite, error)
-	GetPostShares(context.Context, string) ([]db.Status, error)
 	GetPostByIDWithMetadata(context.Context, string) (*db.GetStatusByIdWithMetadataRow, error)
 	GetLikedPostsByAccountId(context.Context, string) ([]db.GetLikedPostsByAccountIdRow, error)
 	GetSharedPostsByAccountId(context.Context, string) ([]db.GetSharedPostsByAccountIdRow, error)
@@ -49,8 +42,6 @@ type AppService interface {
 		context.Context,
 		string,
 	) ([]db.GetTimelinePostsByAccountIdRow, error)
-	// EW, idk if this should stay here
-	DeliverToFollowers(http.ResponseWriter, *http.Request, string, func(recipientURI string) any)
 }
 
 type appService struct {
@@ -61,44 +52,6 @@ type appService struct {
 }
 
 var _ AppService = (*appService)(nil)
-
-// FollowAccount implements AppService.
-func (s *appService) FollowAccount(ctx context.Context, accountID string) (worker.Job, error) {
-	token, ok := ctx.Value(auth.TokenContextKey).(*auth.TokenData)
-	if !ok {
-		return nil, errors.New("auth failure")
-	}
-	id := xid.New()
-	followerID, err := xid.FromString(token.ID)
-	if err != nil {
-		return nil, err
-	}
-	targetAccountID, err := xid.FromString(accountID)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := s.store.FollowRequests().Create(ctx, db.CreateFollowRequestParams{
-		ID:              id,
-		Uri:             s.builder.FollowRequestURI(token.ID, id.String()),
-		AccountID:       followerID,
-		TargetAccountID: targetAccountID,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	follow := ap.NewEmptyFollowActivity().WithObject(ap.Activity[ap.Actor]{
-		ID:     req.Uri,
-		Type:   "Follow",
-		Actor:  ap.NewEmptyActor().WithLink(token.URI),
-		Object: ap.NewEmptyActor().WithLink(req.TargetAccountUri),
-	})
-
-	return func(ctx context.Context) error {
-		return s.prcessor.SendObject(ctx, follow.GetRaw().Object, req.AccountID)
-	}, nil
-}
 
 // Register implements AppService.
 func (s *appService) Register(ctx context.Context, form api.AuthForm) error {
@@ -157,6 +110,74 @@ func (s *appService) Login(ctx context.Context, form api.AuthForm) (token string
 	}
 	token, err = issueToken(auth.ID.String(), form.Username, s.conf.JWTSecret)
 	return
+}
+
+// GetAccount implements AppService.
+func (s *appService) GetAccount(context.Context, string) (*api.Account, error) {
+	panic("unimplemented")
+}
+
+// GetAccountStatuses implements AppService.
+func (s *appService) GetAccountStatuses(context.Context, string) ([]api.Status, error) {
+	panic("unimplemented")
+}
+
+// GetAccountFollowers implements AppService.
+func (s *appService) GetAccountFollowers(context.Context, string) ([]api.Account, error) {
+	panic("unimplemented")
+}
+
+// GetAccountFollowing implements AppService.
+func (s *appService) GetAccountFollowing(context.Context, string) ([]api.Account, error) {
+	panic("unimplemented")
+}
+
+// FollowAccount implements AppService.
+func (s *appService) FollowAccount(ctx context.Context, accountID string) (worker.Job, error) {
+	token, ok := ctx.Value(auth.TokenContextKey).(*auth.TokenData)
+	if !ok {
+		return nil, errors.New("auth failure")
+	}
+	id := xid.New()
+	followerID, err := xid.FromString(token.ID)
+	if err != nil {
+		return nil, err
+	}
+	targetAccountID, err := xid.FromString(accountID)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := s.store.FollowRequests().Create(ctx, db.CreateFollowRequestParams{
+		ID:              id,
+		Uri:             s.builder.FollowRequestURI(token.ID, id.String()),
+		AccountID:       followerID,
+		TargetAccountID: targetAccountID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	follow := ap.NewEmptyFollowActivity().WithObject(ap.Activity[ap.Actor]{
+		ID:     req.Uri,
+		Type:   "Follow",
+		Actor:  ap.NewEmptyActor().WithLink(token.URI),
+		Object: ap.NewEmptyActor().WithLink(req.TargetAccountUri),
+	})
+
+	return func(ctx context.Context) error {
+		return s.prcessor.SendObject(ctx, follow.GetRaw().Object, req.AccountID)
+	}, nil
+}
+
+// UnfollowAccount implements AppService.
+func (s *appService) UnfollowAccount(ctx context.Context, accountID string) (worker.Job, error) {
+	token, ok := ctx.Value(auth.TokenContextKey).(*auth.TokenData)
+	if !ok {
+		return nil, errors.New("auth failure")
+	}
+	_ = token
+	panic("unimplemented")
 }
 
 // CreateStatus implements AppService.
@@ -285,53 +306,6 @@ func (s *appService) ViewStatus(ctx context.Context, id string) (*api.Status, er
 	return &res, nil
 }
 
-// GetLocalAccount implements AppService.
-func (s *appService) GetLocalAccount(ctx context.Context, username string) (*db.Account, error) {
-	user, err := s.store.Accounts().GetLocalByUsername(ctx, username)
-	return &user, err
-}
-
-func (s *appService) CreateFollow(
-	ctx context.Context,
-	follow *db.CreateFollowParams,
-) (*db.Follow, error) {
-	if follow.Uri == "" {
-		follow.Uri = fmt.Sprintf("http://%s/follows/%s", s.conf.ListenHost, uuid.NewString())
-	}
-	return s.store.Follows().Create(ctx, *follow)
-}
-
-// AddNote implements AppService.
-func (s *appService) AddNote(ctx context.Context, note db.CreateStatusParams) (db.Status, error) {
-	if note.Uri == "" {
-		note.Uri = fmt.Sprintf("http://%s/statuses/%s", s.conf.ListenHost, uuid.NewString())
-	}
-	if note.Url == "" {
-		note.Url = note.Uri
-	}
-	return s.store.Statuses().Create(ctx, note)
-}
-
-// GetAccount implements AppService.
-func (s *appService) GetAccount(
-	ctx context.Context,
-	account db.GetAccountParams,
-) (*db.Account, error) {
-	res, err := s.store.Accounts().Get(ctx, account)
-	return &res, err
-}
-
-// GetAccountByID implements AppService.
-func (s *appService) GetAccountByID(
-	ctx context.Context, accountID string,
-) (db.Account, error) {
-	actorID, err := xid.FromString(accountID)
-	if err != nil {
-		return db.Account{}, err
-	}
-	return s.store.Accounts().GetByID(ctx, actorID)
-}
-
 // AddFavourite implements AppService.
 func (s *appService) AddFavourite(
 	ctx context.Context, accountID string, postID string,
@@ -352,28 +326,6 @@ func (s *appService) AddFavourite(
 	return s.store.Favourites().Create(ctx, params)
 }
 
-// GetAccountFollowers implements AppService.
-func (s *appService) GetAccountFollowers(
-	ctx context.Context, accountID string,
-) ([]db.Account, error) {
-	id, err := xid.FromString(accountID)
-	if err != nil {
-		return []db.Account{}, err
-	}
-	return s.store.Accounts().GetFollowers(ctx, id)
-}
-
-// GetAccountFollowing implements AppService.
-func (s *appService) GetAccountFollowing(
-	ctx context.Context, accountID string,
-) ([]db.Account, error) {
-	id, err := xid.FromString(accountID)
-	if err != nil {
-		return []db.Account{}, err
-	}
-	return s.store.Accounts().GetFollowing(ctx, id)
-}
-
 func (s *appService) GetPostByIDWithMetadata(
 	ctx context.Context,
 	id string,
@@ -384,64 +336,6 @@ func (s *appService) GetPostByIDWithMetadata(
 	}
 	status, err := s.store.Statuses().GetByIDWithMetadata(ctx, statusID)
 	return &status, err
-}
-
-func (s *appService) GetPostByID(ctx context.Context, id string) (*db.Status, error) {
-	statusID, err := xid.FromString(id)
-	if err != nil {
-		return nil, err
-	}
-	status, err := s.store.Statuses().GetByID(ctx, statusID)
-	return &status, err
-}
-
-func (s *appService) GetPostLikes(ctx context.Context, id string) ([]db.Favourite, error) {
-	statusID, err := xid.FromString(id)
-	if err != nil {
-		return []db.Favourite{}, err
-	}
-	return s.store.Favourites().GetByPost(ctx, statusID)
-}
-
-func (s *appService) GetPostShares(ctx context.Context, id string) ([]db.Status, error) {
-	statusID, err := xid.FromString(id)
-	if err != nil {
-		return []db.Status{}, err
-	}
-	return s.store.Statuses().GetShares(ctx, statusID)
-}
-
-func (s *appService) DeliverToFollowers(
-	w http.ResponseWriter, r *http.Request, userID string,
-	build func(recipientURI string) any,
-) {
-	followers, err := s.GetAccountFollowers(r.Context(), userID)
-	if err != nil {
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
-		return
-	}
-	for _, follower := range followers {
-		if !follower.Domain.Valid {
-			continue
-		}
-		payload := build(follower.Uri)
-		util.DeliverToEndpoint(follower.InboxUri, payload)
-	}
-}
-
-func (s *appService) GetPostByAccountID(
-	ctx context.Context,
-	id string,
-) ([]db.GetStatusesByAccountIdRow, error) {
-	actorID, err := xid.FromString(id)
-	if err != nil {
-		return []db.GetStatusesByAccountIdRow{}, err
-	}
-	return s.store.Accounts().GetPosts(ctx, actorID)
-}
-
-func (s *appService) GetLocalPosts(ctx context.Context) ([]db.GetLocalStatusesRow, error) {
-	return s.store.Statuses().GetLocalStatuses(ctx)
 }
 
 func (s *appService) GetLikedPostsByAccountId(

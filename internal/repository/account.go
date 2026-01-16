@@ -9,14 +9,12 @@ import (
 )
 
 type AccountRepository interface {
-	Get(context.Context, db.GetAccountParams) (db.Account, error)
 	GetByURI(context.Context, string) (db.Account, error)
 	GetByID(context.Context, xid.ID) (db.Account, error)
 	GetLocalByUsername(context.Context, string) (db.Account, error)
 	Create(context.Context, db.CreateActorParams) (db.Account, error)
 	GetFollowers(context.Context, xid.ID) ([]db.Account, error)
 	GetFollowing(context.Context, xid.ID) ([]db.Account, error)
-	GetPosts(context.Context, xid.ID) ([]db.GetStatusesByAccountIdRow, error)
 	GetAccountRemoteFollowerInboxes(context.Context, xid.ID) ([]string, error)
 	GetAccountInbox(context.Context, xid.ID) (string, error)
 }
@@ -48,14 +46,6 @@ func (r *accountRepository) Create(
 	return r.q.CreateActor(ctx, account)
 }
 
-// Get implements AccountRepository.
-func (r *accountRepository) Get(
-	ctx context.Context,
-	account db.GetAccountParams,
-) (db.Account, error) {
-	return r.q.GetAccount(ctx, account)
-}
-
 // GetById implements AccountRepository.
 func (r *accountRepository) GetByID(
 	ctx context.Context, id xid.ID,
@@ -75,14 +65,6 @@ func (r *accountRepository) GetFollowing(
 	ctx context.Context, accountID xid.ID,
 ) ([]db.Account, error) {
 	return r.q.GetAccountFollowing(ctx, accountID)
-}
-
-// GetPosts implements AccountRepository.
-func (r *accountRepository) GetPosts(
-	ctx context.Context,
-	id xid.ID,
-) ([]db.GetStatusesByAccountIdRow, error) {
-	return r.q.GetStatusesByAccountId(ctx, id)
 }
 
 // GetAccountRemoteFollowerInboxes implements AccountRepository.
