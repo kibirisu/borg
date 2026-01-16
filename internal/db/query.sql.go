@@ -265,18 +265,15 @@ func (q *Queries) CreateStatus(ctx context.Context, arg CreateStatusParams) (Sta
 }
 
 const createStatusNew = `-- name: CreateStatusNew :one
+WITH parent AS (SELECT uri, account_id FROM statuses WHERE id = $7)
 INSERT INTO statuses (
     id, uri, url, local, content, account_id, account_uri, 
     in_reply_to_id, in_reply_to_uri, in_reply_to_account_id
-)
-SELECT 
-    $1, $2, $3, true, $4, $5, $6, 
-    $7,
-    parent.uri, 
-    parent.account_id
-FROM (SELECT $7::text AS id) AS lookup
-LEFT JOIN statuses parent ON parent.id = lookup.id
-RETURNING id, created_at, updated_at, uri, url, local, content, account_id, account_uri, in_reply_to_id, in_reply_to_uri, in_reply_to_account_id, reblog_of_id
+) VALUES (
+    $1, $2, $3, true, $4, $5, $6, $7,
+    (SELECT uri FROM parent),
+    (SELECT account_id FROM parent)
+) RETURNING id, created_at, updated_at, uri, url, local, content, account_id, account_uri, in_reply_to_id, in_reply_to_uri, in_reply_to_account_id, reblog_of_id
 `
 
 type CreateStatusNewParams struct {

@@ -32,7 +32,6 @@ type AppService interface {
 	GetAccountFollowers(context.Context, string) ([]db.Account, error)
 	GetAccountFollowing(context.Context, string) ([]db.Account, error)
 	GetLocalAccount(context.Context, string) (*db.Account, error)
-	CreateFollow(ctx context.Context, follow *db.CreateFollowParams) (*db.Follow, error)
 	AddNote(context.Context, db.CreateStatusParams) (db.Status, error)
 	AddFavourite(context.Context, string, string) (db.Favourite, error)
 	FollowAccount(context.Context, string, string) (*db.Follow, error)
@@ -65,25 +64,28 @@ var _ AppService = (*appService)(nil)
 
 // Register implements AppService.
 func (s *appService) Register(ctx context.Context, form api.AuthForm) error {
-	uri := fmt.Sprintf("http://%s/users/%s", s.conf.ListenHost, form.Username)
-	log.Printf("register: creating actor username=%s uri=%s", form.Username, uri)
+	id := xid.New()
+	actorURIs := s.builder.ActorURIs(id.String())
+
+	log.Printf("register: creating actor username=%s uri=%s", form.Username, actorURIs.Actor)
 	actor, err := s.store.Accounts().Create(ctx, db.CreateActorParams{
-		ID:          xid.New(),
-		Username:    form.Username,
-		Uri:         uri,
-		DisplayName: sql.NullString{}, // hassle to maintain that, gonna abandon display name
-		Domain:      sql.NullString{},
-		InboxUri:    uri + "/inbox",
-		OutboxUri:   uri + "/outbox",
-		Url:         fmt.Sprintf("http://%s/profiles/%s", s.conf.ListenHost, form.Username),
+		ID:           id,
+		Username:     form.Username,
+		Uri:          actorURIs.Actor,
+		DisplayName:  sql.NullString{}, // hassle to maintain that, gonna abandon display name
+		InboxUri:     actorURIs.Inbox,
+		OutboxUri:    actorURIs.Outbox,
+		Url:          "not gonna use that rn",
+		Domain:       sql.NullString{},
+		FollowersUri: actorURIs.Followers,
+		FollowingUri: actorURIs.Following,
 	})
 	if err != nil {
-		log.Printf("register: failed to create actor username=%s err=%v", form.Username, err)
 		return err
 	}
+
 	hash, err := bcrypt.GenerateFromPassword([]byte(form.Password), bcrypt.DefaultCost)
 	if err != nil {
-		log.Printf("register: failed to hash password username=%s err=%v", form.Username, err)
 		return err
 	}
 	if err = s.store.Users().Create(ctx, db.CreateUserParams{
@@ -91,9 +93,9 @@ func (s *appService) Register(ctx context.Context, form api.AuthForm) error {
 		AccountID:    actor.ID,
 		PasswordHash: string(hash),
 	}); err != nil {
-		log.Printf("register: failed to create user username=%s err=%v", form.Username, err)
 		return err
 	}
+
 	log.Printf(
 		"register: user and actor created username=%s account_id=%d",
 		form.Username,
