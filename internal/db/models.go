@@ -65,7 +65,7 @@ type Status struct {
 	AccountUri         string
 	InReplyToID        *xid.ID
 	InReplyToUri       sql.NullString
-	InReplyToAccountID sql.NullString
+	InReplyToAccountID *xid.ID
 	ReblogOfID         *xid.ID
 }
 

@@ -80,7 +80,7 @@ func (s *Server) GetApiStatusesId(w http.ResponseWriter, r *http.Request, id str
 		util.WriteError(w, http.StatusNotFound, err.Error())
 	}
 
-	util.WriteJSON(w, http.StatusOK, &status)
+	util.WriteJSON(w, http.StatusOK, status)
 }
 
 // GetApiAccountsLookup implements api.ServerInterface.

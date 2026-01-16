@@ -224,8 +224,9 @@ func (s *appService) ViewStatus(ctx context.Context, id string) (*api.Status, er
 		id := status.Status.InReplyToID.String()
 		inReplyToID = &id
 	}
-	if status.Status.InReplyToAccountID.Valid {
-		inReplyToAccountID = &status.Status.InReplyToAccountID.String
+	if status.Status.InReplyToAccountID != nil {
+		id := status.Status.InReplyToID.String()
+		inReplyToAccountID = &id
 	}
 
 	res := api.Status{
