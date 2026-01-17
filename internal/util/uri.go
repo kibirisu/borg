@@ -48,15 +48,15 @@ func (b URIBuilder) StatusURIs(actorID, statusID string) StatusURIs {
 }
 
 func (b URIBuilder) FollowRequestURI(actorID, requestID string) string {
-	return fmt.Sprintf("%s/%s/requests/%s", b.base, actorID, requestID)
+	return fmt.Sprintf("%s/user/%s/requests/%s", b.base, actorID, requestID)
 }
 
 func (b URIBuilder) LikeRequestURI(actorID, requestID string) string {
-	return fmt.Sprintf("%s/%s/likes/%s", b.base, actorID, requestID)
+	return fmt.Sprintf("%s/user/%s/likes/%s", b.base, actorID, requestID)
 }
 
 func (b URIBuilder) AnnounceURI(actorID, announceID string) string {
-	return fmt.Sprintf("%s/%s/reblogs/%s", b.base, actorID, announceID)
+	return fmt.Sprintf("%s/user/%s/reblogs/%s", b.base, actorID, announceID)
 }
 
 func ExtractDomainFromURI(uri string) string {

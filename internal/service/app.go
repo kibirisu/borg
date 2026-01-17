@@ -375,6 +375,8 @@ func (s *appService) ViewStatus(ctx context.Context, id string) (*api.Status, er
 		return nil, err
 	}
 
+	println(statusID.String())
+	println(accountID.String())
 	status, err := s.store.Statuses().GetByIDNew(ctx, db.GetStatusByIDNewParams{
 		ID:        statusID,
 		AccountID: accountID,
@@ -395,7 +397,7 @@ func (s *appService) ViewStatus(ctx context.Context, id string) (*api.Status, er
 			inReplyToAccountID = &id
 		}
 
-		res := api.Status{
+		res := &api.Status{
 			Content:            status.Status.Content.String,
 			Favourited:         &status.Favourited,
 			FavouritesCount:    int(status.FavouritesCount),
@@ -407,7 +409,7 @@ func (s *appService) ViewStatus(ctx context.Context, id string) (*api.Status, er
 			RepliesCount:       int(status.RepliesCount),
 			Uri:                status.Status.Uri,
 		}
-		return &res, nil
+		return res, nil
 	}
 
 	if status.RebloggedReplyToID != nil {
@@ -419,7 +421,7 @@ func (s *appService) ViewStatus(ctx context.Context, id string) (*api.Status, er
 		inReplyToAccountID = &id
 	}
 
-	res := api.Status{
+	res := &api.Status{
 		Content:            status.Status.Content.String,
 		Favourited:         &status.Favourited,
 		FavouritesCount:    int(status.FavouritesCount),
@@ -443,7 +445,7 @@ func (s *appService) ViewStatus(ctx context.Context, id string) (*api.Status, er
 		RepliesCount: int(status.RepliesCount),
 		Uri:          status.Status.Uri,
 	}
-	return &res, nil
+	return res, nil
 }
 
 // FavouriteStatus implements AppService.

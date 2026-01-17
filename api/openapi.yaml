@@ -143,6 +143,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Status"
+      security:
+        - BearerAuth: []
   /api/statuses/{id}/favourite:
     post:
       summary: Add a status to your favourites list.

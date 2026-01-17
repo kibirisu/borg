@@ -610,6 +610,12 @@ func (siw *ServerInterfaceWrapper) GetApiStatusesId(w http.ResponseWriter, r *ht
 		return
 	}
 
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetApiStatusesId(w, r, id)
 	}))
@@ -1021,12 +1027,12 @@ var swaggerSpec = []string{
 	"dgwZaGjDeOe+zwW1VF5s0/61zcA7EiNlogiU2pgs2x3owpvYTZYrjdY7tHznLu2mK8lGv0BQDwaUfsPj",
 	"3T92CKmd6ffNy4d1aD9ETcVLQtcBzzcVBLukMi2uuM8VqgLs22B9rlUqvF+dUqbegy5IfqdQ4BZkGdDW",
 	"C//RclQr+KfqqnkDPOFerspniuO34MKudY1tX1JPlPDYgnhl1hlVKSLIu4a2VNf36kqcF+3UDLnVhOyc",
-	"360m7MNtQZctdZIf15pQ1nm18bz6AE7LV4/BUl/Gi7LPa2293hdUPa5djFPePI4r1WmOdtzIajSFMqp0",
-	"L7LqHWwgr2vf4ZVhpUShNQBD1bvcKGbX4F5VK26ceW58yzou0E1mhp0itNtar1emVwtgrNiuIeePNW4b",
-	"yfNxijNstOZuQ5dX57bm7j4w9qwcc0SQLDTHN12VzB6VDsvYc0egW9unVsLO9xDkT5snnoAyeg+xOwUp",
-	"C9eS9Ltv/RRU46tpDhllMIzup2D9n2QbWFV4w8NtQIy+902uEhRPaf7kr34o8BudTjOeUPbMmjc6/eDM",
-	"/p2LTfkv61PPhDe1iyFSNGEQI8paL9gJZc3nbU9AQkKVBvk8hOtgeUYcjDjgEIKoo9jv/woAAP//wndx",
-	"36ohAAA=",
+	"360m7MNtQZctI0B/XGtCWefNx+Ps4zstH0UGr4RlvCj7vNbO7H1B1dvbxThe8ziuRKk52nEjq9EUyqjS",
+	"vciqZ7KBvK59h1eGlRKF1gAMVc92o5hdg3t0rbhx5rnxLeu4XzeZGXaK0G5rvV6ZXi2AsWK7hpw/1rht",
+	"JM/HKc6w0Zq7DV1enduau+vC2KN0zBFBstAc33RVMnuSOixjz52Qbm2fWgk73zOSP4yeeEDK6D3E7pCk",
+	"LFxL0m/O9UNSja+mOWSUwTC6n4L1f5JtYFXhDe+6ATH63je5SlC8tPmLgfqhwG90Os14Qtkza97o9IMz",
+	"+3fuPeV/tE89Mt7U7o1I0YRBjChrPXAnlDVfvz0BCQlVGuTzEK6D5RlxMOKAQwiijmK//ysAAP//tc9j",
+	"hMkhAAA=",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
