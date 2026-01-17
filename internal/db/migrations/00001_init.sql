@@ -28,7 +28,9 @@ CREATE TABLE statuses (
     in_reply_to_id VARCHAR(20) REFERENCES statuses,
     in_reply_to_uri TEXT REFERENCES statuses (uri),
     in_reply_to_account_id VARCHAR(20) REFERENCES accounts (id),
-    reblog_of_id VARCHAR(20) REFERENCES statuses
+    reblog_of_id VARCHAR(20) REFERENCES statuses,
+    reblog_of_uri TEXT REFERENCES statuses (uri),
+    reblog_of_account_id VARCHAR(20) REFERENCES accounts (id)
 );
 
 CREATE TABLE follows (

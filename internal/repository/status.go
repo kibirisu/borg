@@ -15,12 +15,13 @@ type StatusRepository interface {
 		db.GetStatusesByAccountIDParams,
 	) ([]db.GetStatusesByAccountIDRow, error)
 	CreateNew(context.Context, db.CreateStatusNewParams) (db.Status, error)
+	ReblogStatus(context.Context, db.CreateReblogParams) (db.Status, error)
 	Create(context.Context, db.CreateStatusParams) (db.Status, error)
 	GetByID(context.Context, xid.ID) (db.Status, error)
 	GetByURI(context.Context, string) (db.Status, error)
 	GetByIDWithMetadata(context.Context, xid.ID) (db.GetStatusByIdWithMetadataRow, error)
-	GetSharedPostsByAccountId(context.Context, xid.ID) ([]db.GetSharedPostsByAccountIdRow, error)
-	GetTimelinePostsByAccountId(
+	GetSharedPostsByAccountID(context.Context, xid.ID) ([]db.GetSharedPostsByAccountIdRow, error)
+	GetTimelinePostsByAccountID(
 		context.Context,
 		xid.ID,
 	) ([]db.GetTimelinePostsByAccountIdRow, error)
@@ -47,6 +48,14 @@ func (r *statusRepository) CreateNew(
 	status db.CreateStatusNewParams,
 ) (db.Status, error) {
 	return r.q.CreateStatusNew(ctx, status)
+}
+
+// ReblogStatus implements StatusRepository.
+func (r *statusRepository) ReblogStatus(
+	ctx context.Context,
+	reblog db.CreateReblogParams,
+) (db.Status, error) {
+	return r.q.CreateReblog(ctx, reblog)
 }
 
 // Create implements StatusRepository.
@@ -84,7 +93,7 @@ func (r *statusRepository) GetByIDWithMetadata(
 }
 
 // GetSharedPostsByAccountId implements StatusRepository.
-func (r *statusRepository) GetSharedPostsByAccountId(
+func (r *statusRepository) GetSharedPostsByAccountID(
 	ctx context.Context,
 	accountID xid.ID,
 ) ([]db.GetSharedPostsByAccountIdRow, error) {
@@ -92,7 +101,7 @@ func (r *statusRepository) GetSharedPostsByAccountId(
 }
 
 // GetTimelinePostsByAccountId implements StatusRepository.
-func (r *statusRepository) GetTimelinePostsByAccountId(
+func (r *statusRepository) GetTimelinePostsByAccountID(
 	ctx context.Context,
 	accountID xid.ID,
 ) ([]db.GetTimelinePostsByAccountIdRow, error) {

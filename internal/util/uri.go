@@ -58,6 +58,10 @@ func (b URIBuilder) LikeRequestURI(actorID, requestID string) string {
 	return fmt.Sprintf("%s/%s/likes/%s", b.base, actorID, requestID)
 }
 
+func (b URIBuilder) AnnounceURI(actorID, announceID string) string {
+	return fmt.Sprintf("%s/%s/reblogs/%s", b.base, actorID, announceID)
+}
+
 func ExtractDomainFromURI(uri string) string {
 	res := strings.SplitN(uri, "/", 4)
 	return res[2]

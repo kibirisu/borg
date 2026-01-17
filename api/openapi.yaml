@@ -217,24 +217,6 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Post"
-  /api/users/{id}/reblogged:
-    get:
-      summary: Get shared posts of user with ID
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Post"
   /api/users/{id}/timeline:
     get:
       summary: Get timeline posts of the user with ID (posts from followed users)

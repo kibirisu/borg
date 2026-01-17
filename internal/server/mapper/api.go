@@ -8,17 +8,17 @@ import (
 func PostToAPIWithMetadata(
 	post *db.Status,
 	acc *db.Account,
-	LikeCount int,
-	ShareCount int,
-	CommentCount int,
+	likeCount int,
+	shareCount int,
+	commentCount int,
 ) *api.Post {
 	return &api.Post{
-		CommentCount: CommentCount,
+		CommentCount: commentCount,
 		Content:      post.Content,
 		CreatedAt:    post.CreatedAt,
 		Id:           post.ID.String(),
-		LikeCount:    LikeCount,
-		ShareCount:   ShareCount,
+		LikeCount:    likeCount,
+		ShareCount:   shareCount,
 		UpdatedAt:    post.UpdatedAt,
 		UserID:       post.AccountID.String(),
 		Username:     &acc.Username,

@@ -36,10 +36,9 @@ type AppService interface {
 	UnfavouriteStatus(context.Context, string) (worker.Job, error)
 	ReblogStatus(context.Context, string) (worker.Job, error)
 	UnreblogStatus(context.Context, string) (worker.Job, error)
-	GetPostByIDWithMetadata(context.Context, string) (*db.GetStatusByIdWithMetadataRow, error)
-	GetLikedPostsByAccountId(context.Context, string) ([]db.GetLikedPostsByAccountIdRow, error)
-	GetSharedPostsByAccountId(context.Context, string) ([]db.GetSharedPostsByAccountIdRow, error)
-	GetTimelinePostsByAccountId(
+	GetLikedPostsByAccountID(context.Context, string) ([]db.GetLikedPostsByAccountIdRow, error)
+	GetSharedPostsByAccountID(context.Context, string) ([]db.GetSharedPostsByAccountIdRow, error)
+	GetTimelinePostsByAccountID(
 		context.Context,
 		string,
 	) ([]db.GetTimelinePostsByAccountIdRow, error)
@@ -448,8 +447,44 @@ func (s *appService) FavouriteStatus(ctx context.Context, favouritedID string) (
 }
 
 // ReblogStatus implements AppService.
-func (s *appService) ReblogStatus(context.Context, string) (worker.Job, error) {
-	panic("unimplemented")
+func (s *appService) ReblogStatus(ctx context.Context, statusID string) (worker.Job, error) {
+	token, ok := ctx.Value(auth.TokenContextKey).(*auth.TokenData)
+	if !ok {
+		return nil, errors.New("auth failure")
+	}
+
+	id := xid.New()
+	reblogOfID, err := xid.FromString(statusID)
+	if err != nil {
+		return nil, err
+	}
+	accountID, err := xid.FromString(token.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	reblog, err := s.store.Statuses().ReblogStatus(ctx, db.CreateReblogParams{
+		ID:         id,
+		Uri:        s.builder.AnnounceURI(token.ID, id.String()),
+		Url:        "no",
+		AccountID:  accountID,
+		AccountUri: token.URI,
+		ReblogOfID: &reblogOfID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	announce := ap.NewEmptyAnnounceActivity().WithObject(ap.Activity[ap.Note]{
+		ID:     reblog.Uri,
+		Type:   "Announce",
+		Actor:  ap.NewEmptyActor().WithLink(reblog.AccountUri),
+		Object: ap.NewEmptyNote().WithLink(reblog.ReblogOfUri.String),
+	})
+
+	return func(ctx context.Context) error {
+		return s.prcessor.DistributeObject(ctx, announce.GetRaw().Object, accountID)
+	}, nil
 }
 
 // UnfavouriteStatus implements AppService.
@@ -462,19 +497,7 @@ func (s *appService) UnreblogStatus(context.Context, string) (worker.Job, error)
 	panic("unimplemented")
 }
 
-func (s *appService) GetPostByIDWithMetadata(
-	ctx context.Context,
-	id string,
-) (*db.GetStatusByIdWithMetadataRow, error) {
-	statusID, err := xid.FromString(id)
-	if err != nil {
-		return nil, err
-	}
-	status, err := s.store.Statuses().GetByIDWithMetadata(ctx, statusID)
-	return &status, err
-}
-
-func (s *appService) GetLikedPostsByAccountId(
+func (s *appService) GetLikedPostsByAccountID(
 	ctx context.Context,
 	accountID string,
 ) ([]db.GetLikedPostsByAccountIdRow, error) {
@@ -482,10 +505,10 @@ func (s *appService) GetLikedPostsByAccountId(
 	if err != nil {
 		return []db.GetLikedPostsByAccountIdRow{}, err
 	}
-	return s.store.Favourites().GetLikedPostsByAccountId(ctx, actorID)
+	return s.store.Favourites().GetLikedPostsByAccountID(ctx, actorID)
 }
 
-func (s *appService) GetSharedPostsByAccountId(
+func (s *appService) GetSharedPostsByAccountID(
 	ctx context.Context,
 	accountID string,
 ) ([]db.GetSharedPostsByAccountIdRow, error) {
@@ -493,10 +516,10 @@ func (s *appService) GetSharedPostsByAccountId(
 	if err != nil {
 		return []db.GetSharedPostsByAccountIdRow{}, err
 	}
-	return s.store.Statuses().GetSharedPostsByAccountId(ctx, actorID)
+	return s.store.Statuses().GetSharedPostsByAccountID(ctx, actorID)
 }
 
-func (s *appService) GetTimelinePostsByAccountId(
+func (s *appService) GetTimelinePostsByAccountID(
 	ctx context.Context,
 	accountID string,
 ) ([]db.GetTimelinePostsByAccountIdRow, error) {
@@ -504,5 +527,5 @@ func (s *appService) GetTimelinePostsByAccountId(
 	if err != nil {
 		return []db.GetTimelinePostsByAccountIdRow{}, err
 	}
-	return s.store.Statuses().GetTimelinePostsByAccountId(ctx, actorID)
+	return s.store.Statuses().GetTimelinePostsByAccountID(ctx, actorID)
 }

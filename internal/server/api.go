@@ -276,29 +276,8 @@ func (s *Server) DeleteApiPostsId(w http.ResponseWriter, r *http.Request, id str
 	panic("unimplemented")
 }
 
-// GetApiPostsId implements api.ServerInterface.
-func (s *Server) GetApiPostsId(w http.ResponseWriter, r *http.Request, id string) {
-	info, err := s.service.App.GetPostByIDWithMetadata(r.Context(), id)
-	if err != nil {
-		http.Error(w, "Database error", http.StatusInternalServerError)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	util.WriteJSON(w, http.StatusOK, *mapper.PostToAPIWithMetadata(&info.Status,
-		&info.Account,
-		int(info.LikeCount),
-		int(info.ShareCount),
-		int(info.CommentCount)))
-}
-
 // GetApiPostsIdComments implements api.ServerInterface.
 func (s *Server) GetApiPostsIdComments(w http.ResponseWriter, r *http.Request, id string) {
-	panic("unimplemented")
-}
-
-// PostApiPostsIdComments implements api.ServerInterface.
-func (s *Server) PostApiPostsIdComments(w http.ResponseWriter, r *http.Request, id string) {
 	panic("unimplemented")
 }
 
@@ -309,29 +288,7 @@ func (s *Server) PutApiPostsId(w http.ResponseWriter, r *http.Request, id string
 
 // GetApiUsersIdFavourites implements api.ServerInterface.
 func (s *Server) GetApiUsersIdFavourites(w http.ResponseWriter, r *http.Request, id string) {
-	posts, err := s.service.App.GetLikedPostsByAccountId(r.Context(), id)
-	if err != nil {
-		http.Error(w, "Database error", http.StatusInternalServerError)
-		return
-	}
-
-	apiPosts := make([]api.Post, 0, len(posts))
-	for _, info := range posts {
-		converted := mapper.PostToAPIWithMetadata(
-			&info.Status,
-			&info.Account,
-			int(info.LikeCount),
-			int(info.ShareCount),
-			int(info.CommentCount))
-		apiPosts = append(apiPosts, *converted)
-	}
-
-	util.WriteJSON(w, http.StatusOK, apiPosts)
-}
-
-// GetApiUsersIdReblogged implements api.ServerInterface.
-func (s *Server) GetApiUsersIdReblogged(w http.ResponseWriter, r *http.Request, id string) {
-	posts, err := s.service.App.GetSharedPostsByAccountId(r.Context(), id)
+	posts, err := s.service.App.GetLikedPostsByAccountID(r.Context(), id)
 	if err != nil {
 		http.Error(w, "Database error", http.StatusInternalServerError)
 		return
@@ -353,7 +310,7 @@ func (s *Server) GetApiUsersIdReblogged(w http.ResponseWriter, r *http.Request, 
 
 // GetApiUsersIdTimeline implements api.ServerInterface.
 func (s *Server) GetApiUsersIdTimeline(w http.ResponseWriter, r *http.Request, id string) {
-	posts, err := s.service.App.GetTimelinePostsByAccountId(r.Context(), id)
+	posts, err := s.service.App.GetTimelinePostsByAccountID(r.Context(), id)
 	if err != nil {
 		http.Error(w, "Database error", http.StatusInternalServerError)
 		return

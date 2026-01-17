@@ -129,18 +129,30 @@ RETURNING *;
 
 -- name: CreateStatusNew :one
 WITH parent AS (
-    SELECT uri, account_id FROM statuses WHERE id = $7
+    SELECT uri, account_id FROM statuses WHERE id = @in_reply_to_id
 ) INSERT INTO statuses (
     id, uri, url, local, content, account_id, account_uri, 
     in_reply_to_id, in_reply_to_uri, in_reply_to_account_id
 ) VALUES (
-    $1, $2, $3, true, $4, $5, $6, $7,
+    @id, @uri, @url, true, @content, @account_id, @account_uri, @in_reply_to_id,
     (SELECT uri FROM parent),
-    (SELECT account_id FROM parent) -- can be supplied from api
+    (SELECT account_id FROM parent)
 ) RETURNING *;
 
 -- name: DeleteStatusByID :exec
 DELETE FROM statuses WHERE id = $1;
+
+-- name: CreateReblog :one
+WITH parent AS (
+    SELECT s.uri, s.account_id FROM statuses s WHERE s.id = @reblog_of_id
+) INSERT INTO statuses (
+    id, uri, url, local, account_id, account_uri, 
+    reblog_of_id, reblog_of_uri, reblog_of_account_id
+) VALUES (
+    @id, @uri, @url, true, @account_id, @account_uri, @reblog_of_id,
+    (SELECT uri FROM parent),
+    (SELECT account_id FROM parent)
+) RETURNING *;
 
 -- name: CreateFavourite :one
 INSERT INTO favourites (

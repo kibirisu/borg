@@ -37,4 +37,3 @@ func (p *processor) SendObject(
 	}
 	return p.client.Post(ctx, inbox, object)
 }
-

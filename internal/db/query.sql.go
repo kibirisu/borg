@@ -234,13 +234,65 @@ func (q *Queries) CreateFollowRequest(ctx context.Context, arg CreateFollowReque
 	return i, err
 }
 
+const createReblog = `-- name: CreateReblog :one
+WITH parent AS (
+    SELECT s.uri, s.account_id FROM statuses s WHERE s.id = $6
+) INSERT INTO statuses (
+    id, uri, url, local, account_id, account_uri, 
+    reblog_of_id, reblog_of_uri, reblog_of_account_id
+) VALUES (
+    $1, $2, $3, true, $4, $5, $6,
+    (SELECT uri FROM parent),
+    (SELECT account_id FROM parent)
+) RETURNING id, created_at, updated_at, uri, url, local, content, account_id, account_uri, in_reply_to_id, in_reply_to_uri, in_reply_to_account_id, reblog_of_id, reblog_of_uri, reblog_of_account_id
+`
+
+type CreateReblogParams struct {
+	ID         xid.ID
+	Uri        string
+	Url        string
+	AccountID  xid.ID
+	AccountUri string
+	ReblogOfID *xid.ID
+}
+
+func (q *Queries) CreateReblog(ctx context.Context, arg CreateReblogParams) (Status, error) {
+	row := q.db.QueryRowContext(ctx, createReblog,
+		arg.ID,
+		arg.Uri,
+		arg.Url,
+		arg.AccountID,
+		arg.AccountUri,
+		arg.ReblogOfID,
+	)
+	var i Status
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Uri,
+		&i.Url,
+		&i.Local,
+		&i.Content,
+		&i.AccountID,
+		&i.AccountUri,
+		&i.InReplyToID,
+		&i.InReplyToUri,
+		&i.InReplyToAccountID,
+		&i.ReblogOfID,
+		&i.ReblogOfUri,
+		&i.ReblogOfAccountID,
+	)
+	return i, err
+}
+
 const createStatus = `-- name: CreateStatus :one
 INSERT INTO statuses (
     id, url, local, content, account_id, account_uri, in_reply_to_id, reblog_of_id, uri
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7, $8, $9
 )
-RETURNING id, created_at, updated_at, uri, url, local, content, account_id, account_uri, in_reply_to_id, in_reply_to_uri, in_reply_to_account_id, reblog_of_id
+RETURNING id, created_at, updated_at, uri, url, local, content, account_id, account_uri, in_reply_to_id, in_reply_to_uri, in_reply_to_account_id, reblog_of_id, reblog_of_uri, reblog_of_account_id
 `
 
 type CreateStatusParams struct {
@@ -282,6 +334,8 @@ func (q *Queries) CreateStatus(ctx context.Context, arg CreateStatusParams) (Sta
 		&i.InReplyToUri,
 		&i.InReplyToAccountID,
 		&i.ReblogOfID,
+		&i.ReblogOfUri,
+		&i.ReblogOfAccountID,
 	)
 	return i, err
 }
@@ -295,8 +349,8 @@ WITH parent AS (
 ) VALUES (
     $1, $2, $3, true, $4, $5, $6, $7,
     (SELECT uri FROM parent),
-    (SELECT account_id FROM parent) -- can be supplied from api
-) RETURNING id, created_at, updated_at, uri, url, local, content, account_id, account_uri, in_reply_to_id, in_reply_to_uri, in_reply_to_account_id, reblog_of_id
+    (SELECT account_id FROM parent)
+) RETURNING id, created_at, updated_at, uri, url, local, content, account_id, account_uri, in_reply_to_id, in_reply_to_uri, in_reply_to_account_id, reblog_of_id, reblog_of_uri, reblog_of_account_id
 `
 
 type CreateStatusNewParams struct {
@@ -334,6 +388,8 @@ func (q *Queries) CreateStatusNew(ctx context.Context, arg CreateStatusNewParams
 		&i.InReplyToUri,
 		&i.InReplyToAccountID,
 		&i.ReblogOfID,
+		&i.ReblogOfUri,
+		&i.ReblogOfAccountID,
 	)
 	return i, err
 }
@@ -779,7 +835,7 @@ func (q *Queries) GetFollowingCollection(ctx context.Context, username string) (
 
 const getLikedPostsByAccountId = `-- name: GetLikedPostsByAccountId :many
 SELECT 
-    s.id, s.created_at, s.updated_at, s.uri, s.url, s.local, s.content, s.account_id, s.account_uri, s.in_reply_to_id, s.in_reply_to_uri, s.in_reply_to_account_id, s.reblog_of_id,
+    s.id, s.created_at, s.updated_at, s.uri, s.url, s.local, s.content, s.account_id, s.account_uri, s.in_reply_to_id, s.in_reply_to_uri, s.in_reply_to_account_id, s.reblog_of_id, s.reblog_of_uri, s.reblog_of_account_id,
     a.id, a.created_at, a.updated_at, a.username, a.uri, a.display_name, a.domain, a.inbox_uri, a.outbox_uri, a.followers_uri, a.following_uri, a.url,
     (SELECT COUNT(*) FROM favourites f WHERE f.status_id = s.id) AS like_count,
     (SELECT COUNT(*) FROM statuses r WHERE r.in_reply_to_id = s.id) AS comment_count,
@@ -821,6 +877,8 @@ func (q *Queries) GetLikedPostsByAccountId(ctx context.Context, accountID xid.ID
 			&i.Status.InReplyToUri,
 			&i.Status.InReplyToAccountID,
 			&i.Status.ReblogOfID,
+			&i.Status.ReblogOfUri,
+			&i.Status.ReblogOfAccountID,
 			&i.Account.ID,
 			&i.Account.CreatedAt,
 			&i.Account.UpdatedAt,
@@ -852,7 +910,7 @@ func (q *Queries) GetLikedPostsByAccountId(ctx context.Context, accountID xid.ID
 
 const getSharedPostsByAccountId = `-- name: GetSharedPostsByAccountId :many
 SELECT 
-    s.id, s.created_at, s.updated_at, s.uri, s.url, s.local, s.content, s.account_id, s.account_uri, s.in_reply_to_id, s.in_reply_to_uri, s.in_reply_to_account_id, s.reblog_of_id,
+    s.id, s.created_at, s.updated_at, s.uri, s.url, s.local, s.content, s.account_id, s.account_uri, s.in_reply_to_id, s.in_reply_to_uri, s.in_reply_to_account_id, s.reblog_of_id, s.reblog_of_uri, s.reblog_of_account_id,
     a.id, a.created_at, a.updated_at, a.username, a.uri, a.display_name, a.domain, a.inbox_uri, a.outbox_uri, a.followers_uri, a.following_uri, a.url,
     (SELECT COUNT(*) FROM favourites f WHERE f.status_id = s.id) AS like_count,
     (SELECT COUNT(*) FROM statuses r WHERE r.in_reply_to_id = s.id) AS comment_count,
@@ -893,6 +951,8 @@ func (q *Queries) GetSharedPostsByAccountId(ctx context.Context, accountID xid.I
 			&i.Status.InReplyToUri,
 			&i.Status.InReplyToAccountID,
 			&i.Status.ReblogOfID,
+			&i.Status.ReblogOfUri,
+			&i.Status.ReblogOfAccountID,
 			&i.Account.ID,
 			&i.Account.CreatedAt,
 			&i.Account.UpdatedAt,
@@ -924,7 +984,7 @@ func (q *Queries) GetSharedPostsByAccountId(ctx context.Context, accountID xid.I
 
 const getStatusByIDNew = `-- name: GetStatusByIDNew :one
 SELECT 
-    s.id, s.created_at, s.updated_at, s.uri, s.url, s.local, s.content, s.account_id, s.account_uri, s.in_reply_to_id, s.in_reply_to_uri, s.in_reply_to_account_id, s.reblog_of_id,
+    s.id, s.created_at, s.updated_at, s.uri, s.url, s.local, s.content, s.account_id, s.account_uri, s.in_reply_to_id, s.in_reply_to_uri, s.in_reply_to_account_id, s.reblog_of_id, s.reblog_of_uri, s.reblog_of_account_id,
     (SELECT COUNT(*) FROM statuses r WHERE r.in_reply_to_id = s.id) AS replies_count,
     (SELECT COUNT(*) FROM favourites f WHERE f.status_id = s.id) AS favourites_count,
     (SELECT COUNT(*) FROM statuses r WHERE r.reblog_of_id = s.id) AS reblogs_count,
@@ -964,6 +1024,8 @@ func (q *Queries) GetStatusByIDNew(ctx context.Context, arg GetStatusByIDNewPara
 		&i.Status.InReplyToUri,
 		&i.Status.InReplyToAccountID,
 		&i.Status.ReblogOfID,
+		&i.Status.ReblogOfUri,
+		&i.Status.ReblogOfAccountID,
 		&i.RepliesCount,
 		&i.FavouritesCount,
 		&i.ReblogsCount,
@@ -974,7 +1036,7 @@ func (q *Queries) GetStatusByIDNew(ctx context.Context, arg GetStatusByIDNewPara
 }
 
 const getStatusById = `-- name: GetStatusById :one
-SELECT id, created_at, updated_at, uri, url, local, content, account_id, account_uri, in_reply_to_id, in_reply_to_uri, in_reply_to_account_id, reblog_of_id FROM statuses WHERE id = $1
+SELECT id, created_at, updated_at, uri, url, local, content, account_id, account_uri, in_reply_to_id, in_reply_to_uri, in_reply_to_account_id, reblog_of_id, reblog_of_uri, reblog_of_account_id FROM statuses WHERE id = $1
 `
 
 func (q *Queries) GetStatusById(ctx context.Context, id xid.ID) (Status, error) {
@@ -994,13 +1056,15 @@ func (q *Queries) GetStatusById(ctx context.Context, id xid.ID) (Status, error) 
 		&i.InReplyToUri,
 		&i.InReplyToAccountID,
 		&i.ReblogOfID,
+		&i.ReblogOfUri,
+		&i.ReblogOfAccountID,
 	)
 	return i, err
 }
 
 const getStatusByIdWithMetadata = `-- name: GetStatusByIdWithMetadata :one
 SELECT 
-    s.id, s.created_at, s.updated_at, s.uri, s.url, s.local, s.content, s.account_id, s.account_uri, s.in_reply_to_id, s.in_reply_to_uri, s.in_reply_to_account_id, s.reblog_of_id,
+    s.id, s.created_at, s.updated_at, s.uri, s.url, s.local, s.content, s.account_id, s.account_uri, s.in_reply_to_id, s.in_reply_to_uri, s.in_reply_to_account_id, s.reblog_of_id, s.reblog_of_uri, s.reblog_of_account_id,
     a.id, a.created_at, a.updated_at, a.username, a.uri, a.display_name, a.domain, a.inbox_uri, a.outbox_uri, a.followers_uri, a.following_uri, a.url,
     (SELECT COUNT(*) FROM favourites f WHERE f.status_id = s.id) AS like_count,
     (SELECT COUNT(*) FROM statuses r WHERE r.in_reply_to_id = s.id) AS comment_count,
@@ -1035,6 +1099,8 @@ func (q *Queries) GetStatusByIdWithMetadata(ctx context.Context, id xid.ID) (Get
 		&i.Status.InReplyToUri,
 		&i.Status.InReplyToAccountID,
 		&i.Status.ReblogOfID,
+		&i.Status.ReblogOfUri,
+		&i.Status.ReblogOfAccountID,
 		&i.Account.ID,
 		&i.Account.CreatedAt,
 		&i.Account.UpdatedAt,
@@ -1055,7 +1121,7 @@ func (q *Queries) GetStatusByIdWithMetadata(ctx context.Context, id xid.ID) (Get
 }
 
 const getStatusByURI = `-- name: GetStatusByURI :one
-SELECT id, created_at, updated_at, uri, url, local, content, account_id, account_uri, in_reply_to_id, in_reply_to_uri, in_reply_to_account_id, reblog_of_id FROM statuses WHERE uri = $1
+SELECT id, created_at, updated_at, uri, url, local, content, account_id, account_uri, in_reply_to_id, in_reply_to_uri, in_reply_to_account_id, reblog_of_id, reblog_of_uri, reblog_of_account_id FROM statuses WHERE uri = $1
 `
 
 func (q *Queries) GetStatusByURI(ctx context.Context, uri string) (Status, error) {
@@ -1075,13 +1141,15 @@ func (q *Queries) GetStatusByURI(ctx context.Context, uri string) (Status, error
 		&i.InReplyToUri,
 		&i.InReplyToAccountID,
 		&i.ReblogOfID,
+		&i.ReblogOfUri,
+		&i.ReblogOfAccountID,
 	)
 	return i, err
 }
 
 const getStatusesByAccountID = `-- name: GetStatusesByAccountID :many
 SELECT 
-    s.id, s.created_at, s.updated_at, s.uri, s.url, s.local, s.content, s.account_id, s.account_uri, s.in_reply_to_id, s.in_reply_to_uri, s.in_reply_to_account_id, s.reblog_of_id,
+    s.id, s.created_at, s.updated_at, s.uri, s.url, s.local, s.content, s.account_id, s.account_uri, s.in_reply_to_id, s.in_reply_to_uri, s.in_reply_to_account_id, s.reblog_of_id, s.reblog_of_uri, s.reblog_of_account_id,
     (SELECT COUNT(*) FROM statuses r WHERE r.in_reply_to_id = s.id) AS replies_count,
     (SELECT COUNT(*) FROM favourites f WHERE f.status_id = s.id) AS favourites_count,
     (SELECT COUNT(*) FROM statuses r WHERE r.reblog_of_id = s.id) AS reblogs_count,
@@ -1127,6 +1195,8 @@ func (q *Queries) GetStatusesByAccountID(ctx context.Context, arg GetStatusesByA
 			&i.Status.InReplyToUri,
 			&i.Status.InReplyToAccountID,
 			&i.Status.ReblogOfID,
+			&i.Status.ReblogOfUri,
+			&i.Status.ReblogOfAccountID,
 			&i.RepliesCount,
 			&i.FavouritesCount,
 			&i.ReblogsCount,
@@ -1148,7 +1218,7 @@ func (q *Queries) GetStatusesByAccountID(ctx context.Context, arg GetStatusesByA
 
 const getTimelinePostsByAccountId = `-- name: GetTimelinePostsByAccountId :many
 SELECT 
-    s.id, s.created_at, s.updated_at, s.uri, s.url, s.local, s.content, s.account_id, s.account_uri, s.in_reply_to_id, s.in_reply_to_uri, s.in_reply_to_account_id, s.reblog_of_id,
+    s.id, s.created_at, s.updated_at, s.uri, s.url, s.local, s.content, s.account_id, s.account_uri, s.in_reply_to_id, s.in_reply_to_uri, s.in_reply_to_account_id, s.reblog_of_id, s.reblog_of_uri, s.reblog_of_account_id,
     a.id, a.created_at, a.updated_at, a.username, a.uri, a.display_name, a.domain, a.inbox_uri, a.outbox_uri, a.followers_uri, a.following_uri, a.url,
     (SELECT COUNT(*) FROM favourites f WHERE f.status_id = s.id) AS like_count,
     (SELECT COUNT(*) FROM statuses r WHERE r.in_reply_to_id = s.id) AS comment_count,
@@ -1191,6 +1261,8 @@ func (q *Queries) GetTimelinePostsByAccountId(ctx context.Context, accountID xid
 			&i.Status.InReplyToUri,
 			&i.Status.InReplyToAccountID,
 			&i.Status.ReblogOfID,
+			&i.Status.ReblogOfUri,
+			&i.Status.ReblogOfAccountID,
 			&i.Account.ID,
 			&i.Account.CreatedAt,
 			&i.Account.UpdatedAt,

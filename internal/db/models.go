@@ -70,6 +70,8 @@ type Status struct {
 	InReplyToUri       sql.NullString
 	InReplyToAccountID *xid.ID
 	ReblogOfID         *xid.ID
+	ReblogOfUri        sql.NullString
+	ReblogOfAccountID  sql.NullString
 }
 
 type User struct {
