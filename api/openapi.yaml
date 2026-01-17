@@ -300,22 +300,6 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Comment"
-    post:
-      summary: Create a post comment
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/NewComment"
-      security:
-        - BearerAuth: []
   /auth/login:
     post:
       summary: Login the user
@@ -435,86 +419,6 @@ components:
           type: string
         password:
           type: string
-    User:
-      type: object
-      required:
-        - id
-        - username
-        - bio
-        - origin
-        - isAdmin
-        - followersCount
-        - followingCount
-        - createdAt
-        - updatedAt
-      properties:
-        id:
-          type: string
-        username:
-          type: string
-        bio:
-          type: string
-        origin:
-          type: string
-        isAdmin:
-          type: boolean
-        followersCount:
-          type: integer
-        followingCount:
-          type: integer
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
-
-    NewUser:
-      type: object
-      required:
-        - username
-        - password
-      properties:
-        username:
-          type: string
-        password:
-          type: string
-
-    UpdateUser:
-      type: object
-      properties:
-        bio:
-          type: string
-        isAdmin:
-          type: boolean
-
-    Share:
-      type: object
-      required:
-        - id
-        - postID
-        - userID
-        - createdAt
-      properties:
-        id:
-          type: string
-        postID:
-          type: string
-        userID:
-          type: string
-        createdAt:
-          type: string
-          format: date-time
-    NewShare:
-      type: object
-      required:
-        - postID
-        - userID
-      properties:
-        postID:
-          type: string
-        userID:
-          type: string
     Comment:
       type: object
       required:
@@ -542,46 +446,6 @@ components:
         UpdatedAt:
           type: string
           format: date-time
-    NewComment:
-      type: object
-      required:
-        - postID
-        - userID
-        - content
-      properties:
-        postID:
-          type: string
-        userID:
-          type: string
-        content:
-          type: string
-    Like:
-      type: object
-      required:
-        - id
-        - postID
-        - userID
-        - createdAt
-      properties:
-        id:
-          type: string
-        postID:
-          type: string
-        userID:
-          type: string
-        createdAt:
-          type: string
-          format: date-time
-    NewLike:
-      type: object
-      required:
-        - postID
-        - userID
-      properties:
-        postID:
-          type: string
-        userID:
-          type: string
     Post:
       type: object
       required:
@@ -613,16 +477,6 @@ components:
           type: string
           format: date-time
         username:
-          type: string
-    NewPost:
-      type: object
-      required:
-        - userID
-        - content
-      properties:
-        userID:
-          type: string
-        content:
           type: string
     UpdatePost:
       type: object

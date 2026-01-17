@@ -429,7 +429,7 @@ func (s *appService) FavouriteStatus(ctx context.Context, favouritedID string) (
 		ID:        id,
 		AccountID: accountID,
 		StatusID:  statusID,
-		Uri:       "i'll fix it, but not needed",
+		Uri:       s.builder.LikeRequestURI(token.ID, id.String()),
 	})
 	if err != nil {
 		return nil, err
