@@ -159,6 +159,7 @@ func (s *appService) GetAccountStatuses(ctx context.Context, id string) ([]api.S
 
 	res := make([]api.Status, len(statuses))
 	for idx, status := range statuses {
+		// _, _ = status, idx
 		s := db.GetStatusByIDNewRow(status)
 		res[idx] = *mapper.ToAPIStatus(&s)
 	}

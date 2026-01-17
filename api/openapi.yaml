@@ -372,6 +372,7 @@ components:
         - in_reply_to_id
         - in_reply_to_account_id
         - reblog
+        - account
       properties:
         id:
           type: string
@@ -393,6 +394,8 @@ components:
           nullable: true
         reblog:
           $ref: "#/components/schemas/Status"
+        account:
+          $ref: "#/components/schemas/Account"
         favourited:
           type: boolean
         reblogged:

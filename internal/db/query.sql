@@ -60,15 +60,28 @@ SELECT * FROM statuses WHERE id = $1;
 -- name: GetStatusByIDNew :one
 SELECT 
     sqlc.embed(s),
+    sqlc.embed(a),
     reblogged.content AS reblogged_status_content,
     reblogged.in_reply_to_id AS reblogged_reply_to_id,
     reblogged.in_reply_to_account_id AS reblogged_reply_to_account_id,
+    reblogged_author.username AS reblogged_username,
+    reblogged_author.display_name AS reblogged_display_name,
+    CONCAT(reblogged_author.username, '@' || a.domain)::TEXT AS reblogged_acct,
+    CONCAT(a.username, '@' || a.domain)::TEXT AS acct,
+    (SELECT COUNT(*) FROM follows f WHERE f.target_account_id = a.id) AS followers_count,
+    (SELECT COUNT(*) FROM follows f WHERE f.target_account_id = reblogged_author.id) AS reblogged_followers_count,
+    (SELECT COUNT(*) FROM follows f WHERE f.account_id = a.id) AS following_count,
+    (SELECT COUNT(*) FROM follows f WHERE f.account_id = reblogged_author.id) AS reblogged_following_count,
     (SELECT COUNT(*) FROM statuses r WHERE r.in_reply_to_id = COALESCE(s.reblog_of_id, s.id)) AS replies_count,
     (SELECT COUNT(*) FROM favourites f WHERE f.status_id = COALESCE(s.reblog_of_id, s.id)) AS favourites_count,
     (SELECT COUNT(*) FROM statuses r WHERE r.reblog_of_id = COALESCE(s.reblog_of_id, s.id)) AS reblogs_count,
     EXISTS(SELECT 1 FROM favourites f WHERE f.status_id = COALESCE(s.reblog_of_id, s.id) AND f.account_id = $2) AS favourited,
     EXISTS(SELECT 1 FROM statuses r WHERE r.reblog_of_id = COALESCE(s.reblog_of_id, s.id) AND r.account_id = $2) AS reblogged
-FROM statuses s LEFT JOIN statuses reblogged ON s.reblog_of_id = reblogged.id WHERE s.id = $1;
+FROM statuses s
+JOIN accounts a ON s.account_id = a.id
+LEFT JOIN statuses reblogged ON s.reblog_of_id = reblogged.id
+LEFT JOIN accounts reblogged_author ON reblogged.account_id = reblogged_author.id
+WHERE s.id = $1;
 
 -- name: GetStatusByURI :one
 SELECT * FROM statuses WHERE uri = $1;
@@ -76,15 +89,28 @@ SELECT * FROM statuses WHERE uri = $1;
 -- name: GetStatusesByAccountID :many
 SELECT 
     sqlc.embed(s),
+    sqlc.embed(a),
     reblogged.content AS reblogged_status_content,
     reblogged.in_reply_to_id AS reblogged_reply_to_id,
     reblogged.in_reply_to_account_id AS reblogged_reply_to_account_id,
+    reblogged_author.username AS reblogged_username,
+    reblogged_author.display_name AS reblogged_display_name,
+    CONCAT(reblogged_author.username, '@' || a.domain)::TEXT AS reblogged_acct,
+    CONCAT(a.username, '@' || a.domain)::TEXT AS acct,
+    (SELECT COUNT(*) FROM follows f WHERE f.target_account_id = a.id) AS followers_count,
+    (SELECT COUNT(*) FROM follows f WHERE f.target_account_id = reblogged_author.id) AS reblogged_followers_count,
+    (SELECT COUNT(*) FROM follows f WHERE f.account_id = a.id) AS following_count,
+    (SELECT COUNT(*) FROM follows f WHERE f.account_id = reblogged_author.id) AS reblogged_following_count,
     (SELECT COUNT(*) FROM statuses r WHERE r.in_reply_to_id = COALESCE(s.reblog_of_id, s.id)) AS replies_count,
     (SELECT COUNT(*) FROM favourites f WHERE f.status_id = COALESCE(s.reblog_of_id, s.id)) AS favourites_count,
     (SELECT COUNT(*) FROM statuses r WHERE r.reblog_of_id = COALESCE(s.reblog_of_id, s.id)) AS reblogs_count,
-    EXISTS(SELECT 1 FROM favourites f WHERE f.status_id = COALESCE(s.reblog_of_id, s.id) AND f.account_id = sqlc.arg(logged_in_id)) AS favourited,
-    EXISTS(SELECT 1 FROM statuses r WHERE r.reblog_of_id = COALESCE(s.reblog_of_id, s.id) AND r.account_id = sqlc.arg(logged_in_id)) AS reblogged
-FROM statuses s LEFT JOIN statuses reblogged ON s.reblog_of_id = reblogged.id WHERE s.account_id = sqlc.arg(account_id);
+    EXISTS(SELECT 1 FROM favourites f WHERE f.status_id = COALESCE(s.reblog_of_id, s.id) AND f.account_id = @logged_in_id) AS favourited,
+    EXISTS(SELECT 1 FROM statuses r WHERE r.reblog_of_id = COALESCE(s.reblog_of_id, s.id) AND r.account_id = @logged_in_id) AS reblogged
+FROM statuses s
+JOIN accounts a ON s.account_id = a.id
+LEFT JOIN statuses reblogged ON s.reblog_of_id = reblogged.id
+LEFT JOIN accounts reblogged_author ON reblogged.account_id = reblogged_author.id
+WHERE s.account_id = @account_id;
 
 -- name: GetStatusByIdWithMetadata :one
 SELECT 
