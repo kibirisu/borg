@@ -1160,12 +1160,15 @@ func (q *Queries) GetStatusByURI(ctx context.Context, uri string) (Status, error
 const getStatusesByAccountID = `-- name: GetStatusesByAccountID :many
 SELECT 
     s.id, s.created_at, s.updated_at, s.uri, s.url, s.local, s.content, s.account_id, s.account_uri, s.in_reply_to_id, s.in_reply_to_uri, s.in_reply_to_account_id, s.reblog_of_id, s.reblog_of_uri, s.reblog_of_account_id,
-    (SELECT COUNT(*) FROM statuses r WHERE r.in_reply_to_id = s.id) AS replies_count,
-    (SELECT COUNT(*) FROM favourites f WHERE f.status_id = s.id) AS favourites_count,
-    (SELECT COUNT(*) FROM statuses r WHERE r.reblog_of_id = s.id) AS reblogs_count,
-    EXISTS(SELECT 1 FROM favourites f WHERE f.status_id = s.id AND f.account_id = $1) AS favourited,
-    EXISTS(SELECT 1 FROM statuses r WHERE r.reblog_of_id = s.id AND r.account_id = $1) AS reblogged
-FROM statuses s WHERE s.account_id = $2
+    reblogged.content AS reblogged_status_content,
+    reblogged.in_reply_to_id AS reblogged_reply_to_id,
+    reblogged.in_reply_to_account_id AS reblogged_reply_to_account_id,
+    (SELECT COUNT(*) FROM statuses r WHERE r.in_reply_to_id = COALESCE(s.reblog_of_id, s.id)) AS replies_count,
+    (SELECT COUNT(*) FROM favourites f WHERE f.status_id = COALESCE(s.reblog_of_id, s.id)) AS favourites_count,
+    (SELECT COUNT(*) FROM statuses r WHERE r.reblog_of_id = COALESCE(s.reblog_of_id, s.id)) AS reblogs_count,
+    EXISTS(SELECT 1 FROM favourites f WHERE f.status_id = COALESCE(s.reblog_of_id, s.id) AND f.account_id = $1) AS favourited,
+    EXISTS(SELECT 1 FROM statuses r WHERE r.reblog_of_id = COALESCE(s.reblog_of_id, s.id) AND r.account_id = $1) AS reblogged
+FROM statuses s LEFT JOIN statuses reblogged ON s.reblog_of_id = reblogged.id WHERE s.account_id = $2
 `
 
 type GetStatusesByAccountIDParams struct {
@@ -1174,12 +1177,15 @@ type GetStatusesByAccountIDParams struct {
 }
 
 type GetStatusesByAccountIDRow struct {
-	Status          Status
-	RepliesCount    int64
-	FavouritesCount int64
-	ReblogsCount    int64
-	Favourited      bool
-	Reblogged       bool
+	Status                    Status
+	RebloggedStatusContent    sql.NullString
+	RebloggedReplyToID        *xid.ID
+	RebloggedReplyToAccountID *xid.ID
+	RepliesCount              int64
+	FavouritesCount           int64
+	ReblogsCount              int64
+	Favourited                bool
+	Reblogged                 bool
 }
 
 func (q *Queries) GetStatusesByAccountID(ctx context.Context, arg GetStatusesByAccountIDParams) ([]GetStatusesByAccountIDRow, error) {
@@ -1207,6 +1213,9 @@ func (q *Queries) GetStatusesByAccountID(ctx context.Context, arg GetStatusesByA
 			&i.Status.ReblogOfID,
 			&i.Status.ReblogOfUri,
 			&i.Status.ReblogOfAccountID,
+			&i.RebloggedStatusContent,
+			&i.RebloggedReplyToID,
+			&i.RebloggedReplyToAccountID,
 			&i.RepliesCount,
 			&i.FavouritesCount,
 			&i.ReblogsCount,

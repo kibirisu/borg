@@ -40,6 +40,8 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Status"
+      security:
+        - BearerAuth: []
   /api/accounts/{id}/followers:
     get:
       summary: Accounts which follow the given account.

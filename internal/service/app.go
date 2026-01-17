@@ -17,6 +17,7 @@ import (
 	proc "github.com/kibirisu/borg/internal/processing"
 	repo "github.com/kibirisu/borg/internal/repository"
 	"github.com/kibirisu/borg/internal/server/auth"
+	"github.com/kibirisu/borg/internal/server/mapper"
 	"github.com/kibirisu/borg/internal/util"
 	"github.com/kibirisu/borg/internal/worker"
 )
@@ -158,28 +159,8 @@ func (s *appService) GetAccountStatuses(ctx context.Context, id string) ([]api.S
 
 	res := make([]api.Status, len(statuses))
 	for idx, status := range statuses {
-		var inReplyToID, inReplyToAccountID *string
-		if status.Status.InReplyToID != nil {
-			id := status.Status.InReplyToID.String()
-			inReplyToID = &id
-		}
-		if status.Status.InReplyToAccountID != nil {
-			id := status.Status.InReplyToID.String()
-			inReplyToAccountID = &id
-		}
-		res[idx] = api.Status{
-			Content:            status.Status.Content.String,
-			Favourited:         &status.Favourited,
-			FavouritesCount:    int(status.FavouritesCount),
-			Id:                 status.Status.ID.String(),
-			InReplyToAccountId: inReplyToAccountID,
-			InReplyToId:        inReplyToID,
-			Reblog:             &api.Status{},
-			Reblogged:          &status.Reblogged,
-			ReblogsCount:       int(status.FavouritesCount),
-			RepliesCount:       int(status.FavouritesCount),
-			Uri:                status.Status.Uri,
-		}
+		s := db.GetStatusByIDNewRow(status)
+		res[idx] = *mapper.ToAPIStatus(&s)
 	}
 	return res, nil
 }
@@ -375,8 +356,6 @@ func (s *appService) ViewStatus(ctx context.Context, id string) (*api.Status, er
 		return nil, err
 	}
 
-	println(statusID.String())
-	println(accountID.String())
 	status, err := s.store.Statuses().GetByIDNew(ctx, db.GetStatusByIDNewParams{
 		ID:        statusID,
 		AccountID: accountID,
@@ -385,67 +364,7 @@ func (s *appService) ViewStatus(ctx context.Context, id string) (*api.Status, er
 		return nil, err
 	}
 
-	var inReplyToID, inReplyToAccountID *string
-
-	if status.Status.ReblogOfID == nil {
-		if status.Status.InReplyToID != nil {
-			id := status.Status.InReplyToID.String()
-			inReplyToID = &id
-		}
-		if status.Status.InReplyToAccountID != nil {
-			id := status.Status.InReplyToAccountID.String()
-			inReplyToAccountID = &id
-		}
-
-		res := &api.Status{
-			Content:            status.Status.Content.String,
-			Favourited:         &status.Favourited,
-			FavouritesCount:    int(status.FavouritesCount),
-			Id:                 status.Status.ID.String(),
-			InReplyToAccountId: inReplyToAccountID,
-			InReplyToId:        inReplyToID,
-			Reblogged:          &status.Reblogged,
-			ReblogsCount:       int(status.ReblogsCount),
-			RepliesCount:       int(status.RepliesCount),
-			Uri:                status.Status.Uri,
-		}
-		return res, nil
-	}
-
-	if status.RebloggedReplyToID != nil {
-		id := status.RebloggedReplyToID.String()
-		inReplyToID = &id
-	}
-	if status.RebloggedReplyToAccountID != nil {
-		id := status.RebloggedReplyToAccountID.String()
-		inReplyToAccountID = &id
-	}
-
-	res := &api.Status{
-		Content:            status.Status.Content.String,
-		Favourited:         &status.Favourited,
-		FavouritesCount:    int(status.FavouritesCount),
-		Id:                 status.Status.ID.String(),
-		InReplyToAccountId: inReplyToAccountID,
-		InReplyToId:        inReplyToID,
-		Reblog: &api.Status{
-			Content:            status.RebloggedStatusContent.String,
-			Favourited:         &status.Favourited,
-			FavouritesCount:    int(status.FavouritesCount),
-			Id:                 status.Status.ReblogOfID.String(),
-			InReplyToAccountId: &status.Status.ReblogOfAccountID.String,
-			InReplyToId:        inReplyToID,
-			Reblogged:          &status.Reblogged,
-			ReblogsCount:       int(status.ReblogsCount),
-			RepliesCount:       int(status.RepliesCount),
-			Uri:                status.Status.ReblogOfUri.String,
-		},
-		Reblogged:    &status.Reblogged,
-		ReblogsCount: int(status.ReblogsCount),
-		RepliesCount: int(status.RepliesCount),
-		Uri:          status.Status.Uri,
-	}
-	return res, nil
+	return mapper.ToAPIStatus(&status), nil
 }
 
 // FavouriteStatus implements AppService.
