@@ -90,9 +90,9 @@ func (s *appService) Register(ctx context.Context, form api.AuthForm) error {
 		}
 
 		log.Printf(
-			"register: user and actor created username=%s account_id=%d",
+			"register: user and actor created username=%s account_id=%s",
 			form.Username,
-			actor.ID,
+			actor.ID.String(),
 		)
 		return nil, nil
 	})
@@ -108,7 +108,7 @@ func (s *appService) Login(ctx context.Context, form api.AuthForm) (token string
 	if err = bcrypt.CompareHashAndPassword([]byte(auth.PasswordHash), []byte(form.Password)); err != nil {
 		return
 	}
-	token, err = issueToken(auth.ID.String(), form.Username, s.conf.JWTSecret)
+	token, err = issueToken(auth.ID.String(), auth.Uri, s.conf.JWTSecret) // fixme: uri
 	return
 }
 
@@ -168,13 +168,14 @@ func (s *appService) GetAccountStatuses(ctx context.Context, id string) ([]api.S
 			inReplyToAccountID = &id
 		}
 		res[idx] = api.Status{
-			Content:            status.Status.Content,
-			Favourited:         status.Favourited,
+			Content:            status.Status.Content.String,
+			Favourited:         &status.Favourited,
 			FavouritesCount:    int(status.FavouritesCount),
 			Id:                 status.Status.ID.String(),
 			InReplyToAccountId: inReplyToAccountID,
 			InReplyToId:        inReplyToID,
-			Reblogged:          status.Reblogged,
+			Reblog:             &api.Status{},
+			Reblogged:          &status.Reblogged,
 			ReblogsCount:       int(status.FavouritesCount),
 			RepliesCount:       int(status.FavouritesCount),
 			Uri:                status.Status.Uri,
@@ -299,8 +300,8 @@ func (s *appService) CreateStatus(
 	}
 
 	var inReplyToID *xid.ID
-	if status.InReplyToID != nil {
-		id, err := xid.FromString(*status.InReplyToID)
+	if status.InReplyToId != nil {
+		id, err := xid.FromString(*status.InReplyToId)
 		if err != nil {
 			return nil, err
 		}
@@ -308,10 +309,13 @@ func (s *appService) CreateStatus(
 	}
 
 	createdStatus, err := s.store.Statuses().CreateNew(ctx, db.CreateStatusNewParams{
-		ID:          statusID,
-		Uri:         statusURIs.Status,
-		Url:         "not needed rn",
-		Content:     status.Status,
+		ID:  statusID,
+		Uri: statusURIs.Status,
+		Url: "not needed rn",
+		Content: sql.NullString{
+			String: status.Status,
+			Valid:  true,
+		},
 		AccountID:   accountID,
 		AccountUri:  token.URI,
 		InReplyToID: inReplyToID,
@@ -337,8 +341,6 @@ func (s *appService) CreateStatus(
 			InReplyTo:    inReplyTo,
 			Published:    time.Now(),
 			AttributedTo: actor,
-			To:           []string{},
-			CC:           []string{},
 			Replies: ap.NewEmptyNoteCollection().WithObject(ap.Collection[ap.Note]{
 				ID:   statusURIs.Replies,
 				Type: "Collection",
@@ -347,7 +349,6 @@ func (s *appService) CreateStatus(
 					Type:   "CollectionPage",
 					Next:   ap.NewEmptyNoteCollectionPage(),
 					PartOf: ap.NewEmptyNoteCollection().WithLink(statusURIs.Replies),
-					Items:  []ap.Objecter[ap.Note]{},
 				}),
 			}),
 		}),
@@ -383,26 +384,64 @@ func (s *appService) ViewStatus(ctx context.Context, id string) (*api.Status, er
 	}
 
 	var inReplyToID, inReplyToAccountID *string
-	if status.Status.InReplyToID != nil {
-		id := status.Status.InReplyToID.String()
+
+	if status.Status.ReblogOfID == nil {
+		if status.Status.InReplyToID != nil {
+			id := status.Status.InReplyToID.String()
+			inReplyToID = &id
+		}
+		if status.Status.InReplyToAccountID != nil {
+			id := status.Status.InReplyToAccountID.String()
+			inReplyToAccountID = &id
+		}
+
+		res := api.Status{
+			Content:            status.Status.Content.String,
+			Favourited:         &status.Favourited,
+			FavouritesCount:    int(status.FavouritesCount),
+			Id:                 status.Status.ID.String(),
+			InReplyToAccountId: inReplyToAccountID,
+			InReplyToId:        inReplyToID,
+			Reblogged:          &status.Reblogged,
+			ReblogsCount:       int(status.ReblogsCount),
+			RepliesCount:       int(status.RepliesCount),
+			Uri:                status.Status.Uri,
+		}
+		return &res, nil
+	}
+
+	if status.RebloggedReplyToID != nil {
+		id := status.RebloggedReplyToID.String()
 		inReplyToID = &id
 	}
-	if status.Status.InReplyToAccountID != nil {
-		id := status.Status.InReplyToID.String()
+	if status.RebloggedReplyToAccountID != nil {
+		id := status.RebloggedReplyToAccountID.String()
 		inReplyToAccountID = &id
 	}
 
 	res := api.Status{
-		Content:            status.Status.Content,
-		Favourited:         status.Favourited,
+		Content:            status.Status.Content.String,
+		Favourited:         &status.Favourited,
 		FavouritesCount:    int(status.FavouritesCount),
 		Id:                 status.Status.ID.String(),
 		InReplyToAccountId: inReplyToAccountID,
 		InReplyToId:        inReplyToID,
-		Reblogged:          status.Reblogged,
-		ReblogsCount:       int(status.ReblogsCount),
-		RepliesCount:       int(status.RepliesCount),
-		Uri:                status.Status.Uri,
+		Reblog: &api.Status{
+			Content:            status.RebloggedStatusContent.String,
+			Favourited:         &status.Favourited,
+			FavouritesCount:    int(status.FavouritesCount),
+			Id:                 status.Status.ReblogOfID.String(),
+			InReplyToAccountId: &status.Status.ReblogOfAccountID.String,
+			InReplyToId:        inReplyToID,
+			Reblogged:          &status.Reblogged,
+			ReblogsCount:       int(status.ReblogsCount),
+			RepliesCount:       int(status.RepliesCount),
+			Uri:                status.Status.ReblogOfUri.String,
+		},
+		Reblogged:    &status.Reblogged,
+		ReblogsCount: int(status.ReblogsCount),
+		RepliesCount: int(status.RepliesCount),
+		Uri:          status.Status.Uri,
 	}
 	return &res, nil
 }
@@ -432,6 +471,12 @@ func (s *appService) FavouriteStatus(ctx context.Context, favouritedID string) (
 	})
 	if err != nil {
 		return nil, err
+	}
+
+	if token.ID == favourite.TargetAccountID.String() {
+		return func(context.Context) error {
+			return nil
+		}, nil
 	}
 
 	like := ap.NewEmptyLikeActivity().WithObject(ap.Activity[ap.Note]{

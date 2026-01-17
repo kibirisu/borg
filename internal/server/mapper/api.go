@@ -14,7 +14,7 @@ func PostToAPIWithMetadata(
 ) *api.Post {
 	return &api.Post{
 		CommentCount: commentCount,
-		Content:      post.Content,
+		Content:      post.Content.String,
 		CreatedAt:    post.CreatedAt,
 		Id:           post.ID.String(),
 		LikeCount:    likeCount,

@@ -22,7 +22,7 @@ CREATE TABLE statuses (
     uri TEXT UNIQUE NOT NULL,
     url TEXT NOT NULL,
     local BOOLEAN DEFAULT FALSE,
-    content TEXT NOT NULL,
+    content TEXT,
     account_id VARCHAR(20) NOT NULL REFERENCES accounts (id),
     account_uri TEXT NOT NULL REFERENCES accounts (uri),
     in_reply_to_id VARCHAR(20) REFERENCES statuses,

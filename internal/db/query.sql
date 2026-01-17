@@ -5,7 +5,7 @@ SELECT * FROM accounts WHERE username = $1 AND domain IS NULL;
 SELECT * FROM accounts WHERE uri LIKE '%' || $1::text;
 
 -- name: AuthData :one
-SELECT a.id, u.password_hash FROM accounts a JOIN users u ON a.id = u.account_id WHERE a.username = $1;
+SELECT a.id, a.uri, u.password_hash FROM accounts a JOIN users u ON a.id = u.account_id WHERE a.username = $1;
 
 -- name: CreateActor :one
 INSERT INTO accounts (
@@ -60,12 +60,15 @@ SELECT * FROM statuses WHERE id = $1;
 -- name: GetStatusByIDNew :one
 SELECT 
     sqlc.embed(s),
-    (SELECT COUNT(*) FROM statuses r WHERE r.in_reply_to_id = s.id) AS replies_count,
-    (SELECT COUNT(*) FROM favourites f WHERE f.status_id = s.id) AS favourites_count,
-    (SELECT COUNT(*) FROM statuses r WHERE r.reblog_of_id = s.id) AS reblogs_count,
-    EXISTS(SELECT 1 FROM favourites f WHERE f.status_id = s.id AND f.account_id = $2) AS favourited,
-    EXISTS(SELECT 1 FROM statuses r WHERE r.reblog_of_id = s.id AND r.account_id = $2) AS reblogged
-FROM statuses s WHERE s.id = $1;
+    reblogged.content AS reblogged_status_content,
+    reblogged.in_reply_to_id AS reblogged_reply_to_id,
+    reblogged.in_reply_to_account_id AS reblogged_reply_to_account_id,
+    (SELECT COUNT(*) FROM statuses r WHERE r.in_reply_to_id = COALSECE(s.reblog_if_id, s.id)) AS replies_count,
+    (SELECT COUNT(*) FROM favourites f WHERE f.status_id = COALESCE(s.reblog_of_id, s.id)) AS favourites_count,
+    (SELECT COUNT(*) FROM statuses r WHERE r.reblog_of_id = COALESCE(s.reblog_of_id, s.id)) AS reblogs_count,
+    EXISTS(SELECT 1 FROM favourites f WHERE f.status_id = COALSECE(s.reblog_of_id, s.id) AND f.account_id = $2) AS favourited,
+    EXISTS(SELECT 1 FROM statuses r WHERE r.reblog_of_id = COALSECE(s.reblog_of_id, s.id) AND r.account_id = $2) AS reblogged
+FROM statuses s LEFT JOIN statuses reblogged ON s.reblog_of_id = reblogged.id WHERE s.id = $1;
 
 -- name: GetStatusByURI :one
 SELECT * FROM statuses WHERE uri = $1;
@@ -116,7 +119,7 @@ SELECT
 INSERT INTO follow_requests (
     id, uri, account_id, target_account_id, target_account_uri
 ) VALUES (
-    $1, $2, $3, $4, (SELECT uri FROM accounts WHERE id = $4)
+    @id, @uri, @account_id, @target_account_id, (SELECT uri FROM accounts a WHERE a.id = @target_account_id)
 ) RETURNING *;
 
 -- name: CreateStatus :one
@@ -167,7 +170,7 @@ RETURNING *;
 
 -- name: CreateFavouriteNew :one
 WITH favourited AS (
-    SELECT account_id, uri FROM statuses WHERE status_id = $4
+    SELECT account_id, uri FROM statuses WHERE id = $4
 ) INSERT INTO favourites (
     id, uri, account_id, target_account_id, status_id, status_uri
 ) VALUES (

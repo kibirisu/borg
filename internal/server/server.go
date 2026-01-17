@@ -40,9 +40,9 @@ func New(ctx context.Context, conf *config.Config) *http.Server {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+	r.Use(auth.PreAuthMiddleware)
 	r.Group(server.federationRoutes())
 	r.Group(server.staticRoutes())
-	r.Use(auth.PreAuthMiddleware)
 
 	h := api.HandlerWithOptions(
 		server,

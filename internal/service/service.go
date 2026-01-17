@@ -18,7 +18,7 @@ type Container struct {
 func NewContainer(ctx context.Context, conf *config.Config) *Container {
 	store := repository.New(ctx, conf.DatabaseURL)
 	proc := proc.New(store, transport.New())
-	builder := util.NewURIBuilder(conf.ListenHost, conf.ListenPort)
+	builder := util.NewURIBuilder(conf.Address)
 	return &Container{
 		App:        &appService{store, proc, conf, builder},
 		Federation: &federationService{store, proc},

@@ -37,9 +37,12 @@ func (p *processor) LookupStatus(ctx context.Context, object ap.Noter) (db.Statu
 			inReplyToID = &parentStatus.ID
 		}
 		status, err = p.store.Statuses().Create(ctx, db.CreateStatusParams{
-			Url:         "nope",
-			Local:       sql.NullBool{},
-			Content:     statusData.Content,
+			Url:   "nope",
+			Local: sql.NullBool{},
+			Content: sql.NullString{
+				String: statusData.Content,
+				Valid:  true,
+			},
 			AccountID:   account.ID,
 			InReplyToID: inReplyToID,
 		})

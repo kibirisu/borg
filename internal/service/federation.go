@@ -72,7 +72,7 @@ func (s *federationService) GetStatus(
 	note.SetObject(ap.Note{
 		ID:           status.Uri,
 		Type:         "Note",
-		Content:      status.Content,
+		Content:      status.Content.String,
 		InReplyTo:    reply,
 		Published:    status.CreatedAt,
 		AttributedTo: actor,

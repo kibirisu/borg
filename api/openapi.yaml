@@ -115,11 +115,11 @@ paths:
               type: object
               required:
                 - status
-                - inReplyToID
+                - in_reply_to_id
               properties:
                 status:
                   type: string
-                inReplyToID:
+                in_reply_to_id:
                   type: string
                   nullable: true
       responses:
@@ -357,6 +357,7 @@ components:
           type: integer
     Status:
       type: object
+      nullable: true
       required:
         - id
         - uri
@@ -366,8 +367,7 @@ components:
         - replies_count
         - in_reply_to_id
         - in_reply_to_account_id
-        - favourited
-        - reblogged
+        - reblog
       properties:
         id:
           type: string
@@ -387,6 +387,8 @@ components:
         in_reply_to_account_id:
           type: string
           nullable: true
+        reblog:
+          $ref: "#/components/schemas/Status"
         favourited:
           type: boolean
         reblogged:

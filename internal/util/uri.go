@@ -23,11 +23,8 @@ type StatusURIs struct {
 	Create  string
 }
 
-func NewURIBuilder(host, port string) URIBuilder {
-	if port == "80" {
-		return URIBuilder{fmt.Sprintf("http://%s", host)}
-	}
-	return URIBuilder{fmt.Sprintf("http://%s:%s", host, port)}
+func NewURIBuilder(addr string) URIBuilder {
+	return URIBuilder{fmt.Sprintf("http://%s", addr)}
 }
 
 func (b URIBuilder) ActorURIs(id string) ActorURIs {

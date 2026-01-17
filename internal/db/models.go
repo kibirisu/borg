@@ -63,7 +63,7 @@ type Status struct {
 	Uri                string
 	Url                string
 	Local              sql.NullBool
-	Content            string
+	Content            sql.NullString
 	AccountID          xid.ID
 	AccountUri         string
 	InReplyToID        *xid.ID
