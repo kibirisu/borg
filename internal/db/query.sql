@@ -21,28 +21,38 @@ INSERT INTO users (
     $1, $2, $3
 );
 
--- name: GetAccount :one
-SELECT * FROM accounts WHERE username = $1 AND domain = $2;
+-- name: GetAccountByID :one
+SELECT 
+    sqlc.embed(a),
+    (a.username || COALESCE('@' || a.domain, ''))::text AS acct,
+    (SELECT COUNT(*) FROM statuses s WHERE s.account_id = a.id) AS statuses_count,
+    (SELECT COUNT(*) FROM follows f WHERE f.target_account_id = a.id) AS followers_count,
+    (SELECT COUNT(*) FROM follows f WHERE f.account_id = a.id) AS following_count
+FROM accounts a WHERE a.id = $1;
 
--- name: GetAccountById :one
-SELECT * FROM accounts WHERE id = $1;
+-- name: GetFollowersByAccountID :many
+SELECT 
+    sqlc.embed(a),
+    (a.username || COALESCE('@' || a.domain, ''))::text AS acct,
+    (SELECT COUNT(*) FROM statuses s WHERE s.account_id = a.id) AS statuses_count,
+    (SELECT COUNT(*) FROM follows f WHERE f.target_account_id = a.id) AS followers_count,
+    (SELECT COUNT(*) FROM follows f WHERE f.account_id = a.id) AS following_count
+FROM accounts a JOIN follows f ON a.id = f.account_id WHERE f.target_account_id = $1;
+
+-- name: GetFollowingByAccountID :many
+SELECT 
+    sqlc.embed(a),
+    (a.username || COALESCE('@' || a.domain, ''))::text AS acct,
+    (SELECT COUNT(*) FROM statuses s WHERE s.account_id = a.id) AS statuses_count,
+    (SELECT COUNT(*) FROM follows f WHERE f.target_account_id = a.id) AS followers_count,
+    (SELECT COUNT(*) FROM follows f WHERE f.account_id = a.id) AS following_count
+FROM accounts a JOIN follows f ON a.id = f.target_account_id WHERE f.account_id = $1;
 
 -- name: GetAccountRemoteFollowersInboxes :many
 SELECT inbox_uri FROM accounts a JOIN follows f ON a.id = f.account_id WHERE f.target_account_id = $1 AND a.domain IS NOT NULL;
 
 -- name: GetAccountInbox :one
 SELECT inbox_uri FROM accounts WHERE id = $1;
-
--- name: GetLocalStatuses :many
-SELECT 
-    sqlc.embed(s),
-    sqlc.embed(a),
-    (SELECT COUNT(*) FROM favourites f WHERE f.status_id = s.id) AS like_count,
-    (SELECT COUNT(*) FROM statuses r WHERE r.in_reply_to_id = s.id) AS comment_count,
-    (SELECT COUNT(*) FROM statuses b WHERE b.reblog_of_id = s.id) AS share_count
-FROM statuses s
-JOIN accounts a ON s.account_id = a.id
-WHERE a.domain is null and s.in_reply_to_id is null;
 
 -- name: GetStatusById :one
 SELECT * FROM statuses WHERE id = $1;
@@ -58,7 +68,17 @@ SELECT
 FROM statuses s WHERE s.id = $1;
 
 -- name: GetStatusByURI :one
-SELECT * FROM statuses WHERE uri LIKE '%' || $1::text;
+SELECT * FROM statuses WHERE uri = $1;
+
+-- name: GetStatusesByAccountID :many
+SELECT 
+    sqlc.embed(s),
+    (SELECT COUNT(*) FROM statuses r WHERE r.in_reply_to_id = s.id) AS replies_count,
+    (SELECT COUNT(*) FROM favourites f WHERE f.status_id = s.id) AS favourites_count,
+    (SELECT COUNT(*) FROM statuses r WHERE r.reblog_of_id = s.id) AS reblogs_count,
+    EXISTS(SELECT 1 FROM favourites f WHERE f.status_id = s.id AND f.account_id = sqlc.arg(logged_in_id)) AS favourited,
+    EXISTS(SELECT 1 FROM statuses r WHERE r.reblog_of_id = s.id AND r.account_id = sqlc.arg(logged_in_id)) AS reblogged
+FROM statuses s WHERE s.account_id = sqlc.arg(account_id);
 
 -- name: GetStatusByIdWithMetadata :one
 SELECT 
@@ -70,27 +90,6 @@ SELECT
 FROM statuses s
 JOIN accounts a ON s.account_id = a.id
 WHERE s.id = $1;
-
--- name: GetStatusFavourites :many
-SELECT *
-FROM favourites
-WHERE status_id = $1;
-
--- name: GetStatusShares :many
-SELECT *
-FROM statuses 
-WHERE reblog_of_id = $1;
-
--- name: GetStatusesByAccountId :many
-SELECT 
-    sqlc.embed(s),
-    sqlc.embed(a),
-    (SELECT COUNT(*) FROM favourites f WHERE f.status_id = s.id) AS like_count,
-    (SELECT COUNT(*) FROM statuses r WHERE r.in_reply_to_id = s.id) AS comment_count,
-    (SELECT COUNT(*) FROM statuses b WHERE b.reblog_of_id = s.id) AS share_count
-FROM statuses s
-JOIN accounts a ON s.account_id = a.id
-WHERE s.account_id = $1;
 
 -- name: CreateFollow :one
 INSERT INTO follows (
@@ -139,13 +138,6 @@ WITH parent AS (
     (SELECT uri FROM parent),
     (SELECT account_id FROM parent)
 ) RETURNING *;
-
--- name: AddStatus :exec
-INSERT INTO statuses (
-    id, uri, url, content, account_id, in_reply_to_id, reblog_of_id
-) VALUES (
-    $1, $2, $3, $4, $5, $6, $7
-);
 
 -- name: DeleteStatusByID :exec
 DELETE FROM statuses WHERE id = $1;

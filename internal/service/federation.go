@@ -57,37 +57,25 @@ func (s *federationService) GetStatus(
 	ctx context.Context,
 	uri string,
 ) (*domain.Object, error) {
-	statusDB, err := s.store.Statuses().GetByURI(ctx, uri)
+	status, err := s.store.Statuses().GetByURI(ctx, uri)
 	if err != nil {
 		return nil, err
 	}
-	reply := ap.NewNote(nil)
-	if statusDB.InReplyToID != nil {
-		inReplyTo, err := s.store.Statuses().GetByID(ctx, *statusDB.InReplyToID)
-		if err != nil {
-			return nil, err
-		}
-
-		reply.SetLink(inReplyTo.Uri)
+	reply := ap.NewEmptyNote()
+	if status.InReplyToUri.Valid {
+		reply.SetLink(status.InReplyToUri.String)
 	}
-	accountDB, err := s.store.Accounts().GetByID(ctx, statusDB.AccountID)
-	if err != nil {
-		return nil, err
-	}
-	actor := ap.NewActor(nil)
-	actor.SetLink(accountDB.Uri)
+	actor := ap.NewEmptyActor().WithLink(status.AccountUri)
 
 	note := ap.NewNote(nil)
 	collection := ap.NewNoteCollection(nil)
 	note.SetObject(ap.Note{
-		ID:           statusDB.Uri,
+		ID:           status.Uri,
 		Type:         "Note",
-		Content:      statusDB.Content,
+		Content:      status.Content,
 		InReplyTo:    reply,
-		Published:    statusDB.CreatedAt,
+		Published:    status.CreatedAt,
 		AttributedTo: actor,
-		To:           []string{},
-		CC:           []string{accountDB.FollowersUri},
 		Replies:      collection,
 	})
 
@@ -107,18 +95,17 @@ func (s *federationService) GetLike(
 	if err != nil {
 		return nil, err
 	}
+	_ = accountDB
 	postDB, err := s.store.Statuses().GetByID(ctx, likeDB.StatusID)
 	if err != nil {
 		return nil, err
 	}
-	actor := ap.NewActor(nil)
-	actor.SetLink(accountDB.Uri)
+	actor := ap.NewEmptyActor().WithLink("i'll fix it")
 
 	note := ap.NewNote(nil)
 	note.SetLink(postDB.Uri)
 
-	like := ap.NewLikeActivity(nil)
-	like.SetObject(ap.Activity[ap.Note]{
+	like := ap.NewEmptyLikeActivity().WithObject(ap.Activity[ap.Note]{
 		ID:     likeDB.Uri,
 		Type:   "Like",
 		Actor:  actor,
@@ -145,11 +132,10 @@ func (s *federationService) GetFollow(
 	if err != nil {
 		return nil, err
 	}
-	actorFollowed := ap.NewActor(nil)
-	actorFollowed.SetLink(followeeDB.Uri)
-
-	actorFollowing := ap.NewActor(nil)
-	actorFollowing.SetLink(followerDB.Uri)
+	_ = followeeDB
+	_ = followerDB
+	actorFollowed := ap.NewEmptyActor().WithLink("i'll fix it")
+	actorFollowing := ap.NewEmptyActor().WithLink("i'll fix it")
 
 	follow := ap.NewFollowActivity(nil)
 	follow.SetObject(ap.Activity[ap.Actor]{

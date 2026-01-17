@@ -10,6 +10,10 @@ import (
 
 type StatusRepository interface {
 	GetByIDNew(context.Context, db.GetStatusByIDNewParams) (db.GetStatusByIDNewRow, error)
+	GetByAccountID(
+		context.Context,
+		db.GetStatusesByAccountIDParams,
+	) ([]db.GetStatusesByAccountIDRow, error)
 	CreateNew(context.Context, db.CreateStatusNewParams) (db.Status, error)
 	Create(context.Context, db.CreateStatusParams) (db.Status, error)
 	GetByID(context.Context, xid.ID) (db.Status, error)
@@ -27,6 +31,8 @@ type statusRepository struct {
 	q *db.Queries
 }
 
+var _ StatusRepository = (*statusRepository)(nil)
+
 // GetByIDNew implements StatusRepository.
 func (r *statusRepository) GetByIDNew(
 	ctx context.Context,
@@ -34,8 +40,6 @@ func (r *statusRepository) GetByIDNew(
 ) (db.GetStatusByIDNewRow, error) {
 	return r.q.GetStatusByIDNew(ctx, ids)
 }
-
-var _ StatusRepository = (*statusRepository)(nil)
 
 // CreateNew implements StatusRepository.
 func (r *statusRepository) CreateNew(
@@ -53,14 +57,17 @@ func (r *statusRepository) Create(
 	return r.q.CreateStatus(ctx, status)
 }
 
-// Add implements StatusRepository.
-func (r *statusRepository) Add(ctx context.Context, status db.AddStatusParams) error {
-	return r.q.AddStatus(ctx, status)
-}
-
 // GetById implements StatusRepository.
 func (r *statusRepository) GetByID(ctx context.Context, id xid.ID) (db.Status, error) {
 	return r.q.GetStatusById(ctx, id)
+}
+
+// GetByAccountID implements StatusRepository.
+func (r *statusRepository) GetByAccountID(
+	ctx context.Context,
+	ids db.GetStatusesByAccountIDParams,
+) ([]db.GetStatusesByAccountIDRow, error) {
+	return r.q.GetStatusesByAccountID(ctx, ids)
 }
 
 // GetByURI implements StatusRepository.

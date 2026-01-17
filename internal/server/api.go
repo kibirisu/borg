@@ -49,22 +49,46 @@ func (s *Server) PostAuthLogin(w http.ResponseWriter, r *http.Request) {
 
 // GetApiAccountsId implements api.ServerInterface.
 func (s *Server) GetApiAccountsId(w http.ResponseWriter, r *http.Request, id string) {
-	panic("unimplemented")
+	account, err := s.service.App.GetAccount(r.Context(), id)
+	if err != nil {
+		log.Println(err)
+		util.WriteError(w, http.StatusNotFound, err.Error())
+		return
+	}
+	util.WriteJSON(w, http.StatusOK, account)
 }
 
 // GetApiAccountsIdStatuses implements api.ServerInterface.
 func (s *Server) GetApiAccountsIdStatuses(w http.ResponseWriter, r *http.Request, id string) {
-	panic("unimplemented")
+	statuses, err := s.service.App.GetAccountStatuses(r.Context(), id)
+	if err != nil {
+		log.Println(err)
+		util.WriteError(w, http.StatusNotFound, err.Error())
+		return
+	}
+	util.WriteJSON(w, http.StatusOK, statuses)
 }
 
 // GetApiAccountsIdFollowers implements api.ServerInterface.
 func (s *Server) GetApiAccountsIdFollowers(w http.ResponseWriter, r *http.Request, id string) {
-	panic("unimplemented")
+	followers, err := s.service.App.GetAccountFollowers(r.Context(), id)
+	if err != nil {
+		log.Println(err)
+		util.WriteError(w, http.StatusNotFound, err.Error())
+		return
+	}
+	util.WriteJSON(w, http.StatusOK, followers)
 }
 
 // GetApiAccountsIdFollowing implements api.ServerInterface.
 func (s *Server) GetApiAccountsIdFollowing(w http.ResponseWriter, r *http.Request, id string) {
-	panic("unimplemented")
+	following, err := s.service.App.GetAccountFollowing(r.Context(), id)
+	if err != nil {
+		log.Println(err)
+		util.WriteError(w, http.StatusNotFound, err.Error())
+		return
+	}
+	util.WriteJSON(w, http.StatusOK, following)
 }
 
 // PostApiAccountsIdFollow implements api.ServerInterface.
@@ -118,7 +142,6 @@ func (s *Server) GetApiStatusesId(w http.ResponseWriter, r *http.Request, id str
 		log.Println(err)
 		util.WriteError(w, http.StatusNotFound, err.Error())
 	}
-
 	util.WriteJSON(w, http.StatusOK, status)
 }
 

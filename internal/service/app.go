@@ -113,23 +113,124 @@ func (s *appService) Login(ctx context.Context, form api.AuthForm) (token string
 }
 
 // GetAccount implements AppService.
-func (s *appService) GetAccount(context.Context, string) (*api.Account, error) {
-	panic("unimplemented")
+func (s *appService) GetAccount(ctx context.Context, id string) (*api.Account, error) {
+	accountID, err := xid.FromString(id)
+	if err != nil {
+		return nil, err
+	}
+	account, err := s.store.Accounts().GetByID(ctx, accountID)
+	if err != nil {
+		return nil, err
+	}
+	res := api.Account{
+		Acct:           account.Acct,
+		DisplayName:    account.Account.DisplayName.String,
+		FollowersCount: int(account.FollowersCount),
+		FollowingCount: int(account.FollowingCount),
+		Id:             id,
+		Url:            account.Account.Url,
+		Username:       account.Account.Username,
+	}
+	return &res, nil
 }
 
 // GetAccountStatuses implements AppService.
-func (s *appService) GetAccountStatuses(context.Context, string) ([]api.Status, error) {
-	panic("unimplemented")
+func (s *appService) GetAccountStatuses(ctx context.Context, id string) ([]api.Status, error) {
+	token, ok := ctx.Value(auth.TokenContextKey).(*auth.TokenData)
+	if !ok {
+		return nil, errors.New("auth failure")
+	}
+	accountID, err := xid.FromString(id)
+	if err != nil {
+		return nil, err
+	}
+	loggedInID, err := xid.FromString(token.ID)
+	if err != nil {
+		return nil, err
+	}
+	statuses, err := s.store.Statuses().GetByAccountID(ctx, db.GetStatusesByAccountIDParams{
+		LoggedInID: loggedInID,
+		AccountID:  accountID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	res := make([]api.Status, len(statuses))
+	for idx, status := range statuses {
+		var inReplyToID, inReplyToAccountID *string
+		if status.Status.InReplyToID != nil {
+			id := status.Status.InReplyToID.String()
+			inReplyToID = &id
+		}
+		if status.Status.InReplyToAccountID != nil {
+			id := status.Status.InReplyToID.String()
+			inReplyToAccountID = &id
+		}
+		res[idx] = api.Status{
+			Content:            status.Status.Content,
+			Favourited:         status.Favourited,
+			FavouritesCount:    int(status.FavouritesCount),
+			Id:                 status.Status.ID.String(),
+			InReplyToAccountId: inReplyToAccountID,
+			InReplyToId:        inReplyToID,
+			Reblogged:          status.Reblogged,
+			ReblogsCount:       int(status.FavouritesCount),
+			RepliesCount:       int(status.FavouritesCount),
+			Uri:                status.Status.Uri,
+		}
+	}
+	return res, nil
 }
 
 // GetAccountFollowers implements AppService.
-func (s *appService) GetAccountFollowers(context.Context, string) ([]api.Account, error) {
-	panic("unimplemented")
+func (s *appService) GetAccountFollowers(ctx context.Context, id string) ([]api.Account, error) {
+	accountID, err := xid.FromString(id)
+	if err != nil {
+		return nil, err
+	}
+	followers, err := s.store.Accounts().GetFollowersByAccountID(ctx, accountID)
+	if err != nil {
+		return nil, err
+	}
+	res := make([]api.Account, len(followers))
+	for idx, follower := range followers {
+		res[idx] = api.Account{
+			Acct:           follower.Acct,
+			DisplayName:    follower.Account.DisplayName.String,
+			FollowersCount: int(follower.FollowersCount),
+			FollowingCount: int(follower.FollowingCount),
+			Id:             follower.Account.ID.String(),
+			Url:            follower.Account.Url,
+			Username:       follower.Account.Username,
+		}
+	}
+	return res, nil
 }
 
 // GetAccountFollowing implements AppService.
-func (s *appService) GetAccountFollowing(context.Context, string) ([]api.Account, error) {
-	panic("unimplemented")
+func (s *appService) GetAccountFollowing(ctx context.Context, id string) ([]api.Account, error) {
+	accountID, err := xid.FromString(id)
+	if err != nil {
+		return nil, err
+	}
+	following, err := s.store.Accounts().GetFollowingByAccountID(ctx, accountID)
+	if err != nil {
+		return nil, err
+	}
+	res := make([]api.Account, len(following))
+	for idx, followed := range following {
+		res[idx] = api.Account{
+			Acct:           followed.Acct,
+			DisplayName:    followed.Account.DisplayName.String,
+			FollowersCount: int(followed.FollowersCount),
+			FollowingCount: int(followed.FollowingCount),
+			Id:             followed.Account.ID.String(),
+			Url:            followed.Account.Url,
+			Username:       followed.Account.Username,
+		}
+	}
+	return res, nil
 }
 
 // FollowAccount implements AppService.
