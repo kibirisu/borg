@@ -60,7 +60,9 @@ CREATE TABLE favourites (
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     uri TEXT UNIQUE NOT NULL,
     account_id VARCHAR(20) NOT NULL REFERENCES accounts (id),
+    target_account_id VARCHAR(20) NOT NULL REFERENCES accounts (id),
     status_id VARCHAR(20) NOT NULL REFERENCES statuses (id),
+    status_uri TEXT NOT NULL REFERENCES statuses (uri),
     UNIQUE (account_id, status_id)
 );
 

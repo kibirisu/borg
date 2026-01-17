@@ -145,6 +145,54 @@ func (s *Server) GetApiStatusesId(w http.ResponseWriter, r *http.Request, id str
 	util.WriteJSON(w, http.StatusOK, status)
 }
 
+// PostApiStatusesIdFavourite implements api.ServerInterface.
+func (s *Server) PostApiStatusesIdFavourite(w http.ResponseWriter, r *http.Request, id string) {
+	job, err := s.service.App.FavouriteStatus(r.Context(), id)
+	if err != nil {
+		log.Println(err)
+		util.WriteError(w, http.StatusNotFound, err.Error())
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	s.worker.Enqueue(job)
+}
+
+// PostApiStatusesIdUnfavourite implements api.ServerInterface.
+func (s *Server) PostApiStatusesIdUnfavourite(w http.ResponseWriter, r *http.Request, id string) {
+	job, err := s.service.App.UnfavouriteStatus(r.Context(), id)
+	if err != nil {
+		log.Println(err)
+		util.WriteError(w, http.StatusNotFound, err.Error())
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	s.worker.Enqueue(job)
+}
+
+// PostApiStatusesIdReblog implements api.ServerInterface.
+func (s *Server) PostApiStatusesIdReblog(w http.ResponseWriter, r *http.Request, id string) {
+	job, err := s.service.App.ReblogStatus(r.Context(), id)
+	if err != nil {
+		log.Println(err)
+		util.WriteError(w, http.StatusNotFound, err.Error())
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	s.worker.Enqueue(job)
+}
+
+// PostApiStatusesIdUnreblog implements api.ServerInterface.
+func (s *Server) PostApiStatusesIdUnreblog(w http.ResponseWriter, r *http.Request, id string) {
+	job, err := s.service.App.UnreblogStatus(r.Context(), id)
+	if err != nil {
+		log.Println(err)
+		util.WriteError(w, http.StatusNotFound, err.Error())
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	s.worker.Enqueue(job)
+}
+
 // GetApiAccountsLookup implements api.ServerInterface.
 func (s *Server) GetApiAccountsLookup(
 	w http.ResponseWriter,
@@ -218,11 +266,6 @@ func (s *Server) GetApiAccountsLookup(
 	// util.WriteJSON(w, http.StatusOK, mapper.AccountToAPI(row))
 }
 
-// DeleteApiUsersId implements api.ServerInterface.
-func (s *Server) DeleteApiUsersId(w http.ResponseWriter, r *http.Request, id string) {
-	panic("unimplemented")
-}
-
 // PutApiUsersId implements api.ServerInterface.
 func (s *Server) PutApiUsersId(w http.ResponseWriter, r *http.Request, id string) {
 	panic("unimplemented")
@@ -259,28 +302,8 @@ func (s *Server) PostApiPostsIdComments(w http.ResponseWriter, r *http.Request, 
 	panic("unimplemented")
 }
 
-// PostApiPostsIdLikes implements api.ServerInterface.
-func (s *Server) PostApiPostsIdLikes(w http.ResponseWriter, r *http.Request, id string) {
-	panic("unimplemented")
-}
-
-// PostApiPostsIdShares implements api.ServerInterface.
-func (s *Server) PostApiPostsIdShares(w http.ResponseWriter, r *http.Request, id string) {
-	panic("unimplemented")
-}
-
 // PutApiPostsId implements api.ServerInterface.
 func (s *Server) PutApiPostsId(w http.ResponseWriter, r *http.Request, id string) {
-	panic("unimplemented")
-}
-
-// PostApiAuthRegister implements api.ServerInterface.
-func (s *Server) PostApiAuthRegister(w http.ResponseWriter, r *http.Request) {
-	panic("unimplemented")
-}
-
-// PostApiAuthLogin implements api.ServerInterface.
-func (s *Server) PostApiAuthLogin(w http.ResponseWriter, r *http.Request) {
 	panic("unimplemented")
 }
 

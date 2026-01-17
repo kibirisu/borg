@@ -143,36 +143,62 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Status"
-  /api/users/{id}:
-    delete:
-      summary: Delete a user by ID
+  /api/statuses/{id}/favourite:
+    post:
+      summary: Add a status to your favourites list.
       parameters:
         - name: id
           in: path
           required: true
           schema:
             type: string
-      responses:
-        "204":
-          description: Deleted successfully
-
-    put:
-      summary: Update a user
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/UpdateUser"
       responses:
         "200":
-          description: Updated user
+          description: Status favourited.
+      security:
+        - BearerAuth: []
+  /api/statuses/{id}/unfavourite:
+    post:
+      summary: Remove a status from your favourites list.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Status unfavourited.
+      security:
+        - BearerAuth: []
+  /api/statuses/{id}/reblog:
+    post:
+      summary: Reshare a status on your own profile.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Status has been reblogged
+      security:
+        - BearerAuth: []
+  /api/statuses/{id}/unreblog:
+    post:
+      summary: Undo a reshare of a status.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Status unboosted
+      security:
+        - BearerAuth: []
   /api/users/{id}/favourites:
     get:
       summary: Get liked posts of user with ID
@@ -288,40 +314,6 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/NewComment"
-      security:
-        - BearerAuth: []
-  /api/posts/{id}/likes:
-    post:
-      summary: Create a post like
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/NewLike"
-      security:
-        - BearerAuth: []
-  /api/posts/{id}/shares:
-    post:
-      summary: Create a post share
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/NewShare"
       security:
         - BearerAuth: []
   /auth/login:

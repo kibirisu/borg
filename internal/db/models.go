@@ -27,12 +27,14 @@ type Account struct {
 }
 
 type Favourite struct {
-	ID        xid.ID
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	Uri       string
-	AccountID xid.ID
-	StatusID  xid.ID
+	ID              xid.ID
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+	Uri             string
+	AccountID       xid.ID
+	TargetAccountID xid.ID
+	StatusID        xid.ID
+	StatusUri       string
 }
 
 type Follow struct {

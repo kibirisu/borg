@@ -4,11 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"log"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/rs/xid"
 	"golang.org/x/crypto/bcrypt"
 
@@ -32,9 +30,12 @@ type AppService interface {
 	GetAccountFollowing(context.Context, string) ([]api.Account, error)
 	FollowAccount(context.Context, string) (worker.Job, error)
 	UnfollowAccount(context.Context, string) (worker.Job, error)
-	ViewStatus(context.Context, string) (*api.Status, error)
 	CreateStatus(context.Context, api.PostApiStatusesJSONBody) (worker.Job, error)
-	AddFavourite(context.Context, string, string) (db.Favourite, error)
+	ViewStatus(context.Context, string) (*api.Status, error)
+	FavouriteStatus(context.Context, string) (worker.Job, error)
+	UnfavouriteStatus(context.Context, string) (worker.Job, error)
+	ReblogStatus(context.Context, string) (worker.Job, error)
+	UnreblogStatus(context.Context, string) (worker.Job, error)
 	GetPostByIDWithMetadata(context.Context, string) (*db.GetStatusByIdWithMetadataRow, error)
 	GetLikedPostsByAccountId(context.Context, string) ([]db.GetLikedPostsByAccountIdRow, error)
 	GetSharedPostsByAccountId(context.Context, string) ([]db.GetSharedPostsByAccountIdRow, error)
@@ -407,24 +408,58 @@ func (s *appService) ViewStatus(ctx context.Context, id string) (*api.Status, er
 	return &res, nil
 }
 
-// AddFavourite implements AppService.
-func (s *appService) AddFavourite(
-	ctx context.Context, accountID string, postID string,
-) (db.Favourite, error) {
-	actorID, err := xid.FromString(accountID)
-	if err != nil {
-		return db.Favourite{}, err
+// FavouriteStatus implements AppService.
+func (s *appService) FavouriteStatus(ctx context.Context, favouritedID string) (worker.Job, error) {
+	token, ok := ctx.Value(auth.TokenContextKey).(*auth.TokenData)
+	if !ok {
+		return nil, errors.New("auth failure")
 	}
-	statusID, err := xid.FromString(postID)
+
+	id := xid.New()
+	statusID, err := xid.FromString(favouritedID)
 	if err != nil {
-		return db.Favourite{}, err
+		return nil, err
 	}
-	params := db.CreateFavouriteParams{
-		AccountID: actorID,
+	accountID, err := xid.FromString(token.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	favourite, err := s.store.Favourites().CreateNew(ctx, db.CreateFavouriteNewParams{
+		ID:        id,
+		AccountID: accountID,
 		StatusID:  statusID,
-		Uri:       fmt.Sprintf("http://%s/likes/%s", s.conf.ListenHost, uuid.NewString()),
+		Uri:       "i'll fix it, but not needed",
+	})
+	if err != nil {
+		return nil, err
 	}
-	return s.store.Favourites().Create(ctx, params)
+
+	like := ap.NewEmptyLikeActivity().WithObject(ap.Activity[ap.Note]{
+		ID:     favourite.Uri,
+		Type:   "Like",
+		Actor:  ap.NewEmptyActor().WithLink(token.URI),
+		Object: ap.NewEmptyNote().WithLink(favourite.StatusUri),
+	})
+
+	return func(ctx context.Context) error {
+		return s.prcessor.SendObject(ctx, like.GetRaw().Object, favourite.TargetAccountID)
+	}, nil
+}
+
+// ReblogStatus implements AppService.
+func (s *appService) ReblogStatus(context.Context, string) (worker.Job, error) {
+	panic("unimplemented")
+}
+
+// UnfavouriteStatus implements AppService.
+func (s *appService) UnfavouriteStatus(context.Context, string) (worker.Job, error) {
+	panic("unimplemented")
+}
+
+// UnreblogStatus implements AppService.
+func (s *appService) UnreblogStatus(context.Context, string) (worker.Job, error) {
+	panic("unimplemented")
 }
 
 func (s *appService) GetPostByIDWithMetadata(

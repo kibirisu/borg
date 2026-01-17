@@ -136,7 +136,7 @@ WITH parent AS (
 ) VALUES (
     $1, $2, $3, true, $4, $5, $6, $7,
     (SELECT uri FROM parent),
-    (SELECT account_id FROM parent)
+    (SELECT account_id FROM parent) -- can be supplied from api
 ) RETURNING *;
 
 -- name: DeleteStatusByID :exec
@@ -152,6 +152,18 @@ INSERT INTO favourites (
     $1, $2, $3, $4
 )
 RETURNING *;
+
+-- name: CreateFavouriteNew :one
+WITH favourited AS (
+    SELECT account_id, uri FROM statuses WHERE status_id = $4
+) INSERT INTO favourites (
+    id, uri, account_id, target_account_id, status_id, status_uri
+) VALUES (
+    $1, $2, $3,
+    (SELECT account_id FROM favourited),
+    $4,
+    (SELECT uri FROM favourited)
+) RETURNING *;
 
 -- name: GetFavouriteByURI :one
 SELECT * FROM favourites WHERE uri LIKE '%' || $1::text;

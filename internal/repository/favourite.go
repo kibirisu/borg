@@ -10,6 +10,7 @@ import (
 
 type FavouriteRepository interface {
 	Create(context.Context, db.CreateFavouriteParams) (db.Favourite, error)
+	CreateNew(context.Context, db.CreateFavouriteNewParams) (db.Favourite, error)
 	GetByURI(context.Context, string) (db.Favourite, error)
 	DeleteByID(context.Context, xid.ID) error
 	GetLikedPostsByAccountId(context.Context, xid.ID) ([]db.GetLikedPostsByAccountIdRow, error)
@@ -21,16 +22,20 @@ type favouriteRepository struct {
 
 var _ FavouriteRepository = (*favouriteRepository)(nil)
 
-func NewFavouriteRepository(q *db.Queries) FavouriteRepository {
-	return &favouriteRepository{q: q}
-}
-
 // Create implements FavouriteRepository.
 func (r *favouriteRepository) Create(
 	ctx context.Context,
 	params db.CreateFavouriteParams,
 ) (db.Favourite, error) {
 	return r.q.CreateFavourite(ctx, params)
+}
+
+// CreateNew implements FavouriteRepository.
+func (r *favouriteRepository) CreateNew(
+	ctx context.Context,
+	favourite db.CreateFavouriteNewParams,
+) (db.Favourite, error) {
+	return r.q.CreateFavouriteNew(ctx, favourite)
 }
 
 // GetByURI implements FavouriteRepository.

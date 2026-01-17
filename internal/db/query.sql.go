@@ -89,7 +89,7 @@ INSERT INTO favourites (
 ) VALUES (
     $1, $2, $3, $4
 )
-RETURNING id, created_at, updated_at, uri, account_id, status_id
+RETURNING id, created_at, updated_at, uri, account_id, target_account_id, status_id, status_uri
 `
 
 type CreateFavouriteParams struct {
@@ -113,7 +113,50 @@ func (q *Queries) CreateFavourite(ctx context.Context, arg CreateFavouriteParams
 		&i.UpdatedAt,
 		&i.Uri,
 		&i.AccountID,
+		&i.TargetAccountID,
 		&i.StatusID,
+		&i.StatusUri,
+	)
+	return i, err
+}
+
+const createFavouriteNew = `-- name: CreateFavouriteNew :one
+WITH favourited AS (
+    SELECT account_id, uri FROM statuses WHERE status_id = $4
+) INSERT INTO favourites (
+    id, uri, account_id, target_account_id, status_id, status_uri
+) VALUES (
+    $1, $2, $3,
+    (SELECT account_id FROM favourited),
+    $4,
+    (SELECT uri FROM favourited)
+) RETURNING id, created_at, updated_at, uri, account_id, target_account_id, status_id, status_uri
+`
+
+type CreateFavouriteNewParams struct {
+	ID        xid.ID
+	Uri       string
+	AccountID xid.ID
+	StatusID  xid.ID
+}
+
+func (q *Queries) CreateFavouriteNew(ctx context.Context, arg CreateFavouriteNewParams) (Favourite, error) {
+	row := q.db.QueryRowContext(ctx, createFavouriteNew,
+		arg.ID,
+		arg.Uri,
+		arg.AccountID,
+		arg.StatusID,
+	)
+	var i Favourite
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Uri,
+		&i.AccountID,
+		&i.TargetAccountID,
+		&i.StatusID,
+		&i.StatusUri,
 	)
 	return i, err
 }
@@ -252,7 +295,7 @@ WITH parent AS (
 ) VALUES (
     $1, $2, $3, true, $4, $5, $6, $7,
     (SELECT uri FROM parent),
-    (SELECT account_id FROM parent)
+    (SELECT account_id FROM parent) -- can be supplied from api
 ) RETURNING id, created_at, updated_at, uri, url, local, content, account_id, account_uri, in_reply_to_id, in_reply_to_uri, in_reply_to_account_id, reblog_of_id
 `
 
@@ -545,7 +588,7 @@ func (q *Queries) GetActorByURI(ctx context.Context, dollar_1 string) (Account, 
 }
 
 const getFavouriteByURI = `-- name: GetFavouriteByURI :one
-SELECT id, created_at, updated_at, uri, account_id, status_id FROM favourites WHERE uri LIKE '%' || $1::text
+SELECT id, created_at, updated_at, uri, account_id, target_account_id, status_id, status_uri FROM favourites WHERE uri LIKE '%' || $1::text
 `
 
 func (q *Queries) GetFavouriteByURI(ctx context.Context, dollar_1 string) (Favourite, error) {
@@ -557,7 +600,9 @@ func (q *Queries) GetFavouriteByURI(ctx context.Context, dollar_1 string) (Favou
 		&i.UpdatedAt,
 		&i.Uri,
 		&i.AccountID,
+		&i.TargetAccountID,
 		&i.StatusID,
+		&i.StatusUri,
 	)
 	return i, err
 }
