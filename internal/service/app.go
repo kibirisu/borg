@@ -255,10 +255,9 @@ func (s *appService) FollowAccount(ctx context.Context, accountID string) (worke
 			})
 			return req, nil
 		}
-		followID := xid.New()
 		err = store.Follows().CreateNew(ctx, db.CreateFollowNewParams{
-			ID:              followID,
-			Uri:             s.builder.FollowURI(token.ID, followID.String()),
+			ID:              id,
+			Uri:             s.builder.FollowURI(token.ID, id.String()),
 			AccountID:       req.AccountID,
 			TargetAccountID: req.TargetAccountID,
 		})
@@ -282,13 +281,65 @@ func (s *appService) FollowAccount(ctx context.Context, accountID string) (worke
 }
 
 // UnfollowAccount implements AppService.
-func (s *appService) UnfollowAccount(ctx context.Context, accountID string) (worker.Job, error) {
+func (s *appService) UnfollowAccount(ctx context.Context, id string) (worker.Job, error) {
 	token, ok := ctx.Value(auth.TokenContextKey).(*auth.TokenData)
 	if !ok {
 		return nil, errors.New("auth failure")
 	}
-	_ = token
-	panic("unimplemented")
+
+	targetAccountID, err := xid.FromString(id)
+	if err != nil {
+		return nil, err
+	}
+	accountID, err := xid.FromString(token.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	var undo ap.UndoFollowActiviter
+
+	followReq, err := s.store.WithTX(ctx, func(ctx context.Context, store repo.Store) (any, error) {
+		req, err := store.FollowRequests().
+			DeleteByTargetAccountID(ctx, db.DeleteFollowRequestByAccountIDParams{
+				TargetAccountID: targetAccountID,
+				AccountID:       accountID,
+			})
+		if err != nil {
+			return nil, err
+		}
+		if !req.Local {
+			actor := ap.NewEmptyActor().WithLink(token.URI)
+			undo.SetObject(ap.Activity[ap.Activity[ap.Actor]]{
+				ID:    "doesn't matter",
+				Type:  "Undo",
+				Actor: actor,
+				Object: ap.NewEmptyFollowActivity().WithObject(ap.Activity[ap.Actor]{
+					ID:     req.Uri,
+					Type:   "Follow",
+					Actor:  actor,
+					Object: ap.NewEmptyActor().WithLink(req.TargetAccountUri),
+				}),
+			})
+			return req, nil
+		}
+		err = store.Follows().DeleteByID(ctx, req.ID)
+		return nil, err
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if undo == nil {
+		return func(context.Context) error {
+			return nil
+		}, nil
+	}
+
+	req := followReq.(db.DeleteFollowRequestByAccountIDRow)
+
+	return func(ctx context.Context) error {
+		return s.prcessor.SendObject(ctx, undo.GetRaw().Object, req.TargetAccountID)
+	}, nil
 }
 
 // CreateStatus implements AppService.

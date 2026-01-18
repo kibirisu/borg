@@ -71,7 +71,7 @@ func ToAPIStatus(status *db.GetStatusByIDNewRow) *api.Status {
 		inReplyToAccountID = &id
 	}
 
-	res := &api.Status{
+	return &api.Status{
 		Account: api.Account{
 			Acct:           status.Acct,
 			DisplayName:    status.Account.DisplayName.String,
@@ -113,5 +113,4 @@ func ToAPIStatus(status *db.GetStatusByIDNewRow) *api.Status {
 		RepliesCount: int(status.RepliesCount),
 		Uri:          status.Status.Uri,
 	}
-	return res
 }

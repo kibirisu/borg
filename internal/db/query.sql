@@ -141,6 +141,9 @@ INSERT INTO follows (
   @id, @uri, @account_id, @target_account_id
 );
 
+-- name: DeleteFollow :exec
+DELETE FROM follows WHERE id = $1;
+
 -- name: GetFollowerCollection :one
 SELECT 
     (SELECT followers_uri FROM accounts a WHERE a.username = $1),
@@ -158,6 +161,13 @@ WITH account AS (
   INSERT INTO follow_requests (
     id, uri, account_id, target_account_id, target_account_uri
   ) SELECT @id, @uri, @account_id, @target_account_id, uri FROM account RETURNING *
+) SELECT r.*, account.local FROM request r, account;
+
+-- name: DeleteFollowRequestByAccountID :one
+WITH account AS (
+  SELECT a.id, a.uri, (a.domain IS NULL)::BOOLEAN AS local FROM accounts a WHERE a.id = @target_account_id
+), request AS (
+    DELETE FROM follow_requests AS f USING account WHERE f.account_id = @account_id AND f.target_account_id = account.id RETURNING *
 ) SELECT r.*, account.local FROM request r, account;
 
 -- name: CreateStatus :one

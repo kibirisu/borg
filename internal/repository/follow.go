@@ -3,6 +3,8 @@ package repository
 import (
 	"context"
 
+	"github.com/rs/xid"
+
 	"github.com/kibirisu/borg/internal/db"
 )
 
@@ -11,6 +13,7 @@ type FollowRepository interface {
 	CreateNew(context.Context, db.CreateFollowNewParams) error
 	GetFollowerCollection(context.Context, string) (db.GetFollowerCollectionRow, error)
 	GetFollowingCollection(context.Context, string) (db.GetFollowingCollectionRow, error)
+	DeleteByID(context.Context, xid.ID) error
 	GetByURI(context.Context, string) (db.Follow, error)
 }
 
@@ -51,6 +54,11 @@ func (r *followRepository) GetFollowingCollection(
 	username string,
 ) (db.GetFollowingCollectionRow, error) {
 	return r.q.GetFollowingCollection(ctx, username)
+}
+
+// DeleteByID implements FollowRepository.
+func (r *followRepository) DeleteByID(ctx context.Context, id xid.ID) error {
+	return r.q.DeleteFollow(ctx, id)
 }
 
 func (r *followRepository) GetByURI(

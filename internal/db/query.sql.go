@@ -488,6 +488,55 @@ func (q *Queries) DeleteFavouriteByIDNew(ctx context.Context, id xid.ID) (Favour
 	return i, err
 }
 
+const deleteFollow = `-- name: DeleteFollow :exec
+DELETE FROM follows WHERE id = $1
+`
+
+func (q *Queries) DeleteFollow(ctx context.Context, id xid.ID) error {
+	_, err := q.db.ExecContext(ctx, deleteFollow, id)
+	return err
+}
+
+const deleteFollowRequestByAccountID = `-- name: DeleteFollowRequestByAccountID :one
+WITH account AS (
+  SELECT a.id, a.uri, (a.domain IS NULL)::BOOLEAN AS local FROM accounts a WHERE a.id = $1
+), request AS (
+    DELETE FROM follow_requests AS f USING account WHERE f.account_id = $2 AND f.target_account_id = account.id RETURNING id, created_at, updated_at, uri, account_id, target_account_id, target_account_uri
+) SELECT r.id, r.created_at, r.updated_at, r.uri, r.account_id, r.target_account_id, r.target_account_uri, account.local FROM request r, account
+`
+
+type DeleteFollowRequestByAccountIDParams struct {
+	TargetAccountID xid.ID
+	AccountID       xid.ID
+}
+
+type DeleteFollowRequestByAccountIDRow struct {
+	ID               xid.ID
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
+	Uri              string
+	AccountID        xid.ID
+	TargetAccountID  xid.ID
+	TargetAccountUri string
+	Local            bool
+}
+
+func (q *Queries) DeleteFollowRequestByAccountID(ctx context.Context, arg DeleteFollowRequestByAccountIDParams) (DeleteFollowRequestByAccountIDRow, error) {
+	row := q.db.QueryRowContext(ctx, deleteFollowRequestByAccountID, arg.TargetAccountID, arg.AccountID)
+	var i DeleteFollowRequestByAccountIDRow
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Uri,
+		&i.AccountID,
+		&i.TargetAccountID,
+		&i.TargetAccountUri,
+		&i.Local,
+	)
+	return i, err
+}
+
 const deleteStatusByID = `-- name: DeleteStatusByID :exec
 DELETE FROM statuses WHERE id = $1
 `

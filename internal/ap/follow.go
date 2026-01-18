@@ -6,6 +6,10 @@ type FollowActivitier interface {
 	Activiter[Actor]
 }
 
+type UndoFollowActiviter interface {
+	Activiter[Activity[Actor]]
+}
+
 type followActivity struct {
 	activity
 }
