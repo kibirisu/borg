@@ -27,3 +27,8 @@ sql:
               type: "ID"
               import: "github.com/rs/xid"
               pointer: true
+          - column: "statuses.reblog_of_account_id"
+            go_type:
+              type: "ID"
+              import: "github.com/rs/xid"
+              pointer: true

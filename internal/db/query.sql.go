@@ -457,11 +457,37 @@ func (q *Queries) DeleteStatusByID(ctx context.Context, id xid.ID) error {
 	return err
 }
 
+const deleteStatusByIDNew = `-- name: DeleteStatusByIDNew :one
+DELETE FROM statuses WHERE id = $1 RETURNING id, created_at, updated_at, uri, url, local, content, account_id, account_uri, in_reply_to_id, in_reply_to_uri, in_reply_to_account_id, reblog_of_id, reblog_of_uri, reblog_of_account_id
+`
+
+func (q *Queries) DeleteStatusByIDNew(ctx context.Context, id xid.ID) (Status, error) {
+	row := q.db.QueryRowContext(ctx, deleteStatusByIDNew, id)
+	var i Status
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Uri,
+		&i.Url,
+		&i.Local,
+		&i.Content,
+		&i.AccountID,
+		&i.AccountUri,
+		&i.InReplyToID,
+		&i.InReplyToUri,
+		&i.InReplyToAccountID,
+		&i.ReblogOfID,
+		&i.ReblogOfUri,
+		&i.ReblogOfAccountID,
+	)
+	return i, err
+}
+
 const getAccountByID = `-- name: GetAccountByID :one
 SELECT 
     a.id, a.created_at, a.updated_at, a.username, a.uri, a.display_name, a.domain, a.inbox_uri, a.outbox_uri, a.followers_uri, a.following_uri, a.url,
     (a.username || COALESCE('@' || a.domain, ''))::text AS acct,
-    (SELECT COUNT(*) FROM statuses s WHERE s.account_id = a.id) AS statuses_count,
     (SELECT COUNT(*) FROM follows f WHERE f.target_account_id = a.id) AS followers_count,
     (SELECT COUNT(*) FROM follows f WHERE f.account_id = a.id) AS following_count
 FROM accounts a WHERE a.id = $1
@@ -470,7 +496,6 @@ FROM accounts a WHERE a.id = $1
 type GetAccountByIDRow struct {
 	Account        Account
 	Acct           string
-	StatusesCount  int64
 	FollowersCount int64
 	FollowingCount int64
 }
@@ -492,7 +517,6 @@ func (q *Queries) GetAccountByID(ctx context.Context, id xid.ID) (GetAccountByID
 		&i.Account.FollowingUri,
 		&i.Account.Url,
 		&i.Acct,
-		&i.StatusesCount,
 		&i.FollowersCount,
 		&i.FollowingCount,
 	)
@@ -729,8 +753,7 @@ func (q *Queries) GetFollowerCollection(ctx context.Context, username string) (G
 const getFollowersByAccountID = `-- name: GetFollowersByAccountID :many
 SELECT 
     a.id, a.created_at, a.updated_at, a.username, a.uri, a.display_name, a.domain, a.inbox_uri, a.outbox_uri, a.followers_uri, a.following_uri, a.url,
-    (a.username || COALESCE('@' || a.domain, ''))::text AS acct,
-    (SELECT COUNT(*) FROM statuses s WHERE s.account_id = a.id) AS statuses_count,
+    CONCAT(a.username, '@' || a.domain)::TEXT AS acct,
     (SELECT COUNT(*) FROM follows f WHERE f.target_account_id = a.id) AS followers_count,
     (SELECT COUNT(*) FROM follows f WHERE f.account_id = a.id) AS following_count
 FROM accounts a JOIN follows f ON a.id = f.account_id WHERE f.target_account_id = $1
@@ -739,7 +762,6 @@ FROM accounts a JOIN follows f ON a.id = f.account_id WHERE f.target_account_id 
 type GetFollowersByAccountIDRow struct {
 	Account        Account
 	Acct           string
-	StatusesCount  int64
 	FollowersCount int64
 	FollowingCount int64
 }
@@ -767,7 +789,6 @@ func (q *Queries) GetFollowersByAccountID(ctx context.Context, targetAccountID x
 			&i.Account.FollowingUri,
 			&i.Account.Url,
 			&i.Acct,
-			&i.StatusesCount,
 			&i.FollowersCount,
 			&i.FollowingCount,
 		); err != nil {
@@ -787,8 +808,7 @@ func (q *Queries) GetFollowersByAccountID(ctx context.Context, targetAccountID x
 const getFollowingByAccountID = `-- name: GetFollowingByAccountID :many
 SELECT 
     a.id, a.created_at, a.updated_at, a.username, a.uri, a.display_name, a.domain, a.inbox_uri, a.outbox_uri, a.followers_uri, a.following_uri, a.url,
-    (a.username || COALESCE('@' || a.domain, ''))::text AS acct,
-    (SELECT COUNT(*) FROM statuses s WHERE s.account_id = a.id) AS statuses_count,
+    CONCAT(a.username, '@' || a.domain)::TEXT AS acct,
     (SELECT COUNT(*) FROM follows f WHERE f.target_account_id = a.id) AS followers_count,
     (SELECT COUNT(*) FROM follows f WHERE f.account_id = a.id) AS following_count
 FROM accounts a JOIN follows f ON a.id = f.target_account_id WHERE f.account_id = $1
@@ -797,7 +817,6 @@ FROM accounts a JOIN follows f ON a.id = f.target_account_id WHERE f.account_id 
 type GetFollowingByAccountIDRow struct {
 	Account        Account
 	Acct           string
-	StatusesCount  int64
 	FollowersCount int64
 	FollowingCount int64
 }
@@ -825,7 +844,6 @@ func (q *Queries) GetFollowingByAccountID(ctx context.Context, accountID xid.ID)
 			&i.Account.FollowingUri,
 			&i.Account.Url,
 			&i.Acct,
-			&i.StatusesCount,
 			&i.FollowersCount,
 			&i.FollowingCount,
 		); err != nil {
@@ -890,80 +908,6 @@ func (q *Queries) GetLikedPostsByAccountId(ctx context.Context, accountID xid.ID
 	var items []GetLikedPostsByAccountIdRow
 	for rows.Next() {
 		var i GetLikedPostsByAccountIdRow
-		if err := rows.Scan(
-			&i.Status.ID,
-			&i.Status.CreatedAt,
-			&i.Status.UpdatedAt,
-			&i.Status.Uri,
-			&i.Status.Url,
-			&i.Status.Local,
-			&i.Status.Content,
-			&i.Status.AccountID,
-			&i.Status.AccountUri,
-			&i.Status.InReplyToID,
-			&i.Status.InReplyToUri,
-			&i.Status.InReplyToAccountID,
-			&i.Status.ReblogOfID,
-			&i.Status.ReblogOfUri,
-			&i.Status.ReblogOfAccountID,
-			&i.Account.ID,
-			&i.Account.CreatedAt,
-			&i.Account.UpdatedAt,
-			&i.Account.Username,
-			&i.Account.Uri,
-			&i.Account.DisplayName,
-			&i.Account.Domain,
-			&i.Account.InboxUri,
-			&i.Account.OutboxUri,
-			&i.Account.FollowersUri,
-			&i.Account.FollowingUri,
-			&i.Account.Url,
-			&i.LikeCount,
-			&i.CommentCount,
-			&i.ShareCount,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const getSharedPostsByAccountId = `-- name: GetSharedPostsByAccountId :many
-SELECT 
-    s.id, s.created_at, s.updated_at, s.uri, s.url, s.local, s.content, s.account_id, s.account_uri, s.in_reply_to_id, s.in_reply_to_uri, s.in_reply_to_account_id, s.reblog_of_id, s.reblog_of_uri, s.reblog_of_account_id,
-    a.id, a.created_at, a.updated_at, a.username, a.uri, a.display_name, a.domain, a.inbox_uri, a.outbox_uri, a.followers_uri, a.following_uri, a.url,
-    (SELECT COUNT(*) FROM favourites f WHERE f.status_id = s.id) AS like_count,
-    (SELECT COUNT(*) FROM statuses r WHERE r.in_reply_to_id = s.id) AS comment_count,
-    (SELECT COUNT(*) FROM statuses b WHERE b.reblog_of_id = s.id) AS share_count
-FROM statuses s
-JOIN accounts a ON s.account_id = a.id
-WHERE s.account_id = $1 AND s.reblog_of_id IS NOT NULL
-`
-
-type GetSharedPostsByAccountIdRow struct {
-	Status       Status
-	Account      Account
-	LikeCount    int64
-	CommentCount int64
-	ShareCount   int64
-}
-
-func (q *Queries) GetSharedPostsByAccountId(ctx context.Context, accountID xid.ID) ([]GetSharedPostsByAccountIdRow, error) {
-	rows, err := q.db.QueryContext(ctx, getSharedPostsByAccountId, accountID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []GetSharedPostsByAccountIdRow
-	for rows.Next() {
-		var i GetSharedPostsByAccountIdRow
 		if err := rows.Scan(
 			&i.Status.ID,
 			&i.Status.CreatedAt,

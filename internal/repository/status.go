@@ -16,11 +16,11 @@ type StatusRepository interface {
 	) ([]db.GetStatusesByAccountIDRow, error)
 	CreateNew(context.Context, db.CreateStatusNewParams) (db.Status, error)
 	ReblogStatus(context.Context, db.CreateReblogParams) (db.Status, error)
+	DeleteByIDNew(context.Context, xid.ID) (db.Status, error)
 	Create(context.Context, db.CreateStatusParams) (db.Status, error)
 	GetByID(context.Context, xid.ID) (db.Status, error)
 	GetByURI(context.Context, string) (db.Status, error)
 	GetByIDWithMetadata(context.Context, xid.ID) (db.GetStatusByIdWithMetadataRow, error)
-	GetSharedPostsByAccountID(context.Context, xid.ID) ([]db.GetSharedPostsByAccountIdRow, error)
 	GetTimelinePostsByAccountID(
 		context.Context,
 		xid.ID,
@@ -58,6 +58,11 @@ func (r *statusRepository) ReblogStatus(
 	return r.q.CreateReblog(ctx, reblog)
 }
 
+// DeleteByIDNew implements StatusRepository.
+func (r *statusRepository) DeleteByIDNew(ctx context.Context, id xid.ID) (db.Status, error) {
+	return r.q.DeleteStatusByIDNew(ctx, id)
+}
+
 // Create implements StatusRepository.
 func (r *statusRepository) Create(
 	ctx context.Context,
@@ -90,14 +95,6 @@ func (r *statusRepository) GetByIDWithMetadata(
 	id xid.ID,
 ) (db.GetStatusByIdWithMetadataRow, error) {
 	return r.q.GetStatusByIdWithMetadata(ctx, id)
-}
-
-// GetSharedPostsByAccountId implements StatusRepository.
-func (r *statusRepository) GetSharedPostsByAccountID(
-	ctx context.Context,
-	accountID xid.ID,
-) ([]db.GetSharedPostsByAccountIdRow, error) {
-	return r.q.GetSharedPostsByAccountId(ctx, accountID)
 }
 
 // GetTimelinePostsByAccountId implements StatusRepository.

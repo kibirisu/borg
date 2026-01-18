@@ -72,7 +72,7 @@ type Status struct {
 	InReplyToAccountID *xid.ID
 	ReblogOfID         *xid.ID
 	ReblogOfUri        sql.NullString
-	ReblogOfAccountID  sql.NullString
+	ReblogOfAccountID  *xid.ID
 }
 
 type User struct {

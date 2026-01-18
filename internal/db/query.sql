@@ -25,7 +25,6 @@ INSERT INTO users (
 SELECT 
     sqlc.embed(a),
     (a.username || COALESCE('@' || a.domain, ''))::text AS acct,
-    (SELECT COUNT(*) FROM statuses s WHERE s.account_id = a.id) AS statuses_count,
     (SELECT COUNT(*) FROM follows f WHERE f.target_account_id = a.id) AS followers_count,
     (SELECT COUNT(*) FROM follows f WHERE f.account_id = a.id) AS following_count
 FROM accounts a WHERE a.id = $1;
@@ -33,8 +32,7 @@ FROM accounts a WHERE a.id = $1;
 -- name: GetFollowersByAccountID :many
 SELECT 
     sqlc.embed(a),
-    (a.username || COALESCE('@' || a.domain, ''))::text AS acct,
-    (SELECT COUNT(*) FROM statuses s WHERE s.account_id = a.id) AS statuses_count,
+    CONCAT(a.username, '@' || a.domain)::TEXT AS acct,
     (SELECT COUNT(*) FROM follows f WHERE f.target_account_id = a.id) AS followers_count,
     (SELECT COUNT(*) FROM follows f WHERE f.account_id = a.id) AS following_count
 FROM accounts a JOIN follows f ON a.id = f.account_id WHERE f.target_account_id = $1;
@@ -42,8 +40,7 @@ FROM accounts a JOIN follows f ON a.id = f.account_id WHERE f.target_account_id 
 -- name: GetFollowingByAccountID :many
 SELECT 
     sqlc.embed(a),
-    (a.username || COALESCE('@' || a.domain, ''))::text AS acct,
-    (SELECT COUNT(*) FROM statuses s WHERE s.account_id = a.id) AS statuses_count,
+    CONCAT(a.username, '@' || a.domain)::TEXT AS acct,
     (SELECT COUNT(*) FROM follows f WHERE f.target_account_id = a.id) AS followers_count,
     (SELECT COUNT(*) FROM follows f WHERE f.account_id = a.id) AS following_count
 FROM accounts a JOIN follows f ON a.id = f.target_account_id WHERE f.account_id = $1;
@@ -111,6 +108,9 @@ JOIN accounts a ON s.account_id = a.id
 LEFT JOIN statuses reblogged ON s.reblog_of_id = reblogged.id
 LEFT JOIN accounts reblogged_author ON reblogged.account_id = reblogged_author.id
 WHERE s.account_id = @account_id;
+
+-- name: DeleteStatusByIDNew :one
+DELETE FROM statuses WHERE id = $1 RETURNING *;
 
 -- name: GetStatusByIdWithMetadata :one
 SELECT 
@@ -242,17 +242,6 @@ FROM favourites f
 JOIN statuses s ON f.status_id = s.id
 JOIN accounts a ON s.account_id = a.id
 WHERE f.account_id = $1;
-
--- name: GetSharedPostsByAccountId :many
-SELECT 
-    sqlc.embed(s),
-    sqlc.embed(a),
-    (SELECT COUNT(*) FROM favourites f WHERE f.status_id = s.id) AS like_count,
-    (SELECT COUNT(*) FROM statuses r WHERE r.in_reply_to_id = s.id) AS comment_count,
-    (SELECT COUNT(*) FROM statuses b WHERE b.reblog_of_id = s.id) AS share_count
-FROM statuses s
-JOIN accounts a ON s.account_id = a.id
-WHERE s.account_id = $1 AND s.reblog_of_id IS NOT NULL;
 
 -- name: GetTimelinePostsByAccountId :many
 SELECT 

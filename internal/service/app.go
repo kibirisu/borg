@@ -38,7 +38,6 @@ type AppService interface {
 	ReblogStatus(context.Context, string) (worker.Job, error)
 	UnreblogStatus(context.Context, string) (worker.Job, error)
 	GetLikedPostsByAccountID(context.Context, string) ([]db.GetLikedPostsByAccountIdRow, error)
-	GetSharedPostsByAccountID(context.Context, string) ([]db.GetSharedPostsByAccountIdRow, error)
 	GetTimelinePostsByAccountID(
 		context.Context,
 		string,
@@ -485,8 +484,33 @@ func (s *appService) UnfavouriteStatus(ctx context.Context, id string) (worker.J
 }
 
 // UnreblogStatus implements AppService.
-func (s *appService) UnreblogStatus(context.Context, string) (worker.Job, error) {
-	panic("unimplemented")
+func (s *appService) UnreblogStatus(ctx context.Context, id string) (worker.Job, error) {
+	statusID, err := xid.FromString(id)
+	if err != nil {
+		return nil, err
+	}
+
+	status, err := s.store.Statuses().DeleteByIDNew(ctx, statusID)
+	if err != nil {
+		return nil, err
+	}
+
+	actor := ap.NewEmptyActor().WithLink(status.AccountUri)
+	undo := ap.NewEmptyUndoActivity().WithObject(ap.Activity[ap.Activity[ap.Note]]{
+		ID:    "does it matter?",
+		Type:  "Undo",
+		Actor: actor,
+		Object: ap.NewEmptyAnnounceActivity().WithObject(ap.Activity[ap.Note]{
+			ID:     id,
+			Type:   "Announce",
+			Actor:  actor,
+			Object: ap.NewEmptyNote().WithLink(status.ReblogOfUri.String),
+		}),
+	})
+
+	return func(ctx context.Context) error {
+		return s.prcessor.SendObject(ctx, undo.GetRaw().Object, *status.ReblogOfAccountID)
+	}, nil
 }
 
 func (s *appService) GetLikedPostsByAccountID(
@@ -498,17 +522,6 @@ func (s *appService) GetLikedPostsByAccountID(
 		return []db.GetLikedPostsByAccountIdRow{}, err
 	}
 	return s.store.Favourites().GetLikedPostsByAccountID(ctx, actorID)
-}
-
-func (s *appService) GetSharedPostsByAccountID(
-	ctx context.Context,
-	accountID string,
-) ([]db.GetSharedPostsByAccountIdRow, error) {
-	actorID, err := xid.FromString(accountID)
-	if err != nil {
-		return []db.GetSharedPostsByAccountIdRow{}, err
-	}
-	return s.store.Statuses().GetSharedPostsByAccountID(ctx, actorID)
 }
 
 func (s *appService) GetTimelinePostsByAccountID(
