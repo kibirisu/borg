@@ -277,9 +277,15 @@ func (s *Server) DeleteApiPostsId(w http.ResponseWriter, r *http.Request, id str
 	panic("unimplemented")
 }
 
-// GetApiPostsIdComments implements api.ServerInterface.
-func (s *Server) GetApiPostsIdComments(w http.ResponseWriter, r *http.Request, id string) {
-	panic("unimplemented")
+// GetApiStatusesIdReplies implements api.ServerInterface.
+func (s *Server) GetApiStatusesIdReplies(w http.ResponseWriter, r *http.Request, id string) {
+	replies, err := s.service.App.GetStatusReplies(r.Context(), id)
+	if err != nil {
+		log.Println(err)
+		util.WriteError(w, http.StatusNotFound, err.Error())
+		return
+	}
+	util.WriteJSON(w, http.StatusOK, replies)
 }
 
 // PutApiPostsId implements api.ServerInterface.

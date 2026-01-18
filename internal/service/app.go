@@ -33,6 +33,7 @@ type AppService interface {
 	UnfollowAccount(context.Context, string) (worker.Job, error)
 	CreateStatus(context.Context, api.PostApiStatusesJSONBody) (worker.Job, error)
 	ViewStatus(context.Context, string) (*api.Status, error)
+	GetStatusReplies(context.Context, string) ([]api.Status, error)
 	FavouriteStatus(context.Context, string) (worker.Job, error)
 	UnfavouriteStatus(context.Context, string) (worker.Job, error)
 	ReblogStatus(context.Context, string) (worker.Job, error)
@@ -593,7 +594,6 @@ func (s *appService) GetAccountTimeline(ctx context.Context) ([]api.Status, erro
 	if !ok {
 		return nil, errors.New("auth failure")
 	}
-	log.Printf("detected id %s", token.ID)
 	loggedInID, err := xid.FromString(token.ID)
 	if err != nil {
 		return nil, err
@@ -603,6 +603,30 @@ func (s *appService) GetAccountTimeline(ctx context.Context) ([]api.Status, erro
 		return nil, err
 	}
 
+	res := make([]api.Status, len(statuses))
+	for idx, status := range statuses {
+		s := db.GetStatusByIDNewRow(status)
+		res[idx] = *mapper.ToAPIStatus(&s)
+	}
+	return res, nil
+}
+func (s *appService) GetStatusReplies(ctx context.Context, id string) ([]api.Status, error) {
+	token, ok := ctx.Value(auth.TokenContextKey).(*auth.TokenData)
+	if !ok {
+		return nil, errors.New("auth failure")
+	}
+	loggedInID, err := xid.FromString(token.ID)
+	if err != nil {
+		return nil, err
+	}
+	statusID, err := xid.FromString(id)
+	if err != nil {
+		return nil, err
+	}
+	statuses, err := s.store.Statuses().GetReplies(ctx, loggedInID, statusID)
+	if err != nil {
+		return nil, err
+	}
 	res := make([]api.Status, len(statuses))
 	for idx, status := range statuses {
 		s := db.GetStatusByIDNewRow(status)

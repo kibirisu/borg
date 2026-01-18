@@ -18,6 +18,7 @@ type StatusRepository interface {
 	ReblogStatus(context.Context, db.CreateReblogParams) (db.Status, error)
 	DeleteByIDNew(context.Context, xid.ID) (db.Status, error)
 	Create(context.Context, db.CreateStatusParams) (db.Status, error)
+	GetReplies(context.Context, xid.ID, xid.ID) ([]db.GetStatusRepliesRow, error)
 	GetByID(context.Context, xid.ID) (db.Status, error)
 	GetByURI(context.Context, string) (db.Status, error)
 	GetByIDWithMetadata(context.Context, xid.ID) (db.GetStatusByIdWithMetadataRow, error)
@@ -66,6 +67,15 @@ func (r *statusRepository) Create(
 	status db.CreateStatusParams,
 ) (db.Status, error) {
 	return r.q.CreateStatus(ctx, status)
+}
+
+// GetReplies implements StatusRepository.
+func (r *statusRepository) GetReplies(ctx context.Context, accountID xid.ID, statusID xid.ID) ([]db.GetStatusRepliesRow, error) {
+	param := db.GetStatusRepliesParams{
+		InReplyToID: &statusID,
+		AccountID: accountID,
+	}
+	return r.q.GetStatusReplies(ctx, param)
 }
 
 // GetById implements StatusRepository.
