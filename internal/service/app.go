@@ -38,7 +38,7 @@ type AppService interface {
 	UnfavouriteStatus(context.Context, string) (worker.Job, error)
 	ReblogStatus(context.Context, string) (worker.Job, error)
 	UnreblogStatus(context.Context, string) (worker.Job, error)
-	GetAccountTimeline(context.Context) ([]api.Status, error)
+	ViewHomeTimeline(context.Context) ([]api.Status, error)
 }
 
 type appService struct {
@@ -589,27 +589,7 @@ func (s *appService) UnreblogStatus(ctx context.Context, id string) (worker.Job,
 	}, nil
 }
 
-func (s *appService) GetAccountTimeline(ctx context.Context) ([]api.Status, error) {
-	token, ok := ctx.Value(auth.TokenContextKey).(*auth.TokenData)
-	if !ok {
-		return nil, errors.New("auth failure")
-	}
-	loggedInID, err := xid.FromString(token.ID)
-	if err != nil {
-		return nil, err
-	}
-	statuses, err := s.store.Statuses().GetTimelineByAccountID(ctx, loggedInID)
-	if err != nil {
-		return nil, err
-	}
-
-	res := make([]api.Status, len(statuses))
-	for idx, status := range statuses {
-		s := db.GetStatusByIDNewRow(status)
-		res[idx] = *mapper.ToAPIStatus(&s)
-	}
-	return res, nil
-}
+// GetStatusReplies implements AppService.
 func (s *appService) GetStatusReplies(ctx context.Context, id string) ([]api.Status, error) {
 	token, ok := ctx.Value(auth.TokenContextKey).(*auth.TokenData)
 	if !ok {
@@ -627,6 +607,29 @@ func (s *appService) GetStatusReplies(ctx context.Context, id string) ([]api.Sta
 	if err != nil {
 		return nil, err
 	}
+	res := make([]api.Status, len(statuses))
+	for idx, status := range statuses {
+		s := db.GetStatusByIDNewRow(status)
+		res[idx] = *mapper.ToAPIStatus(&s)
+	}
+	return res, nil
+}
+
+// ViewHomeTimeline implements AppService.
+func (s *appService) ViewHomeTimeline(ctx context.Context) ([]api.Status, error) {
+	token, ok := ctx.Value(auth.TokenContextKey).(*auth.TokenData)
+	if !ok {
+		return nil, errors.New("auth failure")
+	}
+	loggedInID, err := xid.FromString(token.ID)
+	if err != nil {
+		return nil, err
+	}
+	statuses, err := s.store.Statuses().GetHomeTimelineByAccountID(ctx, loggedInID)
+	if err != nil {
+		return nil, err
+	}
+
 	res := make([]api.Status, len(statuses))
 	for idx, status := range statuses {
 		s := db.GetStatusByIDNewRow(status)

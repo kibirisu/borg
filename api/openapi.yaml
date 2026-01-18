@@ -106,20 +106,6 @@ paths:
           description: OK
       security:
         - BearerAuth: []
-  /api/accounts/timeline:
-    get:
-      summary: Get timeline posts of the user that is currently logged in
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Status"
-      security:
-        - BearerAuth: []
   /api/statuses:
     post:
       summary: Publish a status with the given parameters.
@@ -237,6 +223,20 @@ paths:
                   $ref: "#/components/schemas/Status"
       security:
         - BearerAuth: []
+  /api/timelines/home:
+    get:
+      summary: View statuses from followed users.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Status"
+      security:
+        - BearerAuth: []
   /api/posts/{id}:
     delete:
       summary: Delete a post by ID
@@ -249,23 +249,6 @@ paths:
       responses:
         "204":
           description: Deleted successfully
-    put:
-      summary: Update a post
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/UpdatePost"
-      responses:
-        "200":
-          description: Updated user
   /auth/login:
     post:
       summary: Login the user
@@ -389,41 +372,4 @@ components:
         username:
           type: string
         password:
-          type: string
-    Post:
-      type: object
-      required:
-        - id
-        - userID
-        - content
-        - likeCount
-        - shareCount
-        - commentCount
-        - createdAt
-        - updatedAt
-      properties:
-        id:
-          type: string
-        userID:
-          type: string
-        content:
-          type: string
-        likeCount:
-          type: integer
-        shareCount:
-          type: integer
-        commentCount:
-          type: integer
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
-        username:
-          type: string
-    UpdatePost:
-      type: object
-      properties:
-        content:
           type: string
