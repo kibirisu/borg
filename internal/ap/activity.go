@@ -23,6 +23,10 @@ func NewActivity(from *domain.ObjectOrLink) Activiter[any] {
 	return &activity{object{from}}
 }
 
+func NewEmptyActivity() Activiter[any] {
+	return &activity{object{}}
+}
+
 // GetObject implements Activiter.
 // Subtle: this method shadows the method (object).GetObject of activity.object.
 func (a *activity) GetObject() Activity[any] {

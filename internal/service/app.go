@@ -386,10 +386,11 @@ func (s *appService) FavouriteStatus(ctx context.Context, favouritedID string) (
 	}
 
 	favourite, err := s.store.Favourites().CreateNew(ctx, db.CreateFavouriteNewParams{
-		ID:        id,
-		AccountID: accountID,
-		StatusID:  statusID,
-		Uri:       s.builder.LikeRequestURI(token.ID, id.String()),
+		ID:         id,
+		AccountID:  accountID,
+		AccountUri: token.URI,
+		StatusID:   statusID,
+		Uri:        s.builder.LikeRequestURI(token.ID, id.String()),
 	})
 	if err != nil {
 		return nil, err
@@ -455,8 +456,32 @@ func (s *appService) ReblogStatus(ctx context.Context, statusID string) (worker.
 }
 
 // UnfavouriteStatus implements AppService.
-func (s *appService) UnfavouriteStatus(context.Context, string) (worker.Job, error) {
-	panic("unimplemented")
+func (s *appService) UnfavouriteStatus(ctx context.Context, id string) (worker.Job, error) {
+	favID, err := xid.FromString(id)
+	if err != nil {
+		return nil, err
+	}
+	fav, err := s.store.Favourites().DeleteByIDNew(ctx, favID)
+	if err != nil {
+		return nil, err
+	}
+
+	actor := ap.NewEmptyActor().WithLink(fav.AccountUri)
+	undo := ap.NewEmptyUndoActivity().WithObject(ap.Activity[ap.Activity[ap.Note]]{
+		ID:    "nope",
+		Type:  "Undo",
+		Actor: actor,
+		Object: ap.NewEmptyLikeActivity().WithObject(ap.Activity[ap.Note]{
+			ID:     fav.Uri,
+			Type:   "Like",
+			Actor:  actor,
+			Object: ap.NewEmptyNote().WithLink(fav.StatusUri),
+		}),
+	})
+
+	return func(ctx context.Context) error {
+		return s.prcessor.SendObject(ctx, undo.GetRaw().Object, fav.TargetAccountID)
+	}, nil
 }
 
 // UnreblogStatus implements AppService.

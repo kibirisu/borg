@@ -90,7 +90,7 @@ INSERT INTO favourites (
 ) VALUES (
     $1, $2, $3, $4
 )
-RETURNING id, created_at, updated_at, uri, account_id, target_account_id, status_id, status_uri
+RETURNING id, created_at, updated_at, uri, account_id, account_uri, target_account_id, status_id, status_uri
 `
 
 type CreateFavouriteParams struct {
@@ -114,6 +114,7 @@ func (q *Queries) CreateFavourite(ctx context.Context, arg CreateFavouriteParams
 		&i.UpdatedAt,
 		&i.Uri,
 		&i.AccountID,
+		&i.AccountUri,
 		&i.TargetAccountID,
 		&i.StatusID,
 		&i.StatusUri,
@@ -123,22 +124,23 @@ func (q *Queries) CreateFavourite(ctx context.Context, arg CreateFavouriteParams
 
 const createFavouriteNew = `-- name: CreateFavouriteNew :one
 WITH favourited AS (
-    SELECT account_id, uri FROM statuses WHERE id = $4
+    SELECT account_id, account_uri, uri FROM statuses WHERE id = $5
 ) INSERT INTO favourites (
-    id, uri, account_id, target_account_id, status_id, status_uri
+    id, uri, account_id, account_uri, target_account_id, status_id, status_uri
 ) VALUES (
-    $1, $2, $3,
+    $1, $2, $3, $4,
     (SELECT account_id FROM favourited),
-    $4,
+    $5,
     (SELECT uri FROM favourited)
-) RETURNING id, created_at, updated_at, uri, account_id, target_account_id, status_id, status_uri
+) RETURNING id, created_at, updated_at, uri, account_id, account_uri, target_account_id, status_id, status_uri
 `
 
 type CreateFavouriteNewParams struct {
-	ID        xid.ID
-	Uri       string
-	AccountID xid.ID
-	StatusID  xid.ID
+	ID         xid.ID
+	Uri        string
+	AccountID  xid.ID
+	AccountUri string
+	StatusID   xid.ID
 }
 
 func (q *Queries) CreateFavouriteNew(ctx context.Context, arg CreateFavouriteNewParams) (Favourite, error) {
@@ -146,6 +148,7 @@ func (q *Queries) CreateFavouriteNew(ctx context.Context, arg CreateFavouriteNew
 		arg.ID,
 		arg.Uri,
 		arg.AccountID,
+		arg.AccountUri,
 		arg.StatusID,
 	)
 	var i Favourite
@@ -155,6 +158,7 @@ func (q *Queries) CreateFavouriteNew(ctx context.Context, arg CreateFavouriteNew
 		&i.UpdatedAt,
 		&i.Uri,
 		&i.AccountID,
+		&i.AccountUri,
 		&i.TargetAccountID,
 		&i.StatusID,
 		&i.StatusUri,
@@ -423,6 +427,27 @@ func (q *Queries) DeleteFavouriteByID(ctx context.Context, id xid.ID) error {
 	return err
 }
 
+const deleteFavouriteByIDNew = `-- name: DeleteFavouriteByIDNew :one
+DELETE FROM favourites WHERE id = $1 RETURNING id, created_at, updated_at, uri, account_id, account_uri, target_account_id, status_id, status_uri
+`
+
+func (q *Queries) DeleteFavouriteByIDNew(ctx context.Context, id xid.ID) (Favourite, error) {
+	row := q.db.QueryRowContext(ctx, deleteFavouriteByIDNew, id)
+	var i Favourite
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Uri,
+		&i.AccountID,
+		&i.AccountUri,
+		&i.TargetAccountID,
+		&i.StatusID,
+		&i.StatusUri,
+	)
+	return i, err
+}
+
 const deleteStatusByID = `-- name: DeleteStatusByID :exec
 DELETE FROM statuses WHERE id = $1
 `
@@ -645,7 +670,7 @@ func (q *Queries) GetActorByURI(ctx context.Context, dollar_1 string) (Account, 
 }
 
 const getFavouriteByURI = `-- name: GetFavouriteByURI :one
-SELECT id, created_at, updated_at, uri, account_id, target_account_id, status_id, status_uri FROM favourites WHERE uri LIKE '%' || $1::text
+SELECT id, created_at, updated_at, uri, account_id, account_uri, target_account_id, status_id, status_uri FROM favourites WHERE uri LIKE '%' || $1::text
 `
 
 func (q *Queries) GetFavouriteByURI(ctx context.Context, dollar_1 string) (Favourite, error) {
@@ -657,6 +682,7 @@ func (q *Queries) GetFavouriteByURI(ctx context.Context, dollar_1 string) (Favou
 		&i.UpdatedAt,
 		&i.Uri,
 		&i.AccountID,
+		&i.AccountUri,
 		&i.TargetAccountID,
 		&i.StatusID,
 		&i.StatusUri,

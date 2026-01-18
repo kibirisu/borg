@@ -13,6 +13,7 @@ type FavouriteRepository interface {
 	CreateNew(context.Context, db.CreateFavouriteNewParams) (db.Favourite, error)
 	GetByURI(context.Context, string) (db.Favourite, error)
 	DeleteByID(context.Context, xid.ID) error
+	DeleteByIDNew(context.Context, xid.ID) (db.Favourite, error)
 	GetLikedPostsByAccountID(context.Context, xid.ID) ([]db.GetLikedPostsByAccountIdRow, error)
 }
 
@@ -46,6 +47,11 @@ func (r *favouriteRepository) GetByURI(ctx context.Context, uri string) (db.Favo
 // DeleteByID implements FavouriteRepository.
 func (r *favouriteRepository) DeleteByID(ctx context.Context, id xid.ID) error {
 	return r.q.DeleteFavouriteByID(ctx, id)
+}
+
+// DeleteByIDNew implements FavouriteRepository.
+func (r *favouriteRepository) DeleteByIDNew(ctx context.Context, id xid.ID) (db.Favourite, error) {
+	return r.q.DeleteFavouriteByIDNew(ctx, id)
 }
 
 // GetLikedPostsByAccountId implements FavouriteRepository.

@@ -199,13 +199,13 @@ RETURNING *;
 
 -- name: CreateFavouriteNew :one
 WITH favourited AS (
-    SELECT account_id, uri FROM statuses WHERE id = $4
+    SELECT account_id, account_uri, uri FROM statuses WHERE id = $5
 ) INSERT INTO favourites (
-    id, uri, account_id, target_account_id, status_id, status_uri
+    id, uri, account_id, account_uri, target_account_id, status_id, status_uri
 ) VALUES (
-    $1, $2, $3,
+    $1, $2, $3, $4,
     (SELECT account_id FROM favourited),
-    $4,
+    $5,
     (SELECT uri FROM favourited)
 ) RETURNING *;
 
@@ -217,6 +217,9 @@ SELECT * FROM follows WHERE uri LIKE '%' || $1::text;
 
 -- name: DeleteFavouriteByID :exec
 DELETE FROM favourites WHERE id = $1;
+
+-- name: DeleteFavouriteByIDNew :one
+DELETE FROM favourites WHERE id = $1 RETURNING *;
 
 -- name: GetAccountFollowers :many
 SELECT a.* FROM accounts a

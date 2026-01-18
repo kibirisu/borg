@@ -28,7 +28,7 @@ func NewURIBuilder(addr string) URIBuilder {
 }
 
 func (b URIBuilder) ActorURIs(id string) ActorURIs {
-	baseURI := fmt.Sprintf("%s/user/%s", b.base, id)
+	baseURI := fmt.Sprintf("%s/users/%s", b.base, id)
 	return ActorURIs{
 		Actor:     baseURI,
 		Inbox:     fmt.Sprintf("%s/inbox", baseURI),
@@ -39,7 +39,7 @@ func (b URIBuilder) ActorURIs(id string) ActorURIs {
 }
 
 func (b URIBuilder) StatusURIs(actorID, statusID string) StatusURIs {
-	baseURI := fmt.Sprintf("%s/user/%s/statuses/%s", b.base, actorID, statusID)
+	baseURI := fmt.Sprintf("%s/users/%s/statuses/%s", b.base, actorID, statusID)
 	return StatusURIs{
 		Status:  baseURI,
 		Replies: fmt.Sprintf("%s/replies", baseURI),
@@ -48,15 +48,15 @@ func (b URIBuilder) StatusURIs(actorID, statusID string) StatusURIs {
 }
 
 func (b URIBuilder) FollowRequestURI(actorID, requestID string) string {
-	return fmt.Sprintf("%s/user/%s/requests/%s", b.base, actorID, requestID)
+	return fmt.Sprintf("%s/users/%s/requests/%s", b.base, actorID, requestID)
 }
 
 func (b URIBuilder) LikeRequestURI(actorID, requestID string) string {
-	return fmt.Sprintf("%s/user/%s/likes/%s", b.base, actorID, requestID)
+	return fmt.Sprintf("%s/users/%s/likes/%s", b.base, actorID, requestID)
 }
 
 func (b URIBuilder) AnnounceURI(actorID, announceID string) string {
-	return fmt.Sprintf("%s/user/%s/reblogs/%s", b.base, actorID, announceID)
+	return fmt.Sprintf("%s/users/%s/reblogs/%s", b.base, actorID, announceID)
 }
 
 func ExtractDomainFromURI(uri string) string {
