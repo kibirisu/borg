@@ -117,7 +117,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/Post"
+                  $ref: "#/components/schemas/Status"
       security:
         - BearerAuth: []
   /api/statuses:

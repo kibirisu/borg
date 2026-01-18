@@ -251,7 +251,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["Post"][];
+                        "application/json": components["schemas"]["Status"][];
                     };
                 };
             };
