@@ -32,6 +32,7 @@ type AppService interface {
 	GetAccountFollowing(context.Context, string) ([]api.Account, error)
 	FollowAccount(context.Context, string) (worker.Job, error)
 	UnfollowAccount(context.Context, string) (worker.Job, error)
+	LookupAccount(context.Context, string) (*api.Account, error)
 	CreateStatus(context.Context, api.PostApiStatusesJSONBody) (worker.Job, error)
 	ViewStatus(context.Context, string) (*api.Status, error)
 	GetStatusReplies(context.Context, string) ([]api.Status, error)
@@ -126,7 +127,7 @@ func (s *appService) Login(ctx context.Context, form api.AuthForm) (token string
 	if err = bcrypt.CompareHashAndPassword([]byte(auth.PasswordHash), []byte(form.Password)); err != nil {
 		return
 	}
-	token, err = issueToken(auth.ID.String(), auth.Uri, s.conf.JWTSecret) // fixme: uri
+	token, err = issueToken(auth.ID.String(), auth.Uri, s.conf.JWTSecret)
 	return
 }
 
@@ -140,16 +141,7 @@ func (s *appService) GetAccount(ctx context.Context, id string) (*api.Account, e
 	if err != nil {
 		return nil, err
 	}
-	res := api.Account{
-		Acct:           account.Acct,
-		DisplayName:    account.Account.DisplayName.String,
-		FollowersCount: int(account.FollowersCount),
-		FollowingCount: int(account.FollowingCount),
-		Id:             id,
-		Url:            account.Account.Url,
-		Username:       account.Account.Username,
-	}
-	return &res, nil
+	return mapper.ToAPIAccount(&account), nil
 }
 
 // GetAccountStatuses implements AppService.
@@ -195,15 +187,8 @@ func (s *appService) GetAccountFollowers(ctx context.Context, id string) ([]api.
 	}
 	res := make([]api.Account, len(followers))
 	for idx, follower := range followers {
-		res[idx] = api.Account{
-			Acct:           follower.Acct,
-			DisplayName:    follower.Account.DisplayName.String,
-			FollowersCount: int(follower.FollowersCount),
-			FollowingCount: int(follower.FollowingCount),
-			Id:             follower.Account.ID.String(),
-			Url:            follower.Account.Url,
-			Username:       follower.Account.Username,
-		}
+		f := db.GetAccountByIDRow(follower)
+		res[idx] = *mapper.ToAPIAccount(&f)
 	}
 	return res, nil
 }
@@ -220,15 +205,8 @@ func (s *appService) GetAccountFollowing(ctx context.Context, id string) ([]api.
 	}
 	res := make([]api.Account, len(following))
 	for idx, followed := range following {
-		res[idx] = api.Account{
-			Acct:           followed.Acct,
-			DisplayName:    followed.Account.DisplayName.String,
-			FollowersCount: int(followed.FollowersCount),
-			FollowingCount: int(followed.FollowingCount),
-			Id:             followed.Account.ID.String(),
-			Url:            followed.Account.Url,
-			Username:       followed.Account.Username,
-		}
+		f := db.GetAccountByIDRow(followed)
+		res[idx] = *mapper.ToAPIAccount(&f)
 	}
 	return res, nil
 }
@@ -283,9 +261,7 @@ func (s *appService) FollowAccount(ctx context.Context, accountID string) (worke
 	}
 
 	if follow == nil {
-		return func(context.Context) error {
-			return nil
-		}, nil
+		return worker.EmptyJob, nil
 	}
 
 	req := followReq.(db.CreateFollowRequestRow)
@@ -345,9 +321,7 @@ func (s *appService) UnfollowAccount(ctx context.Context, id string) (worker.Job
 	}
 
 	if undo == nil {
-		return func(context.Context) error {
-			return nil
-		}, nil
+		return worker.EmptyJob, nil
 	}
 
 	req := followReq.(db.DeleteFollowRequestByAccountIDRow)
@@ -355,6 +329,24 @@ func (s *appService) UnfollowAccount(ctx context.Context, id string) (worker.Job
 	return func(ctx context.Context) error {
 		return s.prcessor.SendObject(ctx, undo.GetRaw().Object, req.TargetAccountID)
 	}, nil
+}
+
+// LookupAccount implements AppService.
+func (s *appService) LookupAccount(ctx context.Context, acct string) (*api.Account, error) {
+	handle := util.ExtractHandleParts(acct)
+	if s.conf.Address == handle.Domain.String {
+		handle.Domain.Valid = false
+	}
+
+	queryParams := db.GetAccountByUsernameAndDomainParams(handle)
+	account, err := s.store.Accounts().GetByUsernameAndDomain(ctx, queryParams)
+	if err != nil {
+		// TODO: perform lookup (searched account is remote)
+		return nil, err
+	}
+
+	a := db.GetAccountByIDRow(account)
+	return mapper.ToAPIAccount(&a), nil
 }
 
 // CreateStatus implements AppService.
@@ -490,9 +482,7 @@ func (s *appService) FavouriteStatus(ctx context.Context, favouritedID string) (
 	}
 
 	if token.ID == favourite.TargetAccountID.String() {
-		return func(context.Context) error {
-			return nil
-		}, nil
+		return worker.EmptyJob, nil
 	}
 
 	like := ap.NewEmptyLikeActivity().WithObject(ap.Activity[ap.Note]{

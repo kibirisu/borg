@@ -1,6 +1,7 @@
 package util
 
 import (
+	"database/sql"
 	"fmt"
 	"strings"
 )
@@ -21,6 +22,11 @@ type StatusURIs struct {
 	Status  string
 	Replies string
 	Create  string
+}
+
+type HandleParts struct {
+	Username string
+	Domain   sql.NullString
 }
 
 func NewURIBuilder(addr string) URIBuilder {
@@ -72,4 +78,18 @@ func ExtractUsernameFromAcct(acct string) string {
 	handle := strings.TrimPrefix(acct, "acct:")
 	res := strings.SplitN(handle, "@", 2)
 	return res[0]
+}
+
+func ExtractHandleParts(acct string) HandleParts {
+	res := strings.SplitN(acct, "@", 2)
+	if len(res) == 2 {
+		return HandleParts{
+			Username: res[0],
+			Domain: sql.NullString{
+				String: res[1],
+				Valid:  true,
+			},
+		}
+	}
+	return HandleParts{res[0], sql.NullString{}}
 }

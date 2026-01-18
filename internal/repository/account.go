@@ -11,6 +11,10 @@ import (
 type AccountRepository interface {
 	GetByURI(context.Context, string) (db.Account, error)
 	GetWebfinger(context.Context, string) (db.GetAccountWebfingerRow, error)
+	GetByUsernameAndDomain(
+		context.Context,
+		db.GetAccountByUsernameAndDomainParams,
+	) (db.GetAccountByUsernameAndDomainRow, error)
 	GetByID(context.Context, xid.ID) (db.GetAccountByIDRow, error)
 	GetFollowersByAccountID(context.Context, xid.ID) ([]db.GetFollowersByAccountIDRow, error)
 	GetFollowingByAccountID(context.Context, xid.ID) ([]db.GetFollowingByAccountIDRow, error)
@@ -39,6 +43,14 @@ func (r *accountRepository) GetWebfinger(
 	username string,
 ) (db.GetAccountWebfingerRow, error) {
 	return r.q.GetAccountWebfinger(ctx, username)
+}
+
+// GetByUsernameAndDomain implements AccountRepository.
+func (r *accountRepository) GetByUsernameAndDomain(
+	ctx context.Context,
+	qureyData db.GetAccountByUsernameAndDomainParams,
+) (db.GetAccountByUsernameAndDomainRow, error) {
+	return r.q.GetAccountByUsernameAndDomain(ctx, qureyData)
 }
 
 // GetLocalByUsername implements AccountRepository.

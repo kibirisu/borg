@@ -576,7 +576,7 @@ func (q *Queries) DeleteStatusByIDNew(ctx context.Context, id xid.ID) (Status, e
 const getAccountByID = `-- name: GetAccountByID :one
 SELECT 
     a.id, a.created_at, a.updated_at, a.username, a.uri, a.display_name, a.domain, a.inbox_uri, a.outbox_uri, a.followers_uri, a.following_uri, a.url,
-    (a.username || COALESCE('@' || a.domain, ''))::text AS acct,
+    CONCAT(a.username, '@' || a.domain)::TEXT AS acct,
     (SELECT COUNT(*) FROM follows f WHERE f.target_account_id = a.id) AS followers_count,
     (SELECT COUNT(*) FROM follows f WHERE f.account_id = a.id) AS following_count
 FROM accounts a WHERE a.id = $1
@@ -592,6 +592,50 @@ type GetAccountByIDRow struct {
 func (q *Queries) GetAccountByID(ctx context.Context, id xid.ID) (GetAccountByIDRow, error) {
 	row := q.db.QueryRowContext(ctx, getAccountByID, id)
 	var i GetAccountByIDRow
+	err := row.Scan(
+		&i.Account.ID,
+		&i.Account.CreatedAt,
+		&i.Account.UpdatedAt,
+		&i.Account.Username,
+		&i.Account.Uri,
+		&i.Account.DisplayName,
+		&i.Account.Domain,
+		&i.Account.InboxUri,
+		&i.Account.OutboxUri,
+		&i.Account.FollowersUri,
+		&i.Account.FollowingUri,
+		&i.Account.Url,
+		&i.Acct,
+		&i.FollowersCount,
+		&i.FollowingCount,
+	)
+	return i, err
+}
+
+const getAccountByUsernameAndDomain = `-- name: GetAccountByUsernameAndDomain :one
+SELECT
+    a.id, a.created_at, a.updated_at, a.username, a.uri, a.display_name, a.domain, a.inbox_uri, a.outbox_uri, a.followers_uri, a.following_uri, a.url,
+    CONCAT(a.username, '@' || a.domain)::TEXT AS acct,
+    (SELECT COUNT(*) FROM follows f WHERE f.target_account_id = a.id) AS followers_count,
+    (SELECT COUNT(*) FROM follows f WHERE f.account_id = a.id) AS following_count
+FROM accounts a WHERE a.username = $1 AND (a.domain = $2 OR (a.domain IS NULL AND $2 IS NULL))
+`
+
+type GetAccountByUsernameAndDomainParams struct {
+	Username string
+	Domain   sql.NullString
+}
+
+type GetAccountByUsernameAndDomainRow struct {
+	Account        Account
+	Acct           string
+	FollowersCount int64
+	FollowingCount int64
+}
+
+func (q *Queries) GetAccountByUsernameAndDomain(ctx context.Context, arg GetAccountByUsernameAndDomainParams) (GetAccountByUsernameAndDomainRow, error) {
+	row := q.db.QueryRowContext(ctx, getAccountByUsernameAndDomain, arg.Username, arg.Domain)
+	var i GetAccountByUsernameAndDomainRow
 	err := row.Scan(
 		&i.Account.ID,
 		&i.Account.CreatedAt,
@@ -735,7 +779,7 @@ func (q *Queries) GetAccountRemoteFollowersInboxes(ctx context.Context, targetAc
 }
 
 const getAccountWebfinger = `-- name: GetAccountWebfinger :one
-SELECT  uri AS href, 'self' AS rel, 'application/activity+json' AS type FROM accounts WHERE username = $1 AND domain IS NULL
+SELECT uri AS href, 'self' AS rel, 'application/activity+json' AS type FROM accounts WHERE username = $1 AND domain IS NULL
 `
 
 type GetAccountWebfingerRow struct {

@@ -122,6 +122,22 @@ paths:
           description: OK
       security:
         - BearerAuth: []
+  /api/accounts/lookup:
+    get:
+      summary: Lookup a username to see if it is available.
+      parameters:
+        - name: acct
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Account"
   /api/statuses:
     post:
       summary: Publish a status with the given parameters.
@@ -289,22 +305,6 @@ paths:
       responses:
         "200":
           description: Successfully signed up
-  /api/accounts/lookup:
-    get:
-      summary: Look up a user
-      parameters:
-        - name: acct
-          in: query
-          required: true
-          schema:
-            type: string
-      responses:
-        "200":
-          description: Found the user
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Account"
 
 components:
   securitySchemes:

@@ -22,12 +22,12 @@ INSERT INTO users (
 );
 
 -- name: GetAccountWebfinger :one
-SELECT  uri AS href, 'self' AS rel, 'application/activity+json' AS type FROM accounts WHERE username = $1 AND domain IS NULL;
+SELECT uri AS href, 'self' AS rel, 'application/activity+json' AS type FROM accounts WHERE username = $1 AND domain IS NULL;
 
 -- name: GetAccountByID :one
 SELECT 
     sqlc.embed(a),
-    (a.username || COALESCE('@' || a.domain, ''))::text AS acct,
+    CONCAT(a.username, '@' || a.domain)::TEXT AS acct,
     (SELECT COUNT(*) FROM follows f WHERE f.target_account_id = a.id) AS followers_count,
     (SELECT COUNT(*) FROM follows f WHERE f.account_id = a.id) AS following_count
 FROM accounts a WHERE a.id = $1;
@@ -47,6 +47,14 @@ SELECT
     (SELECT COUNT(*) FROM follows f WHERE f.target_account_id = a.id) AS followers_count,
     (SELECT COUNT(*) FROM follows f WHERE f.account_id = a.id) AS following_count
 FROM accounts a JOIN follows f ON a.id = f.target_account_id WHERE f.account_id = $1;
+
+-- name: GetAccountByUsernameAndDomain :one
+SELECT
+    sqlc.embed(a),
+    CONCAT(a.username, '@' || a.domain)::TEXT AS acct,
+    (SELECT COUNT(*) FROM follows f WHERE f.target_account_id = a.id) AS followers_count,
+    (SELECT COUNT(*) FROM follows f WHERE f.account_id = a.id) AS following_count
+FROM accounts a WHERE a.username = $1 AND (a.domain = $2 OR (a.domain IS NULL AND $2 IS NULL));
 
 -- name: GetAccountRemoteFollowersInboxes :many
 SELECT inbox_uri FROM accounts a JOIN follows f ON a.id = f.account_id WHERE f.target_account_id = $1 AND a.domain IS NOT NULL;

@@ -5,6 +5,18 @@ import (
 	"github.com/kibirisu/borg/internal/db"
 )
 
+func ToAPIAccount(account *db.GetAccountByIDRow) *api.Account {
+	return &api.Account{
+		Acct:           account.Acct,
+		DisplayName:    account.Account.DisplayName.String,
+		FollowersCount: int(account.FollowersCount),
+		FollowingCount: int(account.FollowingCount),
+		Id:             account.Account.ID.String(),
+		Url:            account.Account.Url,
+		Username:       account.Account.Username,
+	}
+}
+
 func ToAPIStatus(status *db.GetStatusByIDNewRow) *api.Status {
 	var inReplyToID, inReplyToAccountID *string
 

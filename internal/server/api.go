@@ -132,6 +132,22 @@ func (s *Server) PostApiAccountsIdUnfollow(w http.ResponseWriter, r *http.Reques
 	s.worker.Enqueue(job)
 }
 
+// GetApiAccountsLookup implements api.ServerInterface.
+func (s *Server) GetApiAccountsLookup(
+	w http.ResponseWriter,
+	r *http.Request,
+	params api.GetApiAccountsLookupParams,
+) {
+	println(params.Acct)
+	account, err := s.service.App.LookupAccount(r.Context(), params.Acct)
+	if err != nil {
+		log.Println(err)
+		util.WriteError(w, http.StatusNotFound, err.Error())
+		return
+	}
+	util.WriteJSON(w, http.StatusOK, account)
+}
+
 // PostApiStatuses implements api.ServerInterface.
 func (s *Server) PostApiStatuses(w http.ResponseWriter, r *http.Request) {
 	var status api.PostApiStatusesJSONBody
@@ -232,85 +248,7 @@ func (s *Server) GetApiTimelinesHome(w http.ResponseWriter, r *http.Request) {
 	util.WriteJSON(w, http.StatusOK, statuses)
 }
 
-// GetApiAccountsLookup implements api.ServerInterface.
-func (s *Server) GetApiAccountsLookup(
-	w http.ResponseWriter,
-	r *http.Request,
-	params api.GetApiAccountsLookupParams,
-) {
-	acct := params.Acct
-	handle, err := util.ParseHandle(acct, s.conf.ListenHost)
-	if err != nil {
-		util.WriteError(w, http.StatusBadRequest, err.Error())
-		return
-	}
-
-	_ = handle
-	panic("unimplemented")
-	// if handle.Local {
-	// 	log.Printf("lookup: local handle %s detected", acct)
-	// 	account, err := s.service.App.GetLocalAccount(r.Context(), handle.Username)
-	// 	if err != nil {
-	// 		log.Println(err)
-	// 		util.WriteError(w, http.StatusNotFound, err.Error())
-	// 		return
-	// 	}
-	// 	log.Printf("lookup: found local account %s", account.Username)
-	// 	util.WriteJSON(w, http.StatusOK, mapper.AccountToAPI(account))
-	// 	return
-	// }
-	//
-	// if handle.Domain == "" {
-	// 	w.WriteHeader(http.StatusBadRequest)
-	// 	return
-	// }
-	//
-	// log.Printf("lookup: remote handle %s detected, checking local cache", acct)
-	// account, err := s.service.App.GetAccount(
-	// 	r.Context(),
-	// 	db.GetAccountParams{
-	// 		Username: handle.Username,
-	// 		Domain:   sql.NullString{String: handle.Domain, Valid: true},
-	// 	},
-	// )
-	// if err == nil {
-	// 	log.Printf("lookup: remote account %s@%s found locally", handle.Username, handle.Domain)
-	// 	util.WriteJSON(w, http.StatusOK, mapper.AccountToAPI(account))
-	// 	return
-	// }
-	// if !errors.Is(err, sql.ErrNoRows) {
-	// 	log.Println(err)
-	// 	util.WriteError(w, http.StatusInternalServerError, err.Error())
-	// 	return
-	// }
-	//
-	// log.Printf(
-	// 	"lookup: remote account %s@%s not cached, performing WebFinger lookup",
-	// 	handle.Username,
-	// 	handle.Domain,
-	// )
-	// util.WriteError(w, http.StatusInternalServerError, "unimplemented")
-	// actor, err := s.service.Federation.processor.LookupActor(r.Context(), handle)
-	// if err != nil {
-	// 	log.Println(err)
-	// 	util.WriteError(w, http.StatusBadGateway, err.Error())
-	// 	return
-	// }
-	// if err != nil {
-	// 	log.Println(err)
-	// 	util.WriteError(w, http.StatusInternalServerError, err.Error())
-	// 	return
-	// }
-	// log.Printf("lookup: remote actor stored with username=%s domain=%s", row.Username, row.Domain.String)
-	// util.WriteJSON(w, http.StatusOK, mapper.AccountToAPI(row))
-}
-
 // DeleteApiPostsId implements api.ServerInterface.
 func (s *Server) DeleteApiPostsId(w http.ResponseWriter, r *http.Request, id string) {
-	panic("unimplemented")
-}
-
-// PutApiPostsId implements api.ServerInterface.
-func (s *Server) PutApiPostsId(w http.ResponseWriter, r *http.Request, id string) {
 	panic("unimplemented")
 }

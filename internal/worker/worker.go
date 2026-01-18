@@ -7,6 +7,8 @@ import (
 
 type Job func(context.Context) error
 
+var EmptyJob = Job(func(context.Context) error { return nil })
+
 type Worker interface {
 	Enqueue(Job)
 	Cancel()
