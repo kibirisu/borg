@@ -734,6 +734,23 @@ func (q *Queries) GetAccountRemoteFollowersInboxes(ctx context.Context, targetAc
 	return items, nil
 }
 
+const getAccountWebfinger = `-- name: GetAccountWebfinger :one
+SELECT  uri AS href, 'self' AS rel, 'application/activity+json' AS type FROM accounts WHERE username = $1 AND domain IS NULL
+`
+
+type GetAccountWebfingerRow struct {
+	Href string
+	Rel  string
+	Type string
+}
+
+func (q *Queries) GetAccountWebfinger(ctx context.Context, username string) (GetAccountWebfingerRow, error) {
+	row := q.db.QueryRowContext(ctx, getAccountWebfinger, username)
+	var i GetAccountWebfingerRow
+	err := row.Scan(&i.Href, &i.Rel, &i.Type)
+	return i, err
+}
+
 const getActor = `-- name: GetActor :one
 SELECT id, created_at, updated_at, username, uri, display_name, domain, inbox_uri, outbox_uri, followers_uri, following_uri, url FROM accounts WHERE username = $1 AND domain IS NULL
 `

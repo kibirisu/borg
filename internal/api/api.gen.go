@@ -81,9 +81,22 @@ type Status struct {
 	Uri                string  `json:"uri"`
 }
 
-// UpdatePost defines model for UpdatePost.
-type UpdatePost struct {
-	Content *string `json:"content,omitempty"`
+// Webfinger defines model for Webfinger.
+type Webfinger struct {
+	Links   []WebfingerLinks `json:"links"`
+	Subject string           `json:"subject"`
+}
+
+// WebfingerLinks defines model for WebfingerLinks.
+type WebfingerLinks struct {
+	Href string `json:"href"`
+	Rel  string `json:"rel"`
+	Type string `json:"type"`
+}
+
+// GetWellKnownWebfingerParams defines parameters for GetWellKnownWebfinger.
+type GetWellKnownWebfingerParams struct {
+	Resource string `form:"resource" json:"resource"`
 }
 
 // GetApiAccountsLookupParams defines parameters for GetApiAccountsLookup.
@@ -97,9 +110,6 @@ type PostApiStatusesJSONBody struct {
 	Status      string  `json:"status"`
 }
 
-// PutApiPostsIdJSONRequestBody defines body for PutApiPostsId for application/json ContentType.
-type PutApiPostsIdJSONRequestBody = UpdatePost
-
 // PostApiStatusesJSONRequestBody defines body for PostApiStatuses for application/json ContentType.
 type PostApiStatusesJSONRequestBody PostApiStatusesJSONBody
 
@@ -111,6 +121,9 @@ type PostAuthRegisterJSONRequestBody = AuthForm
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// Webfinger lookuped account.
+	// (GET /.well-known/webfinger)
+	GetWellKnownWebfinger(w http.ResponseWriter, r *http.Request, params GetWellKnownWebfingerParams)
 	// Look up a user
 	// (GET /api/accounts/lookup)
 	GetApiAccountsLookup(w http.ResponseWriter, r *http.Request, params GetApiAccountsLookupParams)
@@ -135,9 +148,6 @@ type ServerInterface interface {
 	// Delete a post by ID
 	// (DELETE /api/posts/{id})
 	DeleteApiPostsId(w http.ResponseWriter, r *http.Request, id string)
-	// Update a post
-	// (PUT /api/posts/{id})
-	PutApiPostsId(w http.ResponseWriter, r *http.Request, id string)
 	// Get a post's comments by ID
 	// (GET /api/posts/{id}/comments)
 	GetApiPostsIdComments(w http.ResponseWriter, r *http.Request, id string)
@@ -173,6 +183,12 @@ type ServerInterface interface {
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
 
 type Unimplemented struct{}
+
+// Webfinger lookuped account.
+// (GET /.well-known/webfinger)
+func (_ Unimplemented) GetWellKnownWebfinger(w http.ResponseWriter, r *http.Request, params GetWellKnownWebfingerParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
 
 // Look up a user
 // (GET /api/accounts/lookup)
@@ -219,12 +235,6 @@ func (_ Unimplemented) PostApiAccountsIdUnfollow(w http.ResponseWriter, r *http.
 // Delete a post by ID
 // (DELETE /api/posts/{id})
 func (_ Unimplemented) DeleteApiPostsId(w http.ResponseWriter, r *http.Request, id string) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
-// Update a post
-// (PUT /api/posts/{id})
-func (_ Unimplemented) PutApiPostsId(w http.ResponseWriter, r *http.Request, id string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -296,6 +306,40 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// GetWellKnownWebfinger operation middleware
+func (siw *ServerInterfaceWrapper) GetWellKnownWebfinger(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetWellKnownWebfingerParams
+
+	// ------------- Required query parameter "resource" -------------
+
+	if paramValue := r.URL.Query().Get("resource"); paramValue != "" {
+
+	} else {
+		siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "resource"})
+		return
+	}
+
+	err = runtime.BindQueryParameter("form", true, true, "resource", r.URL.Query(), &params.Resource)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "resource", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetWellKnownWebfinger(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
 
 // GetApiAccountsLookup operation middleware
 func (siw *ServerInterfaceWrapper) GetApiAccountsLookup(w http.ResponseWriter, r *http.Request) {
@@ -515,31 +559,6 @@ func (siw *ServerInterfaceWrapper) DeleteApiPostsId(w http.ResponseWriter, r *ht
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.DeleteApiPostsId(w, r, id)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r)
-}
-
-// PutApiPostsId operation middleware
-func (siw *ServerInterfaceWrapper) PutApiPostsId(w http.ResponseWriter, r *http.Request) {
-
-	var err error
-
-	// ------------- Path parameter "id" -------------
-	var id string
-
-	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
-		return
-	}
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.PutApiPostsId(w, r, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -916,6 +935,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	}
 
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/.well-known/webfinger", wrapper.GetWellKnownWebfinger)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/accounts/lookup", wrapper.GetApiAccountsLookup)
 	})
 	r.Group(func(r chi.Router) {
@@ -938,9 +960,6 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Delete(options.BaseURL+"/api/posts/{id}", wrapper.DeleteApiPostsId)
-	})
-	r.Group(func(r chi.Router) {
-		r.Put(options.BaseURL+"/api/posts/{id}", wrapper.PutApiPostsId)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/posts/{id}/comments", wrapper.GetApiPostsIdComments)
@@ -979,29 +998,31 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
+	"C+JgigMOwYgmiv3+rwAAAP//mFDC9OAhAAA=",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

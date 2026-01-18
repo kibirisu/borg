@@ -6,6 +6,22 @@ info:
   contact: {}
 
 paths:
+  /.well-known/webfinger:
+    get:
+      summary: Webfinger lookuped account.
+      parameters:
+        - name: resource
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/jrd+json:
+              schema:
+                $ref: "#/components/schemas/Webfinger"
   /api/accounts/{id}:
     get:
       summary: View information about a profile.
@@ -233,23 +249,6 @@ paths:
       responses:
         "204":
           description: Deleted successfully
-    put:
-      summary: Update a post
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/UpdatePost"
-      responses:
-        "200":
-          description: Updated user
   /api/posts/{id}/comments:
     get:
       summary: Get a post's comments by ID
@@ -316,6 +315,31 @@ components:
       scheme: Bearer
       bearerFormat: JWT
   schemas:
+    Webfinger:
+      type: object
+      required:
+        - subject
+        - links
+      properties:
+        subject:
+          type: string
+        links:
+          type: array
+          items:
+            $ref: "#/components/schemas/WebfingerLinks"
+    WebfingerLinks:
+      type: object
+      required:
+        - rel
+        - type
+        - href
+      properties:
+        rel:
+          type: string
+        type:
+          type: string
+        href:
+          type: string
     Account:
       type: object
       required:
@@ -450,9 +474,4 @@ components:
           type: string
           format: date-time
         username:
-          type: string
-    UpdatePost:
-      type: object
-      properties:
-        content:
           type: string

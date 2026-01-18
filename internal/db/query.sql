@@ -21,6 +21,9 @@ INSERT INTO users (
     $1, $2, $3
 );
 
+-- name: GetAccountWebfinger :one
+SELECT  uri AS href, 'self' AS rel, 'application/activity+json' AS type FROM accounts WHERE username = $1 AND domain IS NULL;
+
 -- name: GetAccountByID :one
 SELECT 
     sqlc.embed(a),
