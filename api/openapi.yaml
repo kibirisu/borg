@@ -217,6 +217,26 @@ paths:
           description: Status unboosted
       security:
         - BearerAuth: []
+  /api/statuses/{id}/replies:
+    get:
+      summary: Get a post's comments by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Status"
+      security:
+        - BearerAuth: []
   /api/posts/{id}:
     delete:
       summary: Delete a post by ID
@@ -246,24 +266,6 @@ paths:
       responses:
         "200":
           description: Updated user
-  /api/posts/{id}/comments:
-    get:
-      summary: Get a post's comments by ID
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Comment"
   /auth/login:
     post:
       summary: Login the user
@@ -388,33 +390,6 @@ components:
           type: string
         password:
           type: string
-    Comment:
-      type: object
-      required:
-        - id
-        - postID
-        - userID
-        - content
-        - parentID
-        - createdAt
-        - UpdatedAt
-      properties:
-        id:
-          type: string
-        postID:
-          type: string
-        userID:
-          type: string
-        content:
-          type: string
-        parentID:
-          type: string
-        createdAt:
-          type: string
-          format: date-time
-        UpdatedAt:
-          type: string
-          format: date-time
     Post:
       type: object
       required:
