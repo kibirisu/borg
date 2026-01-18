@@ -501,7 +501,7 @@ const deleteFollowRequestByAccountID = `-- name: DeleteFollowRequestByAccountID 
 WITH account AS (
   SELECT a.id, a.uri, (a.domain IS NULL)::BOOLEAN AS local FROM accounts a WHERE a.id = $1
 ), request AS (
-    DELETE FROM follow_requests AS f USING account WHERE f.account_id = $2 AND f.target_account_id = account.id RETURNING id, created_at, updated_at, uri, account_id, target_account_id, target_account_uri
+    DELETE FROM follow_requests WHERE account_id = $2 AND target_account_id = (SELECT id FROM account) RETURNING id, created_at, updated_at, uri, account_id, target_account_id, target_account_uri
 ) SELECT r.id, r.created_at, r.updated_at, r.uri, r.account_id, r.target_account_id, r.target_account_uri, account.local FROM request r, account
 `
 

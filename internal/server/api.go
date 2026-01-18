@@ -15,6 +15,7 @@ func (s *Server) PostAuthRegister(w http.ResponseWriter, r *http.Request) {
 	if err := util.ReadJSON(r, &form); err != nil {
 		log.Println(err)
 		util.WriteError(w, http.StatusBadRequest, err.Error())
+		return
 	}
 	log.Printf("auth register: incoming request username=%s", form.Username)
 
@@ -41,6 +42,7 @@ func (s *Server) PostAuthLogin(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println(err)
 		util.WriteError(w, http.StatusUnauthorized, err.Error())
+		return
 	}
 
 	w.Header().Set("Authorization", "Bearer: "+token)
@@ -284,28 +286,6 @@ func (s *Server) GetApiPostsIdComments(w http.ResponseWriter, r *http.Request, i
 // PutApiPostsId implements api.ServerInterface.
 func (s *Server) PutApiPostsId(w http.ResponseWriter, r *http.Request, id string) {
 	panic("unimplemented")
-}
-
-// GetApiUsersIdFavourites implements api.ServerInterface.
-func (s *Server) GetApiUsersIdFavourites(w http.ResponseWriter, r *http.Request, id string) {
-	posts, err := s.service.App.GetLikedPostsByAccountID(r.Context(), id)
-	if err != nil {
-		http.Error(w, "Database error", http.StatusInternalServerError)
-		return
-	}
-
-	apiPosts := make([]api.Post, 0, len(posts))
-	for _, info := range posts {
-		converted := mapper.PostToAPIWithMetadata(
-			&info.Status,
-			&info.Account,
-			int(info.LikeCount),
-			int(info.ShareCount),
-			int(info.CommentCount))
-		apiPosts = append(apiPosts, *converted)
-	}
-
-	util.WriteJSON(w, http.StatusOK, apiPosts)
 }
 
 // GetApiUsersIdTimeline implements api.ServerInterface.

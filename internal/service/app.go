@@ -37,7 +37,6 @@ type AppService interface {
 	UnfavouriteStatus(context.Context, string) (worker.Job, error)
 	ReblogStatus(context.Context, string) (worker.Job, error)
 	UnreblogStatus(context.Context, string) (worker.Job, error)
-	GetLikedPostsByAccountID(context.Context, string) ([]db.GetLikedPostsByAccountIdRow, error)
 	GetTimelinePostsByAccountID(
 		context.Context,
 		string,
@@ -590,17 +589,6 @@ func (s *appService) UnreblogStatus(ctx context.Context, id string) (worker.Job,
 	return func(ctx context.Context) error {
 		return s.prcessor.SendObject(ctx, undo.GetRaw().Object, *status.ReblogOfAccountID)
 	}, nil
-}
-
-func (s *appService) GetLikedPostsByAccountID(
-	ctx context.Context,
-	accountID string,
-) ([]db.GetLikedPostsByAccountIdRow, error) {
-	actorID, err := xid.FromString(accountID)
-	if err != nil {
-		return []db.GetLikedPostsByAccountIdRow{}, err
-	}
-	return s.store.Favourites().GetLikedPostsByAccountID(ctx, actorID)
 }
 
 func (s *appService) GetTimelinePostsByAccountID(

@@ -167,7 +167,7 @@ WITH account AS (
 WITH account AS (
   SELECT a.id, a.uri, (a.domain IS NULL)::BOOLEAN AS local FROM accounts a WHERE a.id = @target_account_id
 ), request AS (
-    DELETE FROM follow_requests AS f USING account WHERE f.account_id = @account_id AND f.target_account_id = account.id RETURNING *
+    DELETE FROM follow_requests WHERE account_id = @account_id AND target_account_id = (SELECT id FROM account) RETURNING *
 ) SELECT r.*, account.local FROM request r, account;
 
 -- name: CreateStatus :one
