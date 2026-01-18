@@ -37,10 +37,7 @@ type AppService interface {
 	UnfavouriteStatus(context.Context, string) (worker.Job, error)
 	ReblogStatus(context.Context, string) (worker.Job, error)
 	UnreblogStatus(context.Context, string) (worker.Job, error)
-	GetTimelinePostsByAccountID(
-		context.Context,
-		string,
-	) ([]db.GetTimelinePostsByAccountIdRow, error)
+	GetAccountTimeline(context.Context) ([]api.Status, error)
 }
 
 type appService struct {
@@ -591,13 +588,25 @@ func (s *appService) UnreblogStatus(ctx context.Context, id string) (worker.Job,
 	}, nil
 }
 
-func (s *appService) GetTimelinePostsByAccountID(
-	ctx context.Context,
-	accountID string,
-) ([]db.GetTimelinePostsByAccountIdRow, error) {
-	actorID, err := xid.FromString(accountID)
-	if err != nil {
-		return []db.GetTimelinePostsByAccountIdRow{}, err
+func (s *appService) GetAccountTimeline(ctx context.Context) ([]api.Status, error) {
+	token, ok := ctx.Value(auth.TokenContextKey).(*auth.TokenData)
+	if !ok {
+		return nil, errors.New("auth failure")
 	}
-	return s.store.Statuses().GetTimelinePostsByAccountID(ctx, actorID)
+	log.Printf("detected id %s", token.ID)
+	loggedInID, err := xid.FromString(token.ID)
+	if err != nil {
+		return nil, err
+	}
+	statuses, err := s.store.Statuses().GetTimelineByAccountID(ctx, loggedInID)
+	if err != nil {
+		return nil, err
+	}
+
+	res := make([]api.Status, len(statuses))
+	for idx, status := range statuses {
+		s := db.GetStatusByIDNewRow(status)
+		res[idx] = *mapper.ToAPIStatus(&s)
+	}
+	return res, nil
 }

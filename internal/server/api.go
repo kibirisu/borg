@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/kibirisu/borg/internal/api"
-	"github.com/kibirisu/borg/internal/server/mapper"
 	"github.com/kibirisu/borg/internal/util"
 )
 
@@ -288,24 +287,31 @@ func (s *Server) PutApiPostsId(w http.ResponseWriter, r *http.Request, id string
 	panic("unimplemented")
 }
 
-// GetApiUsersIdTimeline implements api.ServerInterface.
-func (s *Server) GetApiUsersIdTimeline(w http.ResponseWriter, r *http.Request, id string) {
-	posts, err := s.service.App.GetTimelinePostsByAccountID(r.Context(), id)
+// GetApiAccountsIdTimeline implements api.ServerInterface.
+func (s *Server) GetApiAccountsTimeline(w http.ResponseWriter, r *http.Request) {
+	statuses, err := s.service.App.GetAccountTimeline(r.Context())
 	if err != nil {
-		http.Error(w, "Database error", http.StatusInternalServerError)
+		log.Println(err)
+		util.WriteError(w, http.StatusNotFound, err.Error())
 		return
 	}
-
-	apiPosts := make([]api.Post, 0, len(posts))
-	for _, info := range posts {
-		converted := mapper.PostToAPIWithMetadata(
-			&info.Status,
-			&info.Account,
-			int(info.LikeCount),
-			int(info.ShareCount),
-			int(info.CommentCount))
-		apiPosts = append(apiPosts, *converted)
-	}
-
-	util.WriteJSON(w, http.StatusOK, apiPosts)
+	util.WriteJSON(w, http.StatusOK, statuses)
+	// posts, err := s.service.App.GetTimelinePostsByAccountID(r.Context(), id)
+	// if err != nil {
+	// 	http.Error(w, "Database error", http.StatusInternalServerError)
+	// 	return
+	// }
+	//
+	// apiPosts := make([]api.Post, 0, len(posts))
+	// for _, info := range posts {
+	// 	converted := mapper.PostToAPIWithMetadata(
+	// 		&info.Status,
+	// 		&info.Account,
+	// 		int(info.LikeCount),
+	// 		int(info.ShareCount),
+	// 		int(info.CommentCount))
+	// 	apiPosts = append(apiPosts, *converted)
+	// }
+	//
+	// util.WriteJSON(w, http.StatusOK, apiPosts)
 }

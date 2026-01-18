@@ -21,10 +21,7 @@ type StatusRepository interface {
 	GetByID(context.Context, xid.ID) (db.Status, error)
 	GetByURI(context.Context, string) (db.Status, error)
 	GetByIDWithMetadata(context.Context, xid.ID) (db.GetStatusByIdWithMetadataRow, error)
-	GetTimelinePostsByAccountID(
-		context.Context,
-		xid.ID,
-	) ([]db.GetTimelinePostsByAccountIdRow, error)
+	GetTimelineByAccountID( context.Context, xid.ID) ([]db.GetTimelinePostsByAccountIdRow, error)
 	DeleteByID(context.Context, xid.ID) error
 }
 
@@ -97,8 +94,8 @@ func (r *statusRepository) GetByIDWithMetadata(
 	return r.q.GetStatusByIdWithMetadata(ctx, id)
 }
 
-// GetTimelinePostsByAccountId implements StatusRepository.
-func (r *statusRepository) GetTimelinePostsByAccountID(
+// GetTimelineByAccountID implements StatusRepository.
+func (r *statusRepository) GetTimelineByAccountID(
 	ctx context.Context,
 	accountID xid.ID,
 ) ([]db.GetTimelinePostsByAccountIdRow, error) {
