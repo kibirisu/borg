@@ -76,6 +76,5 @@ func (s *store) WithTX(ctx context.Context, fn Tx) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = tx.Commit()
-	return res, err
+	return res, tx.Commit()
 }

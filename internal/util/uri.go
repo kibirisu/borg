@@ -47,6 +47,10 @@ func (b URIBuilder) StatusURIs(actorID, statusID string) StatusURIs {
 	}
 }
 
+func (b URIBuilder) FollowURI(actorID, followID string) string {
+	return fmt.Sprintf("%s/users/%s/follows/%s", b.base, actorID, followID)
+}
+
 func (b URIBuilder) FollowRequestURI(actorID, requestID string) string {
 	return fmt.Sprintf("%s/users/%s/requests/%s", b.base, actorID, requestID)
 }

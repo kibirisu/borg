@@ -8,6 +8,7 @@ import (
 
 type FollowRepository interface {
 	Create(context.Context, db.CreateFollowParams) (*db.Follow, error)
+	CreateNew(context.Context, db.CreateFollowNewParams) error
 	GetFollowerCollection(context.Context, string) (db.GetFollowerCollectionRow, error)
 	GetFollowingCollection(context.Context, string) (db.GetFollowingCollectionRow, error)
 	GetByURI(context.Context, string) (db.Follow, error)
@@ -29,6 +30,11 @@ func (r *followRepository) Create(
 		return nil, err
 	}
 	return &follow, err
+}
+
+// CreateNew implements FollowRepository.
+func (r *followRepository) CreateNew(ctx context.Context, follow db.CreateFollowNewParams) error {
+	return r.q.CreateFollowNew(ctx, follow)
 }
 
 // GetFollowerCollection implements FollowRepository.

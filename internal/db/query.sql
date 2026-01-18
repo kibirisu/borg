@@ -134,6 +134,13 @@ DO UPDATE SET
     updated_at = CURRENT_TIMESTAMP
 RETURNING *;
 
+-- name: CreateFollowNew :exec
+INSERT INTO follows (
+  id, uri, account_id, target_account_id
+) VALUES (
+  @id, @uri, @account_id, @target_account_id
+);
+
 -- name: GetFollowerCollection :one
 SELECT 
     (SELECT followers_uri FROM accounts a WHERE a.username = $1),
@@ -145,11 +152,13 @@ SELECT
     (SELECT COUNT(*) FROM follows f JOIN accounts a ON f.account_id = a.id WHERE a.username = $1);
 
 -- name: CreateFollowRequest :one
-INSERT INTO follow_requests (
+WITH account AS (
+  SELECT a.uri, (a.domain IS NULL)::BOOLEAN AS local FROM accounts a WHERE a.id = @target_account_id
+), request AS (
+  INSERT INTO follow_requests (
     id, uri, account_id, target_account_id, target_account_uri
-) VALUES (
-    @id, @uri, @account_id, @target_account_id, (SELECT uri FROM accounts a WHERE a.id = @target_account_id)
-) RETURNING *;
+  ) SELECT @id, @uri, @account_id, @target_account_id, uri FROM account RETURNING *
+) SELECT r.*, account.local FROM request r, account;
 
 -- name: CreateStatus :one
 INSERT INTO statuses (

@@ -8,6 +8,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"github.com/rs/xid"
 )
@@ -204,29 +205,67 @@ func (q *Queries) CreateFollow(ctx context.Context, arg CreateFollowParams) (Fol
 	return i, err
 }
 
-const createFollowRequest = `-- name: CreateFollowRequest :one
-INSERT INTO follow_requests (
-    id, uri, account_id, target_account_id, target_account_uri
+const createFollowNew = `-- name: CreateFollowNew :exec
+INSERT INTO follows (
+  id, uri, account_id, target_account_id
 ) VALUES (
-    $1, $2, $3, $4, (SELECT uri FROM accounts a WHERE a.id = $4)
-) RETURNING id, created_at, updated_at, uri, account_id, target_account_id, target_account_uri
+  $1, $2, $3, $4
+)
 `
 
-type CreateFollowRequestParams struct {
+type CreateFollowNewParams struct {
 	ID              xid.ID
 	Uri             string
 	AccountID       xid.ID
 	TargetAccountID xid.ID
 }
 
-func (q *Queries) CreateFollowRequest(ctx context.Context, arg CreateFollowRequestParams) (FollowRequest, error) {
-	row := q.db.QueryRowContext(ctx, createFollowRequest,
+func (q *Queries) CreateFollowNew(ctx context.Context, arg CreateFollowNewParams) error {
+	_, err := q.db.ExecContext(ctx, createFollowNew,
 		arg.ID,
 		arg.Uri,
 		arg.AccountID,
 		arg.TargetAccountID,
 	)
-	var i FollowRequest
+	return err
+}
+
+const createFollowRequest = `-- name: CreateFollowRequest :one
+WITH account AS (
+  SELECT a.uri, (a.domain IS NULL)::BOOLEAN AS local FROM accounts a WHERE a.id = $1
+), request AS (
+  INSERT INTO follow_requests (
+    id, uri, account_id, target_account_id, target_account_uri
+  ) SELECT $2, $3, $4, $1, uri FROM account RETURNING id, created_at, updated_at, uri, account_id, target_account_id, target_account_uri
+) SELECT r.id, r.created_at, r.updated_at, r.uri, r.account_id, r.target_account_id, r.target_account_uri, account.local FROM request r, account
+`
+
+type CreateFollowRequestParams struct {
+	TargetAccountID xid.ID
+	ID              xid.ID
+	Uri             string
+	AccountID       xid.ID
+}
+
+type CreateFollowRequestRow struct {
+	ID               xid.ID
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
+	Uri              string
+	AccountID        xid.ID
+	TargetAccountID  xid.ID
+	TargetAccountUri string
+	Local            bool
+}
+
+func (q *Queries) CreateFollowRequest(ctx context.Context, arg CreateFollowRequestParams) (CreateFollowRequestRow, error) {
+	row := q.db.QueryRowContext(ctx, createFollowRequest,
+		arg.TargetAccountID,
+		arg.ID,
+		arg.Uri,
+		arg.AccountID,
+	)
+	var i CreateFollowRequestRow
 	err := row.Scan(
 		&i.ID,
 		&i.CreatedAt,
@@ -235,6 +274,7 @@ func (q *Queries) CreateFollowRequest(ctx context.Context, arg CreateFollowReque
 		&i.AccountID,
 		&i.TargetAccountID,
 		&i.TargetAccountUri,
+		&i.Local,
 	)
 	return i, err
 }

@@ -62,10 +62,13 @@ func (s *appService) Register(ctx context.Context, form api.AuthForm) error {
 
 	_, err := s.store.WithTX(ctx, func(ctx context.Context, s repo.Store) (any, error) {
 		actor, err := s.Accounts().Create(ctx, db.CreateActorParams{
-			ID:           id,
-			Username:     form.Username,
-			Uri:          actorURIs.Actor,
-			DisplayName:  sql.NullString{},
+			ID:       id,
+			Username: form.Username,
+			Uri:      actorURIs.Actor,
+			DisplayName: sql.NullString{
+				String: form.Username,
+				Valid:  true,
+			},
 			InboxUri:     actorURIs.Inbox,
 			OutboxUri:    actorURIs.Outbox,
 			Url:          "not gonna use that rn",
@@ -231,22 +234,47 @@ func (s *appService) FollowAccount(ctx context.Context, accountID string) (worke
 		return nil, err
 	}
 
-	req, err := s.store.FollowRequests().Create(ctx, db.CreateFollowRequestParams{
-		ID:              id,
-		Uri:             s.builder.FollowRequestURI(token.ID, id.String()),
-		AccountID:       followerID,
-		TargetAccountID: targetAccountID,
+	var follow ap.FollowActivitier
+
+	followReq, err := s.store.WithTX(ctx, func(ctx context.Context, store repo.Store) (any, error) {
+		req, err := store.FollowRequests().Create(ctx, db.CreateFollowRequestParams{
+			ID:              id,
+			Uri:             s.builder.FollowRequestURI(token.ID, id.String()),
+			AccountID:       followerID,
+			TargetAccountID: targetAccountID,
+		})
+		if err != nil {
+			return nil, err
+		}
+		if !req.Local {
+			follow = ap.NewEmptyFollowActivity().WithObject(ap.Activity[ap.Actor]{
+				ID:     req.Uri,
+				Type:   "Follow",
+				Actor:  ap.NewEmptyActor().WithLink(token.URI),
+				Object: ap.NewEmptyActor().WithLink(req.TargetAccountUri),
+			})
+			return req, nil
+		}
+		followID := xid.New()
+		err = store.Follows().CreateNew(ctx, db.CreateFollowNewParams{
+			ID:              followID,
+			Uri:             s.builder.FollowURI(token.ID, followID.String()),
+			AccountID:       req.AccountID,
+			TargetAccountID: req.TargetAccountID,
+		})
+		return nil, err
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	follow := ap.NewEmptyFollowActivity().WithObject(ap.Activity[ap.Actor]{
-		ID:     req.Uri,
-		Type:   "Follow",
-		Actor:  ap.NewEmptyActor().WithLink(token.URI),
-		Object: ap.NewEmptyActor().WithLink(req.TargetAccountUri),
-	})
+	if follow == nil {
+		return func(context.Context) error {
+			return nil
+		}, nil
+	}
+
+	req := followReq.(db.CreateFollowRequestRow)
 
 	return func(ctx context.Context) error {
 		return s.prcessor.SendObject(ctx, follow.GetRaw().Object, req.AccountID)
