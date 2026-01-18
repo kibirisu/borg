@@ -56,6 +56,24 @@ type Status struct {
 	Uri                string  `json:"uri"`
 }
 
+// Webfinger defines model for Webfinger.
+type Webfinger struct {
+	Links   []WebfingerLinks `json:"links"`
+	Subject string           `json:"subject"`
+}
+
+// WebfingerLinks defines model for WebfingerLinks.
+type WebfingerLinks struct {
+	Href string `json:"href"`
+	Rel  string `json:"rel"`
+	Type string `json:"type"`
+}
+
+// GetWellKnownWebfingerParams defines parameters for GetWellKnownWebfinger.
+type GetWellKnownWebfingerParams struct {
+	Resource string `form:"resource" json:"resource"`
+}
+
 // GetApiAccountsLookupParams defines parameters for GetApiAccountsLookup.
 type GetApiAccountsLookupParams struct {
 	Acct string `form:"acct" json:"acct"`
@@ -78,6 +96,9 @@ type PostAuthRegisterJSONRequestBody = AuthForm
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// Webfinger lookuped account.
+	// (GET /.well-known/webfinger)
+	GetWellKnownWebfinger(w http.ResponseWriter, r *http.Request, params GetWellKnownWebfingerParams)
 	// Look up a user
 	// (GET /api/accounts/lookup)
 	GetApiAccountsLookup(w http.ResponseWriter, r *http.Request, params GetApiAccountsLookupParams)
@@ -137,6 +158,12 @@ type ServerInterface interface {
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
 
 type Unimplemented struct{}
+
+// Webfinger lookuped account.
+// (GET /.well-known/webfinger)
+func (_ Unimplemented) GetWellKnownWebfinger(w http.ResponseWriter, r *http.Request, params GetWellKnownWebfingerParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
 
 // Look up a user
 // (GET /api/accounts/lookup)
@@ -254,6 +281,40 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// GetWellKnownWebfinger operation middleware
+func (siw *ServerInterfaceWrapper) GetWellKnownWebfinger(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetWellKnownWebfingerParams
+
+	// ------------- Required query parameter "resource" -------------
+
+	if paramValue := r.URL.Query().Get("resource"); paramValue != "" {
+
+	} else {
+		siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "resource"})
+		return
+	}
+
+	err = runtime.BindQueryParameter("form", true, true, "resource", r.URL.Query(), &params.Resource)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "resource", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetWellKnownWebfinger(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
 
 // GetApiAccountsLookup operation middleware
 func (siw *ServerInterfaceWrapper) GetApiAccountsLookup(w http.ResponseWriter, r *http.Request) {
@@ -850,6 +911,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	}
 
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/.well-known/webfinger", wrapper.GetWellKnownWebfinger)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/accounts/lookup", wrapper.GetApiAccountsLookup)
 	})
 	r.Group(func(r chi.Router) {
@@ -910,27 +974,29 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/+yZW2/bNhTHvwrBDdiLEGeXJ7+5KNJ5K9AgabeHIjBo6VhiJ/GwvMQQAn33gaRusWRH",
-	"8rAmAfoWi4eX8zv/c3jJA42xkChAGE2XD1THGRTM/7mKY7TCuD+lQgnKcPANLI79V1NKoEuqjeIipVVE",
-	"E65lzsqNYAWMGuwwz3EPSm/aoWsbLgykoDojLtJTRjwZncCqfPy7BnVkVVVEFXy1XEFCl5/dwD3zKDh7",
-	"4FqYZ+jOcO13UTMdbr9AbNxaVtZkV6iKIVjJtN6jSv6jC73VtyOOLeTWMGP9xMLmOdvmQJdGWYiG8W4C",
-	"8aOCHV3SHxadaha1ZBaNXqqIxigMiHGR7Ng9WsUN9N3cIubAxKN2fUb8udgokHm5Mbipl70Jpocunuw6",
-	"sYuCbY7pU1xqzK19eszz0HzSbbdCfpqMVXyqyhWnXawO5x+JxOH8A2hHA9Cyilo1DRVZRVRD7GYsbx27",
-	"oL43wBQolzTu19b/cunDDF3SP/7+SKNQtNxIwZa2I2fGSFpVPro7dP2dt8yXL1evQMeKS8NRuM6oUvJB",
-	"glhdr4mWEPMdj5lvjKjhJofGaHW9phG9B6VDz8uLy4ufHXuUIJjkdEl/9Z9cAprMu7Fgki9q3/UiR/zH",
-	"Svc9BR9Hl29+rnVCl/QdmJXkdULp98HYDaZYAQaUpsvPD5S7ub9aUCWNaCgNTbnqYh2kG7Q4pos7Z6wl",
-	"Ch1w/3J52XCqM5hJmdcgFl+0c/ihN96kilANYF+hFQkxGRBXrULsbVEwVdIldQ4TKwnrGh/je+BJNRHe",
-	"OjkCzkWm41Zr9IVT+/DnAam/OOyJ07bLB46CsC1aQxiRCnc8h4sj8BZho/KbDuoRiNeoH1O8Ch2+Hctx",
-	"z+v64KfuV4bPd26cDkxYrhdYyu9BkNr9J4B4rybq6qrt8QIFxg0UesaOXc/PlGLlJOU1HMg+43FGdufx",
-	"ds7O4+16fOc9BE24Ji3To9S1P4vAdJHfNh1eK/Pu9DUV+dQS06AhroJCQgzOkL8Vsyvwp6bLa6nBzYJP",
-	"YnHOdxt6AjkYGMJ467+vJHdUvtme/tuQQVhIQrSNY9B6Z/O8PMjUYOL2YNSGbEuyftu520/Ak3HvJZ5z",
-	"AbR5g0k5Kz8e3+LOuN/o9oJ4+jZR2w2uAyNH/OowItX/obxru825zggjYWlkz02/ZnbauRiGZsrpsonO",
-	"6ztdNvVwWP/alhmgP2wN42L0BBpwHuO7aC+XkzNhnVy1fZ6rBIa1kO4N42Ier1WSdKI0SEq0qhtNk5xr",
-	"cxRZ99wwkddNc+d+VlgZ02QLIEj3/DGL2Q3ojCnouKEI3HAvRu45h8z8g8XkdL6p7b8fdw7D8A5Mvaf9",
-	"pEmMReHmPba9tYecM7L8U6/XM0u358DcTL+BAu97ot0pLOaluxWzE/6TUC8i5a3Yoj8Uzz0wJkgYUXXC",
-	"425sGzG8gJwL0IsMw2v4icT+2Bj/jv49/DUnoH/raSQS9FQ/WiT+nayFZE22yDHl4gnlWJO992bnHzFP",
-	"3nab/3Oce+q77Z2xieapgIRwMXgrTLl4/JAYCChIuTagnoZw01i+Ig5WHnBonOijqKp/AwAA///xlEJG",
-	"3xsAAA==",
+	"H4sIAAAAAAAC/+yZW2/bNhSA/wrBDdjDNCu7PPnNRZHOa4AGSbs+FIVBSccSG4pUeYlhGP7vA0ndbMmy",
+	"5KFNAvTNls4hz/nOhRftcCzyQnDgWuH5Dqs4g5y4n4s4FoZr+7OQogCpKbgXJI7dU70tAM+x0pLyFO8D",
+	"nFBVMLJdcZJDr8BaMCY2INWqHrqUoVxDCrIRojwdEqJJ7wRGsv7nCuQJq/YBlvDVUAkJnn+yA7fEA+/s",
+	"kWt+nq47Xds/B9V0IvoCsba2LIzOroXMu2ALotRGyOR/utCyvh6xz5B7TbRxE3PDGIkY4LmWBoJuvKtA",
+	"/Cxhjef4p7DJmrBMmbDKl32AY8E18P4kWZNHYSTV0HYzEoIB4Qfv1QXxp3wloWDblRar0uyVFz12cVB1",
+	"pIqEiIn0HJcScy2fnvLcvx5021pIh8kYScdmuaS4idXx/D2ROJ6/A+1kAGpWQZ1NfRn5EaI15daRTm0w",
+	"yh/cD6ohV+eY1wPdOLV9PReRkmztf2X8rGdRVYJBacKg3TeVlYfGZ87UXV8G9fcr/+CcaVa7lA38HF3j",
+	"rKsQ2zBu7y0cb9ArIBKk7UT2X+T+2Z5ENJ7jfz6+x4FfCexIXhbXI2daF3i/dyWzFlbfphBxLO0iACqW",
+	"tNBUcKssZIreFcAXt0ukCojpmsbEvQywpppBJbS4XeIAP4JUXvNqdjX73bIQBXBSUDzHf7pHtqvpzLkR",
+	"zjbA2G8PXGx4uGknTwoutDYIbrZlguf4DeiPwNhbK96kmh1Pkhw0SIXnn3aY2um/GpBbHGDfcrEEJYyM",
+	"Abcj4NuCz7m+aH22wqoQXHnqf1xdVbjK7kiKgpU8wi8y+fWLsr7vWmOOynIfjkPy79764Js8J3KL502S",
+	"IibEgykgQWUtzpxkSAoalk9U6GWGUC4KWrZ8deOFR5EsF9RvRnESwXrN6vK7FoYnSGeA7Hp6xNI6jEyB",
+	"SPPyEN+OJvuR8JbJCXA2zRtuZRd95tQ6WfcvhQ2yjcI2Fyo4IpEwGhFUSLGmDGYn4IV+K+V6qVA9EG+F",
+	"OqR47RW+H8t+z8tm66Zut9lPn+04DRhvrkuwlD4CHyrGFhDn1ci8uq41nmGCjVrHW3vKwwV8ROZVHNAm",
+	"o3GG1pfxts5O4201fvDugkZUoZrpSerK7ZZhfJLfVwovlXlzPhiLfGyLqdAg20EhQVpMSH/DJ3fgD5XK",
+	"S+nBlcGDWKzzzYKeAAMNXRiv3fNFQS2V77am/9Vl4A1JkDJxDEqtDWPbo0r1InYNFkqjaIuWrxt32wU4",
+	"GPdW4VkXQOlXItlOqo/DU9IFJ3BVX2GcOcR5uc6Btee8tD+OyP5bZN6tiRhVGSLIm4Y2VLd7ZpM7s25o",
+	"xuwuq+i8vN1l1Q+7/a9+MwH0u0gTynt3oB7nKb5hff0xuhKWyXWt81Qt0NuCmlu22TReiyRpklILtBVG",
+	"NqMpxKjSJ5E1F2Ijed1Vt0JPCisjCkUAHDUXdJOY3YHKiISGm+Cem9jwnnPOMTN3pTa6nO9K+R/bneMw",
+	"vAFdrmm/KBSLPLfznlre6k3OBVX+oaX1xKnbcmBqpd9BLh5bSbuWIp9W7oZPLvgPXD6Lkjc8Em5TPHXD",
+	"mAhEkCwLXqz7lhFNc2CUgwoz4b/XDBT2+0r4b5H728WXW4DurqdKEZ9P5aVF4u7JakhGZyETKeVnMsfo",
+	"7MaJXb7FHDztVl/iLt313bf22EjRlEOCKO/cFaaUH14kegISUqp0+bFjEMJdJfmCOJjiiEPlRBvFfv9f",
+	"AAAA//9MpiRCgR4AAA==",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

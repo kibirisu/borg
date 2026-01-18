@@ -67,3 +67,9 @@ func ExtractDomainFromURI(uri string) string {
 	res := strings.SplitN(uri, "/", 4)
 	return res[2]
 }
+
+func ExtractUsernameFromAcct(acct string) string {
+	handle := strings.TrimPrefix(acct, "acct:")
+	res := strings.SplitN(handle, "@", 2)
+	return res[0]
+}

@@ -23,6 +23,7 @@ import (
 )
 
 type AppService interface {
+	WebfingerAccount(context.Context, api.GetWellKnownWebfingerParams) (*api.Webfinger, error)
 	Register(context.Context, api.AuthForm) error
 	Login(context.Context, api.AuthForm) (string, error)
 	GetAccount(context.Context, string) (*api.Account, error)
@@ -49,6 +50,23 @@ type appService struct {
 }
 
 var _ AppService = (*appService)(nil)
+
+// WebfingerAccount implements AppService.
+func (s *appService) WebfingerAccount(
+	ctx context.Context,
+	resource api.GetWellKnownWebfingerParams,
+) (*api.Webfinger, error) {
+	webfinger, err := s.store.Accounts().
+		GetWebfinger(ctx, util.ExtractUsernameFromAcct(resource.Resource))
+	if err != nil {
+		return nil, err
+	}
+	links := api.WebfingerLinks(webfinger)
+	return &api.Webfinger{
+		Subject: resource.Resource,
+		Links:   []api.WebfingerLinks{links},
+	}, nil
+}
 
 // Register implements AppService.
 func (s *appService) Register(ctx context.Context, form api.AuthForm) error {

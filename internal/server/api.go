@@ -8,6 +8,22 @@ import (
 	"github.com/kibirisu/borg/internal/util"
 )
 
+// GetWellKnownWebfinger implements api.ServerInterface.
+func (s *Server) GetWellKnownWebfinger(
+	w http.ResponseWriter,
+	r *http.Request,
+	params api.GetWellKnownWebfingerParams,
+) {
+	webfinger, err := s.service.App.WebfingerAccount(r.Context(), params)
+	if err != nil {
+		log.Println(err)
+		util.WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	util.WriteWebFingerJSON(w, http.StatusOK, webfinger)
+}
+
 // PostAuthRegister implements api.ServerInterface.
 func (s *Server) PostAuthRegister(w http.ResponseWriter, r *http.Request) {
 	var form api.AuthForm
