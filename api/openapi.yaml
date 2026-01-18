@@ -219,37 +219,7 @@ paths:
           description: Status unboosted
       security:
         - BearerAuth: []
-  /api/users/{id}/timeline:
-    get:
-      summary: Get timeline posts of the user with ID (posts from followed users)
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Post"
-  /api/posts/{id}:
-    delete:
-      summary: Delete a post by ID
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        "204":
-          description: Deleted successfully
-  /api/posts/{id}/comments:
+  /api/statuses/{id}/replies:
     get:
       summary: Get a post's comments by ID
       parameters:
@@ -266,7 +236,35 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/Comment"
+                  $ref: "#/components/schemas/Status"
+      security:
+        - BearerAuth: []
+  /api/timelines/home:
+    get:
+      summary: View statuses from followed users.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Status"
+      security:
+        - BearerAuth: []
+  /api/posts/{id}:
+    delete:
+      summary: Delete a post by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deleted successfully
   /auth/login:
     post:
       summary: Login the user
@@ -415,63 +413,4 @@ components:
         username:
           type: string
         password:
-          type: string
-    Comment:
-      type: object
-      required:
-        - id
-        - postID
-        - userID
-        - content
-        - parentID
-        - createdAt
-        - UpdatedAt
-      properties:
-        id:
-          type: string
-        postID:
-          type: string
-        userID:
-          type: string
-        content:
-          type: string
-        parentID:
-          type: string
-        createdAt:
-          type: string
-          format: date-time
-        UpdatedAt:
-          type: string
-          format: date-time
-    Post:
-      type: object
-      required:
-        - id
-        - userID
-        - content
-        - likeCount
-        - shareCount
-        - commentCount
-        - createdAt
-        - updatedAt
-      properties:
-        id:
-          type: string
-        userID:
-          type: string
-        content:
-          type: string
-        likeCount:
-          type: integer
-        shareCount:
-          type: integer
-        commentCount:
-          type: integer
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
-        username:
           type: string

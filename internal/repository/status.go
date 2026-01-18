@@ -18,13 +18,11 @@ type StatusRepository interface {
 	ReblogStatus(context.Context, db.CreateReblogParams) (db.Status, error)
 	DeleteByIDNew(context.Context, xid.ID) (db.Status, error)
 	Create(context.Context, db.CreateStatusParams) (db.Status, error)
+	GetReplies(context.Context, xid.ID, xid.ID) ([]db.GetStatusRepliesRow, error)
 	GetByID(context.Context, xid.ID) (db.Status, error)
 	GetByURI(context.Context, string) (db.Status, error)
 	GetByIDWithMetadata(context.Context, xid.ID) (db.GetStatusByIdWithMetadataRow, error)
-	GetTimelinePostsByAccountID(
-		context.Context,
-		xid.ID,
-	) ([]db.GetTimelinePostsByAccountIdRow, error)
+	GetHomeTimelineByAccountID(context.Context, xid.ID) ([]db.GetTimelinePostsByAccountIdRow, error)
 	DeleteByID(context.Context, xid.ID) error
 }
 
@@ -71,6 +69,19 @@ func (r *statusRepository) Create(
 	return r.q.CreateStatus(ctx, status)
 }
 
+// GetReplies implements StatusRepository.
+func (r *statusRepository) GetReplies(
+	ctx context.Context,
+	accountID xid.ID,
+	statusID xid.ID,
+) ([]db.GetStatusRepliesRow, error) {
+	param := db.GetStatusRepliesParams{
+		InReplyToID: &statusID,
+		AccountID:   accountID,
+	}
+	return r.q.GetStatusReplies(ctx, param)
+}
+
 // GetById implements StatusRepository.
 func (r *statusRepository) GetByID(ctx context.Context, id xid.ID) (db.Status, error) {
 	return r.q.GetStatusById(ctx, id)
@@ -97,12 +108,12 @@ func (r *statusRepository) GetByIDWithMetadata(
 	return r.q.GetStatusByIdWithMetadata(ctx, id)
 }
 
-// GetTimelinePostsByAccountId implements StatusRepository.
-func (r *statusRepository) GetTimelinePostsByAccountID(
+// GetHomeTimelineByAccountID implements StatusRepository.
+func (r *statusRepository) GetHomeTimelineByAccountID(
 	ctx context.Context,
-	accountID xid.ID,
+	id xid.ID,
 ) ([]db.GetTimelinePostsByAccountIdRow, error) {
-	return r.q.GetTimelinePostsByAccountId(ctx, accountID)
+	return r.q.GetTimelinePostsByAccountId(ctx, id)
 }
 
 // DeleteByURI implements StatusRepository.

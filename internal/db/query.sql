@@ -83,6 +83,33 @@ LEFT JOIN statuses reblogged ON s.reblog_of_id = reblogged.id
 LEFT JOIN accounts reblogged_author ON reblogged.account_id = reblogged_author.id
 WHERE s.id = $1;
 
+-- name: GetStatusReplies :many
+SELECT 
+    sqlc.embed(s),
+    sqlc.embed(a),
+    reblogged.content AS reblogged_status_content,
+    reblogged.in_reply_to_id AS reblogged_reply_to_id,
+    reblogged.in_reply_to_account_id AS reblogged_reply_to_account_id,
+    reblogged_author.username AS reblogged_username,
+    reblogged_author.display_name AS reblogged_display_name,
+    CONCAT(reblogged_author.username, '@', reblogged_author.domain)::TEXT AS reblogged_acct,
+    CONCAT(a.username, '@', a.domain)::TEXT AS acct,
+    (SELECT COUNT(*) FROM follows f WHERE f.target_account_id = a.id) AS followers_count,
+    (SELECT COUNT(*) FROM follows f WHERE f.target_account_id = reblogged_author.id) AS reblogged_followers_count,
+    (SELECT COUNT(*) FROM follows f WHERE f.account_id = a.id) AS following_count,
+    (SELECT COUNT(*) FROM follows f WHERE f.account_id = reblogged_author.id) AS reblogged_following_count,
+    (SELECT COUNT(*) FROM statuses r WHERE r.in_reply_to_id = COALESCE(s.reblog_of_id, s.id)) AS replies_count,
+    (SELECT COUNT(*) FROM favourites f WHERE f.status_id = COALESCE(s.reblog_of_id, s.id)) AS favourites_count,
+    (SELECT COUNT(*) FROM statuses r WHERE r.reblog_of_id = COALESCE(s.reblog_of_id, s.id)) AS reblogs_count,
+    EXISTS(SELECT 1 FROM favourites f WHERE f.status_id = COALESCE(s.reblog_of_id, s.id) AND f.account_id = $2) AS favourited,
+    EXISTS(SELECT 1 FROM statuses r WHERE r.reblog_of_id = COALESCE(s.reblog_of_id, s.id) AND r.account_id = $2) AS reblogged
+FROM statuses s
+JOIN accounts a ON s.account_id = a.id
+LEFT JOIN statuses reblogged ON s.reblog_of_id = reblogged.id
+LEFT JOIN accounts reblogged_author ON reblogged.account_id = reblogged_author.id
+WHERE s.in_reply_to_id = $1
+ORDER BY s.created_at ASC;
+
 -- name: GetStatusByURI :one
 SELECT * FROM statuses WHERE uri = $1;
 
@@ -269,11 +296,27 @@ WHERE f.account_id = $1;
 SELECT 
     sqlc.embed(s),
     sqlc.embed(a),
-    (SELECT COUNT(*) FROM favourites f WHERE f.status_id = s.id) AS like_count,
-    (SELECT COUNT(*) FROM statuses r WHERE r.in_reply_to_id = s.id) AS comment_count,
-    (SELECT COUNT(*) FROM statuses b WHERE b.reblog_of_id = s.id) AS share_count
+    reblogged.content AS reblogged_status_content,
+    reblogged.in_reply_to_id AS reblogged_reply_to_id,
+    reblogged.in_reply_to_account_id AS reblogged_reply_to_account_id,
+    reblogged_author.username AS reblogged_username,
+    reblogged_author.display_name AS reblogged_display_name,
+    CONCAT(reblogged_author.username, '@', reblogged_author.domain)::TEXT AS reblogged_acct,
+    CONCAT(a.username, '@', a.domain)::TEXT AS acct,
+    (SELECT COUNT(*) FROM follows f WHERE f.target_account_id = a.id) AS followers_count,
+    (SELECT COUNT(*) FROM follows f WHERE f.target_account_id = reblogged_author.id) AS reblogged_followers_count,
+    (SELECT COUNT(*) FROM follows f WHERE f.account_id = a.id) AS following_count,
+    (SELECT COUNT(*) FROM follows f WHERE f.account_id = reblogged_author.id) AS reblogged_following_count,
+    (SELECT COUNT(*) FROM statuses r WHERE r.in_reply_to_id = COALESCE(s.reblog_of_id, s.id)) AS replies_count,
+    (SELECT COUNT(*) FROM favourites f WHERE f.status_id = COALESCE(s.reblog_of_id, s.id)) AS favourites_count,
+    (SELECT COUNT(*) FROM statuses r WHERE r.reblog_of_id = COALESCE(s.reblog_of_id, s.id)) AS reblogs_count,
+    EXISTS(SELECT 1 FROM favourites f WHERE f.status_id = COALESCE(s.reblog_of_id, s.id) AND f.account_id = $1) AS favourited,
+    EXISTS(SELECT 1 FROM statuses r WHERE r.reblog_of_id = COALESCE(s.reblog_of_id, s.id) AND r.account_id = $1) AS reblogged
 FROM statuses s
 JOIN accounts a ON s.account_id = a.id
-JOIN follows f ON a.id = f.target_account_id
-WHERE f.account_id = $1 AND s.in_reply_to_id IS NULL
+JOIN follows f_logic ON a.id = f_logic.target_account_id
+LEFT JOIN statuses reblogged ON s.reblog_of_id = reblogged.id
+LEFT JOIN accounts reblogged_author ON reblogged.account_id = reblogged_author.id
+WHERE f_logic.account_id = $1 
+  AND s.in_reply_to_id IS NULL
 ORDER BY s.created_at DESC;

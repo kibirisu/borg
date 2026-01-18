@@ -13,7 +13,6 @@ import (
 	"net/url"
 	"path"
 	"strings"
-	"time"
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-chi/chi/v5"
@@ -39,30 +38,6 @@ type Account struct {
 type AuthForm struct {
 	Password string `json:"password"`
 	Username string `json:"username"`
-}
-
-// Comment defines model for Comment.
-type Comment struct {
-	UpdatedAt time.Time `json:"UpdatedAt"`
-	Content   string    `json:"content"`
-	CreatedAt time.Time `json:"createdAt"`
-	Id        string    `json:"id"`
-	ParentID  string    `json:"parentID"`
-	PostID    string    `json:"postID"`
-	UserID    string    `json:"userID"`
-}
-
-// Post defines model for Post.
-type Post struct {
-	CommentCount int       `json:"commentCount"`
-	Content      string    `json:"content"`
-	CreatedAt    time.Time `json:"createdAt"`
-	Id           string    `json:"id"`
-	LikeCount    int       `json:"likeCount"`
-	ShareCount   int       `json:"shareCount"`
-	UpdatedAt    time.Time `json:"updatedAt"`
-	UserID       string    `json:"userID"`
-	Username     *string   `json:"username,omitempty"`
 }
 
 // Status defines model for Status.
@@ -148,9 +123,6 @@ type ServerInterface interface {
 	// Delete a post by ID
 	// (DELETE /api/posts/{id})
 	DeleteApiPostsId(w http.ResponseWriter, r *http.Request, id string)
-	// Get a post's comments by ID
-	// (GET /api/posts/{id}/comments)
-	GetApiPostsIdComments(w http.ResponseWriter, r *http.Request, id string)
 	// Publish a status with the given parameters.
 	// (POST /api/statuses)
 	PostApiStatuses(w http.ResponseWriter, r *http.Request)
@@ -163,15 +135,18 @@ type ServerInterface interface {
 	// Reshare a status on your own profile.
 	// (POST /api/statuses/{id}/reblog)
 	PostApiStatusesIdReblog(w http.ResponseWriter, r *http.Request, id string)
+	// Get a post's comments by ID
+	// (GET /api/statuses/{id}/replies)
+	GetApiStatusesIdReplies(w http.ResponseWriter, r *http.Request, id string)
 	// Remove a status from your favourites list.
 	// (POST /api/statuses/{id}/unfavourite)
 	PostApiStatusesIdUnfavourite(w http.ResponseWriter, r *http.Request, id string)
 	// Undo a reshare of a status.
 	// (POST /api/statuses/{id}/unreblog)
 	PostApiStatusesIdUnreblog(w http.ResponseWriter, r *http.Request, id string)
-	// Get timeline posts of the user with ID (posts from followed users)
-	// (GET /api/users/{id}/timeline)
-	GetApiUsersIdTimeline(w http.ResponseWriter, r *http.Request, id string)
+	// View statuses from followed users.
+	// (GET /api/timelines/home)
+	GetApiTimelinesHome(w http.ResponseWriter, r *http.Request)
 	// Login the user
 	// (POST /auth/login)
 	PostAuthLogin(w http.ResponseWriter, r *http.Request)
@@ -238,12 +213,6 @@ func (_ Unimplemented) DeleteApiPostsId(w http.ResponseWriter, r *http.Request, 
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Get a post's comments by ID
-// (GET /api/posts/{id}/comments)
-func (_ Unimplemented) GetApiPostsIdComments(w http.ResponseWriter, r *http.Request, id string) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
 // Publish a status with the given parameters.
 // (POST /api/statuses)
 func (_ Unimplemented) PostApiStatuses(w http.ResponseWriter, r *http.Request) {
@@ -268,6 +237,12 @@ func (_ Unimplemented) PostApiStatusesIdReblog(w http.ResponseWriter, r *http.Re
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// Get a post's comments by ID
+// (GET /api/statuses/{id}/replies)
+func (_ Unimplemented) GetApiStatusesIdReplies(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // Remove a status from your favourites list.
 // (POST /api/statuses/{id}/unfavourite)
 func (_ Unimplemented) PostApiStatusesIdUnfavourite(w http.ResponseWriter, r *http.Request, id string) {
@@ -280,9 +255,9 @@ func (_ Unimplemented) PostApiStatusesIdUnreblog(w http.ResponseWriter, r *http.
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Get timeline posts of the user with ID (posts from followed users)
-// (GET /api/users/{id}/timeline)
-func (_ Unimplemented) GetApiUsersIdTimeline(w http.ResponseWriter, r *http.Request, id string) {
+// View statuses from followed users.
+// (GET /api/timelines/home)
+func (_ Unimplemented) GetApiTimelinesHome(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -568,31 +543,6 @@ func (siw *ServerInterfaceWrapper) DeleteApiPostsId(w http.ResponseWriter, r *ht
 	handler.ServeHTTP(w, r)
 }
 
-// GetApiPostsIdComments operation middleware
-func (siw *ServerInterfaceWrapper) GetApiPostsIdComments(w http.ResponseWriter, r *http.Request) {
-
-	var err error
-
-	// ------------- Path parameter "id" -------------
-	var id string
-
-	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
-		return
-	}
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetApiPostsIdComments(w, r, id)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r)
-}
-
 // PostApiStatuses operation middleware
 func (siw *ServerInterfaceWrapper) PostApiStatuses(w http.ResponseWriter, r *http.Request) {
 
@@ -706,6 +656,37 @@ func (siw *ServerInterfaceWrapper) PostApiStatusesIdReblog(w http.ResponseWriter
 	handler.ServeHTTP(w, r)
 }
 
+// GetApiStatusesIdReplies operation middleware
+func (siw *ServerInterfaceWrapper) GetApiStatusesIdReplies(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetApiStatusesIdReplies(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // PostApiStatusesIdUnfavourite operation middleware
 func (siw *ServerInterfaceWrapper) PostApiStatusesIdUnfavourite(w http.ResponseWriter, r *http.Request) {
 
@@ -768,22 +749,17 @@ func (siw *ServerInterfaceWrapper) PostApiStatusesIdUnreblog(w http.ResponseWrit
 	handler.ServeHTTP(w, r)
 }
 
-// GetApiUsersIdTimeline operation middleware
-func (siw *ServerInterfaceWrapper) GetApiUsersIdTimeline(w http.ResponseWriter, r *http.Request) {
+// GetApiTimelinesHome operation middleware
+func (siw *ServerInterfaceWrapper) GetApiTimelinesHome(w http.ResponseWriter, r *http.Request) {
 
-	var err error
+	ctx := r.Context()
 
-	// ------------- Path parameter "id" -------------
-	var id string
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
 
-	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
-		return
-	}
+	r = r.WithContext(ctx)
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetApiUsersIdTimeline(w, r, id)
+		siw.Handler.GetApiTimelinesHome(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -962,9 +938,6 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Delete(options.BaseURL+"/api/posts/{id}", wrapper.DeleteApiPostsId)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/api/posts/{id}/comments", wrapper.GetApiPostsIdComments)
-	})
-	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/statuses", wrapper.PostApiStatuses)
 	})
 	r.Group(func(r chi.Router) {
@@ -977,13 +950,16 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Post(options.BaseURL+"/api/statuses/{id}/reblog", wrapper.PostApiStatusesIdReblog)
 	})
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/statuses/{id}/replies", wrapper.GetApiStatusesIdReplies)
+	})
+	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/statuses/{id}/unfavourite", wrapper.PostApiStatusesIdUnfavourite)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/statuses/{id}/unreblog", wrapper.PostApiStatusesIdUnreblog)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/api/users/{id}/timeline", wrapper.GetApiUsersIdTimeline)
+		r.Get(options.BaseURL+"/api/timelines/home", wrapper.GetApiTimelinesHome)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/auth/login", wrapper.PostAuthLogin)
@@ -998,31 +974,29 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
-	"C+JgigMOwYgmiv3+rwAAAP//mFDC9OAhAAA=",
+	"H4sIAAAAAAAC/+yZW2/bNhSA/wrBDdjDNCu7PPnNRZHOa4AGSbs+FIVBSccSG4pUeYlhGP7vA0ndbMmy",
+	"5KFNAvTNls4hz/nOhRftcCzyQnDgWuH5Dqs4g5y4n4s4FoZr+7OQogCpKbgXJI7dU70tAM+x0pLyFO8D",
+	"nFBVMLJdcZJDr8BaMCY2INWqHrqUoVxDCrIRojwdEqJJ7wRGsv7nCuQJq/YBlvDVUAkJnn+yA7fEA+/s",
+	"kWt+nq47Xds/B9V0IvoCsba2LIzOroXMu2ALotRGyOR/utCyvh6xz5B7TbRxE3PDGIkY4LmWBoJuvKtA",
+	"/Cxhjef4p7DJmrBMmbDKl32AY8E18P4kWZNHYSTV0HYzEoIB4Qfv1QXxp3wloWDblRar0uyVFz12cVB1",
+	"pIqEiIn0HJcScy2fnvLcvx5021pIh8kYScdmuaS4idXx/D2ROJ6/A+1kAGpWQZ1NfRn5EaI15daRTm0w",
+	"yh/cD6ohV+eY1wPdOLV9PReRkmztf2X8rGdRVYJBacKg3TeVlYfGZ87UXV8G9fcr/+CcaVa7lA38HF3j",
+	"rKsQ2zBu7y0cb9ArIBKk7UT2X+T+2Z5ENJ7jfz6+x4FfCexIXhbXI2daF3i/dyWzFlbfphBxLO0iACqW",
+	"tNBUcKssZIreFcAXt0ukCojpmsbEvQywpppBJbS4XeIAP4JUXvNqdjX73bIQBXBSUDzHf7pHtqvpzLkR",
+	"zjbA2G8PXGx4uGknTwoutDYIbrZlguf4DeiPwNhbK96kmh1Pkhw0SIXnn3aY2um/GpBbHGDfcrEEJYyM",
+	"Abcj4NuCz7m+aH22wqoQXHnqf1xdVbjK7kiKgpU8wi8y+fWLsr7vWmOOynIfjkPy79764Js8J3KL502S",
+	"IibEgykgQWUtzpxkSAoalk9U6GWGUC4KWrZ8deOFR5EsF9RvRnESwXrN6vK7FoYnSGeA7Hp6xNI6jEyB",
+	"SPPyEN+OJvuR8JbJCXA2zRtuZRd95tQ6WfcvhQ2yjcI2Fyo4IpEwGhFUSLGmDGYn4IV+K+V6qVA9EG+F",
+	"OqR47RW+H8t+z8tm66Zut9lPn+04DRhvrkuwlD4CHyrGFhDn1ci8uq41nmGCjVrHW3vKwwV8ROZVHNAm",
+	"o3GG1pfxts5O4201fvDugkZUoZrpSerK7ZZhfJLfVwovlXlzPhiLfGyLqdAg20EhQVpMSH/DJ3fgD5XK",
+	"S+nBlcGDWKzzzYKeAAMNXRiv3fNFQS2V77am/9Vl4A1JkDJxDEqtDWPbo0r1InYNFkqjaIuWrxt32wU4",
+	"GPdW4VkXQOlXItlOqo/DU9IFJ3BVX2GcOcR5uc6Btee8tD+OyP5bZN6tiRhVGSLIm4Y2VLd7ZpM7s25o",
+	"xuwuq+i8vN1l1Q+7/a9+MwH0u0gTynt3oB7nKb5hff0xuhKWyXWt81Qt0NuCmlu22TReiyRpklILtBVG",
+	"NqMpxKjSJ5E1F2Ijed1Vt0JPCisjCkUAHDUXdJOY3YHKiISGm+Cem9jwnnPOMTN3pTa6nO9K+R/bneMw",
+	"vAFdrmm/KBSLPLfznlre6k3OBVX+oaX1xKnbcmBqpd9BLh5bSbuWIp9W7oZPLvgPXD6Lkjc8Em5TPHXD",
+	"mAhEkCwLXqz7lhFNc2CUgwoz4b/XDBT2+0r4b5H728WXW4DurqdKEZ9P5aVF4u7JakhGZyETKeVnMsfo",
+	"7MaJXb7FHDztVl/iLt313bf22EjRlEOCKO/cFaaUH14kegISUqp0+bFjEMJdJfmCOJjiiEPlRBvFfv9f",
+	"AAAA//9MpiRCgR4AAA==",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

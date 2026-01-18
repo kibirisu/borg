@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/kibirisu/borg/internal/api"
-	"github.com/kibirisu/borg/internal/server/mapper"
 	"github.com/kibirisu/borg/internal/util"
 )
 
@@ -211,6 +210,28 @@ func (s *Server) PostApiStatusesIdUnreblog(w http.ResponseWriter, r *http.Reques
 	s.worker.Enqueue(job)
 }
 
+// GetApiStatusesIdReplies implements api.ServerInterface.
+func (s *Server) GetApiStatusesIdReplies(w http.ResponseWriter, r *http.Request, id string) {
+	replies, err := s.service.App.GetStatusReplies(r.Context(), id)
+	if err != nil {
+		log.Println(err)
+		util.WriteError(w, http.StatusNotFound, err.Error())
+		return
+	}
+	util.WriteJSON(w, http.StatusOK, replies)
+}
+
+// GetApiTimelinesHome implements api.ServerInterface.
+func (s *Server) GetApiTimelinesHome(w http.ResponseWriter, r *http.Request) {
+	statuses, err := s.service.App.ViewHomeTimeline(r.Context())
+	if err != nil {
+		log.Println(err)
+		util.WriteError(w, http.StatusNotFound, err.Error())
+		return
+	}
+	util.WriteJSON(w, http.StatusOK, statuses)
+}
+
 // GetApiAccountsLookup implements api.ServerInterface.
 func (s *Server) GetApiAccountsLookup(
 	w http.ResponseWriter,
@@ -284,44 +305,12 @@ func (s *Server) GetApiAccountsLookup(
 	// util.WriteJSON(w, http.StatusOK, mapper.AccountToAPI(row))
 }
 
-// PutApiUsersId implements api.ServerInterface.
-func (s *Server) PutApiUsersId(w http.ResponseWriter, r *http.Request, id string) {
-	panic("unimplemented")
-}
-
 // DeleteApiPostsId implements api.ServerInterface.
 func (s *Server) DeleteApiPostsId(w http.ResponseWriter, r *http.Request, id string) {
-	panic("unimplemented")
-}
-
-// GetApiPostsIdComments implements api.ServerInterface.
-func (s *Server) GetApiPostsIdComments(w http.ResponseWriter, r *http.Request, id string) {
 	panic("unimplemented")
 }
 
 // PutApiPostsId implements api.ServerInterface.
 func (s *Server) PutApiPostsId(w http.ResponseWriter, r *http.Request, id string) {
 	panic("unimplemented")
-}
-
-// GetApiUsersIdTimeline implements api.ServerInterface.
-func (s *Server) GetApiUsersIdTimeline(w http.ResponseWriter, r *http.Request, id string) {
-	posts, err := s.service.App.GetTimelinePostsByAccountID(r.Context(), id)
-	if err != nil {
-		http.Error(w, "Database error", http.StatusInternalServerError)
-		return
-	}
-
-	apiPosts := make([]api.Post, 0, len(posts))
-	for _, info := range posts {
-		converted := mapper.PostToAPIWithMetadata(
-			&info.Status,
-			&info.Account,
-			int(info.LikeCount),
-			int(info.ShareCount),
-			int(info.CommentCount))
-		apiPosts = append(apiPosts, *converted)
-	}
-
-	util.WriteJSON(w, http.StatusOK, apiPosts)
 }
