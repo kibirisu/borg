@@ -63,6 +63,35 @@ func (q *Queries) AddAccount(ctx context.Context, arg AddAccountParams) (Account
 	return i, err
 }
 
+const addFollow = `-- name: AddFollow :one
+WITH follower AS (
+    SELECT a.id, a.inbox_uri FROM accounts a WHERE a.uri = $1
+), follow AS (
+    INSERT INTO follows (
+        id, uri, account_id, target_account_id
+    ) SELECT $2, $3, follower.id, $4 FROM follower
+) SELECT inbox_uri FROM follower
+`
+
+type AddFollowParams struct {
+	AccountUri      string
+	ID              xid.ID
+	Uri             string
+	TargetAccountID xid.ID
+}
+
+func (q *Queries) AddFollow(ctx context.Context, arg AddFollowParams) (string, error) {
+	row := q.db.QueryRowContext(ctx, addFollow,
+		arg.AccountUri,
+		arg.ID,
+		arg.Uri,
+		arg.TargetAccountID,
+	)
+	var inbox_uri string
+	err := row.Scan(&inbox_uri)
+	return inbox_uri, err
+}
+
 const addStatus = `-- name: AddStatus :exec
 INSERT INTO statuses (
     id, uri, url, content, account_id, account_uri, in_reply_to_id, in_reply_to_uri, in_reply_to_account_id

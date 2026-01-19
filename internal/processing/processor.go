@@ -16,7 +16,7 @@ type Processor interface {
 	LookupActor(context.Context, ap.Actorer) (db.Account, error)
 	LookupStatus(context.Context, ap.Noter) (db.Status, error)
 	AnnounceStatus(context.Context, ap.AnnounceActivitier) (db.Status, error)
-	AcceptFollow(context.Context, ap.FollowActivitier) error
+	AcceptFollow(context.Context, ap.FollowActivitier, xid.ID) error
 	LikeStatus(context.Context, ap.LikeActivitier) (db.Favourite, error)
 	DistributeObject(context.Context, *domain.Object, xid.ID) error
 	SendObject(context.Context, *domain.Object, xid.ID) error

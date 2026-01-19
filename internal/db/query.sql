@@ -18,6 +18,15 @@ INSERT INTO users (
     $1, $2, $3
 );
 
+-- name: AddFollow :one
+WITH follower AS (
+    SELECT a.id, a.inbox_uri FROM accounts a WHERE a.uri = @account_uri
+), follow AS (
+    INSERT INTO follows (
+        id, uri, account_id, target_account_id
+    ) SELECT @id, @uri, follower.id, @target_account_id FROM follower
+) SELECT inbox_uri FROM follower;
+
 -- name: AddAccount :one
 INSERT INTO accounts (
     id, username, uri, domain, inbox_uri, outbox_uri, followers_uri, following_uri, url
