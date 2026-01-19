@@ -9,6 +9,7 @@ import (
 )
 
 type AccountRepository interface {
+	AddAccount(context.Context, db.AddAccountParams) (db.Account, error)
 	GetByURI(context.Context, string) (db.Account, error)
 	GetWebfinger(context.Context, string) (db.GetAccountWebfingerRow, error)
 	GetByUsernameAndDomain(
@@ -31,6 +32,14 @@ type accountRepository struct {
 }
 
 var _ AccountRepository = (*accountRepository)(nil)
+
+// AddAccount implements AccountRepository.
+func (r *accountRepository) AddAccount(
+	ctx context.Context,
+	account db.AddAccountParams,
+) (db.Account, error) {
+	return r.q.AddAccount(ctx, account)
+}
 
 // GetByURI implements AccountRepository.
 func (r *accountRepository) GetByURI(ctx context.Context, uri string) (db.Account, error) {

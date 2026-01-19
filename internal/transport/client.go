@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json/v2"
+	"errors"
 	"net/http"
 	"time"
 
@@ -80,5 +81,8 @@ func (c *client) Webfinger(ctx context.Context, url string) (*api.Webfinger, err
 	defer func() {
 		_ = resp.Body.Close()
 	}()
+	if resp.StatusCode != http.StatusOK {
+		return nil, errors.New("webfinger returned code other than 200")
+	}
 	return &webfinger, json.UnmarshalRead(resp.Body, &webfinger)
 }

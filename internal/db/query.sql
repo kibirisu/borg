@@ -21,6 +21,13 @@ INSERT INTO users (
     $1, $2, $3
 );
 
+-- name: AddAccount :one
+INSERT INTO accounts (
+    id, username, uri, domain, inbox_uri, outbox_uri, followers_uri, following_uri, url
+) VALUES (
+    @id, @username, @uri, @domain, @inbox_uri, @outbox_uri, @followers_uri, @following_uri, @url
+) RETURNING *;
+
 -- name: GetAccountWebfinger :one
 SELECT uri AS href, 'self' AS rel, 'application/activity+json' AS type FROM accounts WHERE username = $1 AND domain IS NULL;
 

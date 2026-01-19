@@ -93,3 +93,12 @@ func ExtractHandleParts(acct string) HandleParts {
 	}
 	return HandleParts{res[0], sql.NullString{}}
 }
+
+func BuildWebfingerURL(username, domain string) string {
+	return fmt.Sprintf(
+		"http://%s/.well-known/webfinger?resource=acct:%s@%s",
+		domain,
+		username,
+		domain,
+	)
+}

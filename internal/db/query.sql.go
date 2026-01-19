@@ -13,6 +13,56 @@ import (
 	"github.com/rs/xid"
 )
 
+const addAccount = `-- name: AddAccount :one
+INSERT INTO accounts (
+    id, username, uri, domain, inbox_uri, outbox_uri, followers_uri, following_uri, url
+) VALUES (
+    $1, $2, $3, $4, $5, $6, $7, $8, $9
+) RETURNING id, created_at, updated_at, username, uri, display_name, domain, inbox_uri, outbox_uri, followers_uri, following_uri, url
+`
+
+type AddAccountParams struct {
+	ID           xid.ID
+	Username     string
+	Uri          string
+	Domain       sql.NullString
+	InboxUri     string
+	OutboxUri    string
+	FollowersUri string
+	FollowingUri string
+	Url          string
+}
+
+func (q *Queries) AddAccount(ctx context.Context, arg AddAccountParams) (Account, error) {
+	row := q.db.QueryRowContext(ctx, addAccount,
+		arg.ID,
+		arg.Username,
+		arg.Uri,
+		arg.Domain,
+		arg.InboxUri,
+		arg.OutboxUri,
+		arg.FollowersUri,
+		arg.FollowingUri,
+		arg.Url,
+	)
+	var i Account
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Username,
+		&i.Uri,
+		&i.DisplayName,
+		&i.Domain,
+		&i.InboxUri,
+		&i.OutboxUri,
+		&i.FollowersUri,
+		&i.FollowingUri,
+		&i.Url,
+	)
+	return i, err
+}
+
 const authData = `-- name: AuthData :one
 SELECT a.id, a.uri, u.password_hash FROM accounts a JOIN users u ON a.id = u.account_id WHERE a.username = $1
 `

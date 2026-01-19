@@ -20,7 +20,7 @@ type Processor interface {
 	LikeStatus(context.Context, ap.LikeActivitier) (db.Favourite, error)
 	DistributeObject(context.Context, *domain.Object, xid.ID) error
 	SendObject(context.Context, *domain.Object, xid.ID) error
-	// LookupAccount(context.Context)
+	FetchAndStoreAccount(context.Context, string, string) (db.Account, error)
 }
 
 type processor struct {

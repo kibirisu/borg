@@ -342,7 +342,20 @@ func (s *appService) LookupAccount(ctx context.Context, acct string) (*api.Accou
 	account, err := s.store.Accounts().GetByUsernameAndDomain(ctx, queryParams)
 	if err != nil {
 		// TODO: perform lookup (searched account is remote)
-		return nil, err
+		if !handle.Domain.Valid {
+			return nil, err
+		}
+		account, err := s.prcessor.FetchAndStoreAccount(ctx, handle.Username, handle.Domain.String)
+		if err != nil {
+			return nil, err
+		}
+		a := &db.GetAccountByIDRow{
+			Account:        account,
+			Acct:           acct,
+			FollowersCount: 0,
+			FollowingCount: 0,
+		}
+		return mapper.ToAPIAccount(a), nil
 	}
 
 	a := db.GetAccountByIDRow(account)
