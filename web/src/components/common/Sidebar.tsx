@@ -62,28 +62,6 @@ const items: SidebarItem[] = [
     ),
   },
   {
-    label: "Timeline",
-    to: "/timeline",
-    icon: (
-      <svg
-        role="img"
-        aria-label="Timeline"
-        className="w-5 h-5"
-        fill="none"
-        viewBox="0 0 24 24"
-      >
-        <title>Timeline</title>
-        <path
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          d="M4 4v16M9 7h11M9 12h11M9 17h11"
-        />
-      </svg>
-    ),
-  },
-  {
     label: "Likes",
     to: "/likes",
     icon: (

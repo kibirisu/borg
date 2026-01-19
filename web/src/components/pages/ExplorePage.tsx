@@ -198,7 +198,7 @@ export default function ExplorePage() {
                 />
               ))}
             {!isPending && !data?.length && (
-              <p className="text-center text-gray-500">Nothing posted yet.</p>
+              <p className="text-center text-gray-500">Start following someone to expore theirs posts!</p>
             )}
           </section>
         </main>
