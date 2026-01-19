@@ -138,7 +138,6 @@ func (s *Server) GetApiAccountsLookup(
 	r *http.Request,
 	params api.GetApiAccountsLookupParams,
 ) {
-	println(params.Acct)
 	account, err := s.service.App.LookupAccount(r.Context(), params.Acct)
 	if err != nil {
 		log.Println(err)
@@ -246,9 +245,4 @@ func (s *Server) GetApiTimelinesHome(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	util.WriteJSON(w, http.StatusOK, statuses)
-}
-
-// DeleteApiPostsId implements api.ServerInterface.
-func (s *Server) DeleteApiPostsId(w http.ResponseWriter, r *http.Request, id string) {
-	panic("unimplemented")
 }

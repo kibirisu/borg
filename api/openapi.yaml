@@ -269,18 +269,6 @@ paths:
                   $ref: "#/components/schemas/Status"
       security:
         - BearerAuth: []
-  /api/posts/{id}:
-    delete:
-      summary: Delete a post by ID
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        "204":
-          description: Deleted successfully
   /auth/login:
     post:
       summary: Login the user

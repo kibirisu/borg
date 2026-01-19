@@ -124,11 +124,13 @@ func (s *appService) Login(ctx context.Context, form api.AuthForm) (token string
 	if err != nil {
 		return
 	}
-	if err = bcrypt.CompareHashAndPassword([]byte(auth.PasswordHash), []byte(form.Password)); err != nil {
+	if err = bcrypt.CompareHashAndPassword(
+		[]byte(auth.PasswordHash),
+		[]byte(form.Password),
+	); err != nil {
 		return
 	}
-	token, err = issueToken(auth.ID.String(), auth.Uri, s.conf.JWTSecret)
-	return
+	return issueToken(auth.ID.String(), auth.Uri, s.conf.JWTSecret)
 }
 
 // GetAccount implements AppService.
@@ -313,8 +315,7 @@ func (s *appService) UnfollowAccount(ctx context.Context, id string) (worker.Job
 			})
 			return req, nil
 		}
-		err = store.Follows().DeleteByID(ctx, req.ID)
-		return nil, err
+		return nil, store.Follows().DeleteByID(ctx, req.ID)
 	})
 	if err != nil {
 		return nil, err
@@ -341,7 +342,6 @@ func (s *appService) LookupAccount(ctx context.Context, acct string) (*api.Accou
 	queryParams := db.GetAccountByUsernameAndDomainParams(handle)
 	account, err := s.store.Accounts().GetByUsernameAndDomain(ctx, queryParams)
 	if err != nil {
-		// TODO: perform lookup (searched account is remote)
 		if !handle.Domain.Valid {
 			return nil, err
 		}

@@ -1,6 +1,3 @@
--- name: GetActor :one
-SELECT * FROM accounts WHERE username = $1 AND domain IS NULL;
-
 -- name: GetActorByURI :one
 SELECT * FROM accounts WHERE uri LIKE '%' || $1::text;
 
@@ -27,6 +24,16 @@ INSERT INTO accounts (
 ) VALUES (
     @id, @username, @uri, @domain, @inbox_uri, @outbox_uri, @followers_uri, @following_uri, @url
 ) RETURNING *;
+
+-- name: AddStatus :exec
+INSERT INTO statuses (
+    id, uri, url, content, account_id, account_uri, in_reply_to_id, in_reply_to_uri, in_reply_to_account_id
+) VALUES (
+    @id, @uri, @url, @content, @account_id, @account_uri, @in_reply_to_id, @in_reply_to_uri, @in_reply_to_account_id
+);
+
+-- name: GetLocalActorByID :one
+SELECT * FROM accounts WHERE id = $1 AND domain IS NULL;
 
 -- name: GetAccountWebfinger :one
 SELECT uri AS href, 'self' AS rel, 'application/activity+json' AS type FROM accounts WHERE username = $1 AND domain IS NULL;
@@ -71,6 +78,9 @@ SELECT inbox_uri FROM accounts WHERE id = $1;
 
 -- name: GetStatusById :one
 SELECT * FROM statuses WHERE id = $1;
+
+-- name: GetLocalStatusByID :one
+SELECT * FROM statuses WHERE id = $1 AND local;
 
 -- name: GetStatusByIDNew :one
 SELECT 
@@ -250,6 +260,15 @@ WITH parent AS (
     (SELECT account_id FROM parent)
 ) RETURNING *;
 
+-- name: GetLocalLikeByID :one
+SELECT 
+    sqlc.embed(f),
+    sqlc.embed(a),
+    sqlc.embed(s)
+FROM favourites f JOIN accounts a ON f.account_id = a.id
+JOIN statuses s ON f.status_id = s.id
+WHERE f.id = $1 AND a.domain IS NULL;
+
 -- name: CreateFavourite :one
 INSERT INTO favourites (
     id,
@@ -275,6 +294,15 @@ WITH favourited AS (
 
 -- name: GetFavouriteByURI :one
 SELECT * FROM favourites WHERE uri LIKE '%' || $1::text;
+
+-- name: GetLocalFollowByID :one
+SELECT
+    f.uri AS follow_uri,
+    a1.uri AS following_uri,
+    a2.uri AS followed_uri
+FROM follows f JOIN accounts a1 ON f.account_id = a1.id
+JOIN accounts a2 ON f.target_account_id = a2.id
+WHERE f.id = $1 AND a1.domain IS NULL;
 
 -- name: GetFollowByURI :one
 SELECT * FROM follows WHERE uri LIKE '%' || $1::text;
