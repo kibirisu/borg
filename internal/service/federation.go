@@ -22,7 +22,7 @@ type FederationService interface {
 	GetStatus(context.Context, string) (*domain.Object, error)
 	GetLike(context.Context, string) (*domain.Object, error)
 	GetFollow(context.Context, string) (*domain.Object, error)
-	ProcessIncoming(context.Context, *domain.ObjectOrLink) (worker.Job, error)
+	ProcessIncoming(context.Context, *domain.ObjectOrLink, string) (worker.Job, error)
 }
 
 type federationService struct {
@@ -228,9 +228,14 @@ func (s *federationService) GetActorFollowing(
 func (s *federationService) ProcessIncoming(
 	ctx context.Context,
 	object *domain.ObjectOrLink,
+	id string,
 ) (worker.Job, error) {
 	if object.GetType() != domain.ObjectType {
 		return nil, errors.New("expected JSON object")
+	}
+	actorID, err := xid.FromString(id)
+	if err != nil {
+		return nil, err
 	}
 	switch object.Object.Type {
 	case "Create":
@@ -240,7 +245,7 @@ func (s *federationService) ProcessIncoming(
 		}, nil
 	case "Follow":
 		return func(ctx context.Context) error {
-			return s.processor.AcceptFollow(ctx, ap.NewFollowActivity(object))
+			return s.processor.AcceptFollow(ctx, ap.NewFollowActivity(object), actorID)
 		}, nil
 	case "Announce":
 		return func(ctx context.Context) error {

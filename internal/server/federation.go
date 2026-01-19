@@ -101,8 +101,7 @@ func (s *Server) handleActorFollowing(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleInbox(w http.ResponseWriter, r *http.Request) {
-	username := chi.URLParam(r, "username")
-	_ = username
+	id := chi.URLParam(r, "id")
 
 	var object domain.ObjectOrLink
 	if err := util.ReadJSON(r, &object); err != nil {
@@ -111,7 +110,7 @@ func (s *Server) handleInbox(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	job, err := s.service.Federation.ProcessIncoming(r.Context(), &object)
+	job, err := s.service.Federation.ProcessIncoming(r.Context(), &object, id)
 	if err != nil {
 		util.WriteError(w, http.StatusBadRequest, err.Error())
 	}
