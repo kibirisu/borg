@@ -19,7 +19,7 @@ type AccountRepository interface {
 	GetByID(context.Context, xid.ID) (db.GetAccountByIDRow, error)
 	GetFollowersByAccountID(context.Context, xid.ID) ([]db.GetFollowersByAccountIDRow, error)
 	GetFollowingByAccountID(context.Context, xid.ID) ([]db.GetFollowingByAccountIDRow, error)
-	GetLocalByUsername(context.Context, string) (db.Account, error)
+	GetLocalActorByID(context.Context, xid.ID) (db.Account, error)
 	Create(context.Context, db.CreateActorParams) (db.Account, error)
 	GetFollowers(context.Context, xid.ID) ([]db.Account, error)
 	GetFollowing(context.Context, xid.ID) ([]db.Account, error)
@@ -62,14 +62,6 @@ func (r *accountRepository) GetByUsernameAndDomain(
 	return r.q.GetAccountByUsernameAndDomain(ctx, qureyData)
 }
 
-// GetLocalByUsername implements AccountRepository.
-func (r *accountRepository) GetLocalByUsername(
-	ctx context.Context,
-	username string,
-) (db.Account, error) {
-	return r.q.GetActor(ctx, username)
-}
-
 // Create implements AccountRepository.
 func (r *accountRepository) Create(
 	ctx context.Context,
@@ -99,6 +91,11 @@ func (r *accountRepository) GetFollowingByAccountID(
 	id xid.ID,
 ) ([]db.GetFollowingByAccountIDRow, error) {
 	return r.q.GetFollowingByAccountID(ctx, id)
+}
+
+// GetLocalActorByID implements AccountRepository.
+func (r *accountRepository) GetLocalActorByID(ctx context.Context, id xid.ID) (db.Account, error) {
+	return r.q.GetLocalActorByID(ctx, id)
 }
 
 // GetFollowers implements AccountRepository.

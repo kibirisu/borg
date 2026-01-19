@@ -17,6 +17,7 @@ type Object struct {
 
 type Actor struct {
 	PreferredUsername string `json:"preferredUsername"`
+	Name              string `json:"name"`
 	Inbox             string `json:"inbox"`
 	Outbox            string `json:"outbox"`
 	Following         string `json:"following"`

@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/rs/xid"
+
 	"github.com/kibirisu/borg/internal/ap"
 	"github.com/kibirisu/borg/internal/domain"
 	proc "github.com/kibirisu/borg/internal/processing"
@@ -14,7 +16,7 @@ import (
 )
 
 type FederationService interface {
-	GetLocalActor(context.Context, string) (*domain.Object, error)
+	GetActor(context.Context, string) (*domain.Object, error)
 	GetActorFollowers(context.Context, string, *int) (*domain.Object, error)
 	GetActorFollowing(context.Context, string, *int) (*domain.Object, error)
 	GetStatus(context.Context, string) (*domain.Object, error)
@@ -30,20 +32,24 @@ type federationService struct {
 
 var _ FederationService = (*federationService)(nil)
 
-// GetLocalActor implements FederationService.
-func (s *federationService) GetLocalActor(
+// GetActor implements FederationService.
+func (s *federationService) GetActor(
 	ctx context.Context,
-	username string,
+	id string,
 ) (*domain.Object, error) {
-	account, err := s.store.Accounts().GetLocalByUsername(ctx, username)
+	actorID, err := xid.FromString(id)
 	if err != nil {
 		return nil, err
 	}
-	actor := ap.NewActor(nil)
-	actor.SetObject(ap.Actor{
+	account, err := s.store.Accounts().GetLocalActorByID(ctx, actorID)
+	if err != nil {
+		return nil, err
+	}
+	actor := ap.NewEmptyActor().WithObject(ap.Actor{
 		ID:                account.Uri,
 		Type:              "Person",
 		PreferredUsername: account.Username,
+		Name:              account.DisplayName.String,
 		Inbox:             account.InboxUri,
 		Outbox:            account.OutboxUri,
 		Following:         account.FollowingUri,
@@ -55,9 +61,13 @@ func (s *federationService) GetLocalActor(
 // GetStatus implements FederationService.
 func (s *federationService) GetStatus(
 	ctx context.Context,
-	uri string,
+	id string,
 ) (*domain.Object, error) {
-	status, err := s.store.Statuses().GetByURI(ctx, uri)
+	statusID, err := xid.FromString(id)
+	if err != nil {
+		return nil, err
+	}
+	status, err := s.store.Statuses().GetLocalByID(ctx, statusID)
 	if err != nil {
 		return nil, err
 	}
@@ -65,86 +75,59 @@ func (s *federationService) GetStatus(
 	if status.InReplyToUri.Valid {
 		reply.SetLink(status.InReplyToUri.String)
 	}
-	actor := ap.NewEmptyActor().WithLink(status.AccountUri)
-
-	note := ap.NewNote(nil)
-	collection := ap.NewNoteCollection(nil)
-	note.SetObject(ap.Note{
+	note := ap.NewEmptyNote().WithObject(ap.Note{
 		ID:           status.Uri,
 		Type:         "Note",
 		Content:      status.Content.String,
 		InReplyTo:    reply,
 		Published:    status.CreatedAt,
-		AttributedTo: actor,
-		Replies:      collection,
+		AttributedTo: ap.NewEmptyActor().WithLink(status.AccountUri),
+		Replies:      ap.NewEmptyNoteCollection().WithLink("work in progress"),
 	})
-
 	return note.GetRaw().Object, nil
 }
 
 // GetLike implements FederationService.
 func (s *federationService) GetLike(
 	ctx context.Context,
-	uri string,
+	id string,
 ) (*domain.Object, error) {
-	likeDB, err := s.store.Favourites().GetByURI(ctx, uri)
+	likeID, err := xid.FromString(id)
 	if err != nil {
 		return nil, err
 	}
-	accountDB, err := s.store.Accounts().GetByID(ctx, likeDB.AccountID)
+	fav, err := s.store.Favourites().GetLocalLikeByID(ctx, likeID)
 	if err != nil {
 		return nil, err
 	}
-	_ = accountDB
-	postDB, err := s.store.Statuses().GetByID(ctx, likeDB.StatusID)
-	if err != nil {
-		return nil, err
-	}
-	actor := ap.NewEmptyActor().WithLink("i'll fix it")
-
-	note := ap.NewNote(nil)
-	note.SetLink(postDB.Uri)
-
 	like := ap.NewEmptyLikeActivity().WithObject(ap.Activity[ap.Note]{
-		ID:     likeDB.Uri,
+		ID:     fav.Favourite.Uri,
 		Type:   "Like",
-		Actor:  actor,
-		Object: note,
+		Actor:  ap.NewEmptyActor().WithLink(fav.Account.Uri),
+		Object: ap.NewEmptyNote().WithLink(fav.Status.Uri),
 	})
-
 	return like.GetRaw().Object, nil
 }
 
 // GetFollow implements FederationService.
 func (s *federationService) GetFollow(
 	ctx context.Context,
-	uri string,
+	id string,
 ) (*domain.Object, error) {
-	followDB, err := s.store.Follows().GetByURI(ctx, uri)
+	followID, err := xid.FromString(id)
 	if err != nil {
 		return nil, err
 	}
-	followerDB, err := s.store.Accounts().GetByID(ctx, followDB.AccountID)
+	followActivity, err := s.store.Follows().GetLocalFollowByID(ctx, followID)
 	if err != nil {
 		return nil, err
 	}
-	followeeDB, err := s.store.Accounts().GetByID(ctx, followDB.TargetAccountID)
-	if err != nil {
-		return nil, err
-	}
-	_ = followeeDB
-	_ = followerDB
-	actorFollowed := ap.NewEmptyActor().WithLink("i'll fix it")
-	actorFollowing := ap.NewEmptyActor().WithLink("i'll fix it")
-
-	follow := ap.NewFollowActivity(nil)
-	follow.SetObject(ap.Activity[ap.Actor]{
-		ID:     followDB.Uri,
+	follow := ap.NewEmptyFollowActivity().WithObject(ap.Activity[ap.Actor]{
+		ID:     followActivity.FollowUri,
 		Type:   "Follow",
-		Actor:  actorFollowed,
-		Object: actorFollowing,
+		Actor:  ap.NewEmptyActor().WithLink(followActivity.FollowingUri),
+		Object: ap.NewEmptyActor().WithLink(followActivity.FollowedUri),
 	})
-
 	return follow.GetRaw().Object, nil
 }
 
@@ -158,7 +141,7 @@ func (s *federationService) GetActorFollowers(
 	if err != nil {
 		return nil, err
 	}
-	local, err := s.store.Accounts().GetLocalByUsername(ctx, username)
+	local, err := s.store.Accounts().GetLocalActorByID(ctx, xid.NilID()) // fixme
 	if err != nil {
 		return nil, err
 	}
@@ -203,7 +186,7 @@ func (s *federationService) GetActorFollowing(
 	if err != nil {
 		return nil, err
 	}
-	local, err := s.store.Accounts().GetLocalByUsername(ctx, username)
+	local, err := s.store.Accounts().GetLocalActorByID(ctx, xid.NilID()) // fixme
 	if err != nil {
 		return nil, err
 	}

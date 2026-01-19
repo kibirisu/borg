@@ -24,13 +24,14 @@ CREATE TABLE statuses (
     local BOOLEAN DEFAULT FALSE,
     content TEXT,
     account_id VARCHAR(20) NOT NULL REFERENCES accounts (id),
-    account_uri TEXT NOT NULL REFERENCES accounts (uri),
+    account_uri TEXT NOT NULL,
     in_reply_to_id VARCHAR(20) REFERENCES statuses,
-    in_reply_to_uri TEXT REFERENCES statuses (uri),
+    in_reply_to_uri TEXT,
     in_reply_to_account_id VARCHAR(20) REFERENCES accounts (id),
     reblog_of_id VARCHAR(20) REFERENCES statuses,
-    reblog_of_uri TEXT REFERENCES statuses (uri),
-    reblog_of_account_id VARCHAR(20) REFERENCES accounts (id)
+    reblog_of_uri TEXT,
+    reblog_of_account_id VARCHAR(20) REFERENCES accounts (id),
+    UNIQUE (account_id, reblog_of_id)
 );
 
 CREATE TABLE follows (
@@ -51,7 +52,7 @@ CREATE TABLE follow_requests (
     uri TEXT UNIQUE NOT NULL,
     account_id VARCHAR(20) NOT NULL REFERENCES accounts (id),
     target_account_id VARCHAR(20) NOT NULL REFERENCES accounts (id),
-    target_account_uri TEXT NOT NULL REFERENCES accounts (uri),
+    target_account_uri TEXT NOT NULL,
     UNIQUE (account_id, target_account_id),
     CHECK (account_id != target_account_id)
 );
@@ -62,10 +63,10 @@ CREATE TABLE favourites (
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     uri TEXT UNIQUE NOT NULL,
     account_id VARCHAR(20) NOT NULL REFERENCES accounts (id),
-    account_uri TEXT NOT NULL REFERENCES accounts (uri),
+    account_uri TEXT NOT NULL,
     target_account_id VARCHAR(20) NOT NULL REFERENCES accounts (id),
     status_id VARCHAR(20) NOT NULL REFERENCES statuses (id),
-    status_uri TEXT NOT NULL REFERENCES statuses (uri),
+    status_uri TEXT NOT NULL,
     UNIQUE (account_id, status_id)
 );
 

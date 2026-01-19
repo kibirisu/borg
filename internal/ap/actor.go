@@ -10,6 +10,7 @@ type Actor struct {
 	ID                string
 	Type              string
 	PreferredUsername string
+	Name              string
 	Inbox             string
 	Outbox            string
 	Following         string
@@ -39,6 +40,7 @@ func (a *actor) GetObject() Actor {
 		ID:                obj.ID,
 		Type:              obj.Type,
 		PreferredUsername: actor.PreferredUsername,
+		Name:              actor.Name,
 		Inbox:             actor.Inbox,
 		Outbox:            actor.Outbox,
 		Following:         actor.Following,
@@ -55,6 +57,7 @@ func (a *actor) SetObject(actor Actor) {
 			Type: actor.Type,
 			Actor: &domain.Actor{
 				PreferredUsername: actor.PreferredUsername,
+				Name:              actor.Name,
 				Inbox:             actor.Inbox,
 				Outbox:            actor.Outbox,
 				Following:         actor.Following,

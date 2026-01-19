@@ -9,6 +9,7 @@ import (
 )
 
 type FollowRepository interface {
+	GetLocalFollowByID(context.Context, xid.ID) (db.GetLocalFollowByIDRow, error)
 	Create(context.Context, db.CreateFollowParams) (*db.Follow, error)
 	CreateNew(context.Context, db.CreateFollowNewParams) error
 	GetFollowerCollection(context.Context, string) (db.GetFollowerCollectionRow, error)
@@ -22,6 +23,14 @@ type followRepository struct {
 }
 
 var _ FollowRepository = (*followRepository)(nil)
+
+// GetLocalFollowByID implements FollowRepository.
+func (r *followRepository) GetLocalFollowByID(
+	ctx context.Context,
+	id xid.ID,
+) (db.GetLocalFollowByIDRow, error) {
+	return r.q.GetLocalFollowByID(ctx, id)
+}
 
 // Create implements FollowRepository.
 func (r *followRepository) Create(

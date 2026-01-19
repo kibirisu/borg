@@ -9,6 +9,7 @@ import (
 )
 
 type FavouriteRepository interface {
+	GetLocalLikeByID(context.Context, xid.ID) (db.GetLocalLikeByIDRow, error)
 	Create(context.Context, db.CreateFavouriteParams) (db.Favourite, error)
 	CreateNew(context.Context, db.CreateFavouriteNewParams) (db.Favourite, error)
 	GetByURI(context.Context, string) (db.Favourite, error)
@@ -22,6 +23,14 @@ type favouriteRepository struct {
 }
 
 var _ FavouriteRepository = (*favouriteRepository)(nil)
+
+// GetLocalLikeByID implements FavouriteRepository.
+func (r *favouriteRepository) GetLocalLikeByID(
+	ctx context.Context,
+	id xid.ID,
+) (db.GetLocalLikeByIDRow, error) {
+	return r.q.GetLocalLikeByID(ctx, id)
+}
 
 // Create implements FavouriteRepository.
 func (r *favouriteRepository) Create(

@@ -63,6 +63,41 @@ func (q *Queries) AddAccount(ctx context.Context, arg AddAccountParams) (Account
 	return i, err
 }
 
+const addStatus = `-- name: AddStatus :exec
+INSERT INTO statuses (
+    id, uri, url, content, account_id, account_uri, in_reply_to_id, in_reply_to_uri, in_reply_to_account_id
+) VALUES (
+    $1, $2, $3, $4, $5, $6, $7, $8, $9
+)
+`
+
+type AddStatusParams struct {
+	ID                 xid.ID
+	Uri                string
+	Url                string
+	Content            sql.NullString
+	AccountID          xid.ID
+	AccountUri         string
+	InReplyToID        *xid.ID
+	InReplyToUri       sql.NullString
+	InReplyToAccountID *xid.ID
+}
+
+func (q *Queries) AddStatus(ctx context.Context, arg AddStatusParams) error {
+	_, err := q.db.ExecContext(ctx, addStatus,
+		arg.ID,
+		arg.Uri,
+		arg.Url,
+		arg.Content,
+		arg.AccountID,
+		arg.AccountUri,
+		arg.InReplyToID,
+		arg.InReplyToUri,
+		arg.InReplyToAccountID,
+	)
+	return err
+}
+
 const authData = `-- name: AuthData :one
 SELECT a.id, a.uri, u.password_hash FROM accounts a JOIN users u ON a.id = u.account_id WHERE a.username = $1
 `
@@ -845,30 +880,6 @@ func (q *Queries) GetAccountWebfinger(ctx context.Context, username string) (Get
 	return i, err
 }
 
-const getActor = `-- name: GetActor :one
-SELECT id, created_at, updated_at, username, uri, display_name, domain, inbox_uri, outbox_uri, followers_uri, following_uri, url FROM accounts WHERE username = $1 AND domain IS NULL
-`
-
-func (q *Queries) GetActor(ctx context.Context, username string) (Account, error) {
-	row := q.db.QueryRowContext(ctx, getActor, username)
-	var i Account
-	err := row.Scan(
-		&i.ID,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.Username,
-		&i.Uri,
-		&i.DisplayName,
-		&i.Domain,
-		&i.InboxUri,
-		&i.OutboxUri,
-		&i.FollowersUri,
-		&i.FollowingUri,
-		&i.Url,
-	)
-	return i, err
-}
-
 const getActorByURI = `-- name: GetActorByURI :one
 SELECT id, created_at, updated_at, username, uri, display_name, domain, inbox_uri, outbox_uri, followers_uri, following_uri, url FROM accounts WHERE uri LIKE '%' || $1::text
 `
@@ -1151,6 +1162,140 @@ func (q *Queries) GetLikedPostsByAccountId(ctx context.Context, accountID xid.ID
 		return nil, err
 	}
 	return items, nil
+}
+
+const getLocalActorByID = `-- name: GetLocalActorByID :one
+SELECT id, created_at, updated_at, username, uri, display_name, domain, inbox_uri, outbox_uri, followers_uri, following_uri, url FROM accounts WHERE id = $1 AND domain IS NULL
+`
+
+func (q *Queries) GetLocalActorByID(ctx context.Context, id xid.ID) (Account, error) {
+	row := q.db.QueryRowContext(ctx, getLocalActorByID, id)
+	var i Account
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Username,
+		&i.Uri,
+		&i.DisplayName,
+		&i.Domain,
+		&i.InboxUri,
+		&i.OutboxUri,
+		&i.FollowersUri,
+		&i.FollowingUri,
+		&i.Url,
+	)
+	return i, err
+}
+
+const getLocalFollowByID = `-- name: GetLocalFollowByID :one
+SELECT
+    f.uri AS follow_uri,
+    a1.uri AS following_uri,
+    a2.uri AS followed_uri
+FROM follows f JOIN accounts a1 ON f.account_id = a1.id
+JOIN accounts a2 ON f.target_account_id = a2.id
+WHERE f.id = $1 AND a1.domain IS NULL
+`
+
+type GetLocalFollowByIDRow struct {
+	FollowUri    string
+	FollowingUri string
+	FollowedUri  string
+}
+
+func (q *Queries) GetLocalFollowByID(ctx context.Context, id xid.ID) (GetLocalFollowByIDRow, error) {
+	row := q.db.QueryRowContext(ctx, getLocalFollowByID, id)
+	var i GetLocalFollowByIDRow
+	err := row.Scan(&i.FollowUri, &i.FollowingUri, &i.FollowedUri)
+	return i, err
+}
+
+const getLocalLikeByID = `-- name: GetLocalLikeByID :one
+SELECT 
+    f.id, f.created_at, f.updated_at, f.uri, f.account_id, f.account_uri, f.target_account_id, f.status_id, f.status_uri,
+    a.id, a.created_at, a.updated_at, a.username, a.uri, a.display_name, a.domain, a.inbox_uri, a.outbox_uri, a.followers_uri, a.following_uri, a.url,
+    s.id, s.created_at, s.updated_at, s.uri, s.url, s.local, s.content, s.account_id, s.account_uri, s.in_reply_to_id, s.in_reply_to_uri, s.in_reply_to_account_id, s.reblog_of_id, s.reblog_of_uri, s.reblog_of_account_id
+FROM favourites f JOIN accounts a ON f.account_id = a.id
+JOIN statuses s ON f.status_id = s.id
+WHERE f.id = $1 AND a.domain IS NULL
+`
+
+type GetLocalLikeByIDRow struct {
+	Favourite Favourite
+	Account   Account
+	Status    Status
+}
+
+func (q *Queries) GetLocalLikeByID(ctx context.Context, id xid.ID) (GetLocalLikeByIDRow, error) {
+	row := q.db.QueryRowContext(ctx, getLocalLikeByID, id)
+	var i GetLocalLikeByIDRow
+	err := row.Scan(
+		&i.Favourite.ID,
+		&i.Favourite.CreatedAt,
+		&i.Favourite.UpdatedAt,
+		&i.Favourite.Uri,
+		&i.Favourite.AccountID,
+		&i.Favourite.AccountUri,
+		&i.Favourite.TargetAccountID,
+		&i.Favourite.StatusID,
+		&i.Favourite.StatusUri,
+		&i.Account.ID,
+		&i.Account.CreatedAt,
+		&i.Account.UpdatedAt,
+		&i.Account.Username,
+		&i.Account.Uri,
+		&i.Account.DisplayName,
+		&i.Account.Domain,
+		&i.Account.InboxUri,
+		&i.Account.OutboxUri,
+		&i.Account.FollowersUri,
+		&i.Account.FollowingUri,
+		&i.Account.Url,
+		&i.Status.ID,
+		&i.Status.CreatedAt,
+		&i.Status.UpdatedAt,
+		&i.Status.Uri,
+		&i.Status.Url,
+		&i.Status.Local,
+		&i.Status.Content,
+		&i.Status.AccountID,
+		&i.Status.AccountUri,
+		&i.Status.InReplyToID,
+		&i.Status.InReplyToUri,
+		&i.Status.InReplyToAccountID,
+		&i.Status.ReblogOfID,
+		&i.Status.ReblogOfUri,
+		&i.Status.ReblogOfAccountID,
+	)
+	return i, err
+}
+
+const getLocalStatusByID = `-- name: GetLocalStatusByID :one
+SELECT id, created_at, updated_at, uri, url, local, content, account_id, account_uri, in_reply_to_id, in_reply_to_uri, in_reply_to_account_id, reblog_of_id, reblog_of_uri, reblog_of_account_id FROM statuses WHERE id = $1 AND local
+`
+
+func (q *Queries) GetLocalStatusByID(ctx context.Context, id xid.ID) (Status, error) {
+	row := q.db.QueryRowContext(ctx, getLocalStatusByID, id)
+	var i Status
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Uri,
+		&i.Url,
+		&i.Local,
+		&i.Content,
+		&i.AccountID,
+		&i.AccountUri,
+		&i.InReplyToID,
+		&i.InReplyToUri,
+		&i.InReplyToAccountID,
+		&i.ReblogOfID,
+		&i.ReblogOfUri,
+		&i.ReblogOfAccountID,
+	)
+	return i, err
 }
 
 const getStatusByIDNew = `-- name: GetStatusByIDNew :one

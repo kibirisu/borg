@@ -5,11 +5,12 @@ import (
 	"database/sql"
 	"errors"
 
+	"github.com/rs/xid"
+
 	"github.com/kibirisu/borg/internal/ap"
 	"github.com/kibirisu/borg/internal/db"
 	"github.com/kibirisu/borg/internal/domain"
 	"github.com/kibirisu/borg/internal/util"
-	"github.com/rs/xid"
 )
 
 func (p *processor) LookupActor(ctx context.Context, object ap.Actorer) (db.Account, error) {
@@ -68,7 +69,7 @@ func (p *processor) FetchAndStoreAccount(
 		OutboxUri:    actor.Outbox,
 		FollowersUri: actor.Followers,
 		FollowingUri: actor.Following,
-		Url:          ":3",
+		Url:          ":3", // webfinger may provide url
 	})
 }
 
