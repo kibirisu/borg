@@ -16,16 +16,16 @@ export const loader =
     if (!params.postId) {
       return { postOpts: undefined, commentOpts: undefined, postId: undefined };
     }
-    const postId = Number(params.postId);
+    const postId = String(params.postId);
     const queryParams = { params: { path: { id: postId } } };
     const postOpts = client.$api.queryOptions(
       "get",
-      "/api/posts/{id}",
+      "/api/statuses/{id}",
       queryParams,
     );
     const commentOpts = client.$api.queryOptions(
       "get",
-      "/api/posts/{id}/comments",
+      "/api/statuses/{id}/replies",
       queryParams,
     );
     client.queryClient.prefetchQuery(commentOpts);
@@ -38,11 +38,11 @@ export const commentsLoader =
     if (!params.postId) {
       return { opts: undefined };
     }
-    const postId = Number(params.postId);
+    const postId = String(params.postId);
     const queryParams = { params: { path: { id: postId } } };
     const commentOpts = client.$api.queryOptions(
       "get",
-      "/api/posts/{id}/comments",
+      "/api/statuses/{id}/replies",
       queryParams,
     );
     await client.queryClient.ensureQueryData(commentOpts);
@@ -78,7 +78,7 @@ export default function CommentView() {
         <div className="bg-white">
           {postData && postData.data ? (
             <PostItem
-              post={{ data: postData.data as components["schemas"]["Post"] }}
+              post={{ data: postData.data as components["schemas"]["Status"] }}
               client={client}
             />
           ) : (
@@ -102,13 +102,13 @@ export function CommentsFeed({
 }: {
   opts?:
     | UseQueryOptions<
-        components["schemas"]["Comment"][],
+        components["schemas"]["Status"][],
         any,
-        components["schemas"]["Comment"][],
+        components["schemas"]["Status"][],
         any
       >
     | any;
-  postId?: number;
+  postId?: string;
 }) {
   const client = useContext(ClientContext);
 
@@ -116,11 +116,11 @@ export function CommentsFeed({
     opts ??
     ({
       queryKey: ["comments-feed-disabled", _postId],
-      queryFn: async () => [] as components["schemas"]["Comment"][],
+      queryFn: async () => [] as components["schemas"]["Status"][],
       enabled: false,
     } satisfies Parameters<typeof useQuery>[0]);
 
-  const { data, isPending } = useQuery<components["schemas"]["Comment"][]>(
+  const { data, isPending } = useQuery<components["schemas"]["Status"][]>(
     queryOptions as any,
   );
 
@@ -140,7 +140,7 @@ export function CommentsFeed({
   return (
     <div className="divide-y divide-gray-200">
       {data && data.length > 0 ? (
-        data.map((comment: components["schemas"]["Comment"]) => (
+        data.map((comment: components["schemas"]["Status"]) => (
           <PostItem
             key={comment.id}
             post={{ data: comment }}

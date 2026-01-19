@@ -81,7 +81,8 @@ func ExtractUsernameFromAcct(acct string) string {
 }
 
 func ExtractHandleParts(acct string) HandleParts {
-	res := strings.SplitN(acct, "@", 2)
+	handle := strings.TrimPrefix(acct, "@")
+	res := strings.SplitN(handle, "@", 2)
 	if len(res) == 2 {
 		return HandleParts{
 			Username: res[0],

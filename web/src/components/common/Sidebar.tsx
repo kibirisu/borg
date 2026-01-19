@@ -62,23 +62,23 @@ const items: SidebarItem[] = [
     ),
   },
   {
-    label: "Notifications",
-    to: "/notifications",
+    label: "Timeline",
+    to: "/timeline",
     icon: (
       <svg
         role="img"
-        aria-label="Notifications"
+        aria-label="Timeline"
         className="w-5 h-5"
         fill="none"
         viewBox="0 0 24 24"
       >
-        <title>Notifications</title>
+        <title>Timeline</title>
         <path
           stroke="currentColor"
           strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
-          d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5"
+          d="M4 4v16M9 7h11M9 12h11M9 17h11"
         />
       </svg>
     ),

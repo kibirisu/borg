@@ -6,14 +6,26 @@ import type { components } from "../../lib/api/v1";
 import type { AppClient } from "../../lib/client";
 import AppContext from "../../lib/state";
 
-interface PostData {
-  data: components["schemas"]["Post"];
-}
-interface CommentData {
-  data: components["schemas"]["Comment"];
+type Status = components["schemas"]["Status"];
+type LegacyPost = {
+  id: number | string;
+  content: string;
+  username?: string;
+  userID?: number | string;
+  likeCount?: number;
+  shareCount?: number;
+  commentCount?: number;
+};
+
+interface StatusData {
+  data: Status;
 }
 
-export type PostPresentable = PostData | CommentData;
+interface LegacyPostData {
+  data: LegacyPost;
+}
+
+export type PostPresentable = StatusData | LegacyPostData;
 
 interface PostProps {
   post: PostPresentable;
@@ -32,46 +44,118 @@ export const PostItem = ({
 }: PostProps) => {
   const appState = useContext(AppContext);
   const currentUserId = appState?.userId ?? null;
+  const legacyUserId = currentUserId ? Number(currentUserId) : NaN;
+  const isStatus = (data: Status | LegacyPost): data is Status => {
+    return "account" in data || "favourites_count" in data;
+  };
+  const data = post.data;
+  const isStatusPost = isStatus(data);
+  const renderData =
+    isStatusPost && data.reblog ? data.reblog : data;
+  const resharedBy =
+    isStatusPost && data.reblog ? data.account : null;
+  const authorId = isStatusPost ? renderData.account?.id : renderData.userID;
+  const authorName = isStatusPost
+    ? renderData.account?.display_name || renderData.account?.username
+    : renderData.username;
+  const authorHandleRaw = isStatusPost
+    ? renderData.account?.acct || renderData.account?.username
+    : renderData.username;
+  const authorHandle = authorHandleRaw
+    ? authorHandleRaw.startsWith("@")
+      ? authorHandleRaw.slice(1)
+      : authorHandleRaw
+    : "";
+  const content = renderData.content;
+  const commentCount = isStatusPost
+    ? renderData.replies_count
+    : renderData.commentCount;
+  const shareCount = isStatusPost
+    ? renderData.reblogs_count
+    : renderData.shareCount;
+  const likeCount = isStatusPost
+    ? renderData.favourites_count
+    : renderData.likeCount;
+  const isFavourited = isStatusPost ? Boolean(renderData.favourited) : false;
+  const isReblogged = isStatusPost ? Boolean(renderData.reblogged) : false;
 
   const likeAction = async () => {
-    if (!("id" in post.data)) return;
+    if (!("id" in renderData)) return;
     if (!currentUserId) {
       console.warn("User not authenticated, cannot like");
       return;
     }
     try {
-      await client.fetchClient.POST("/api/posts/{id}/likes", {
-        params: { path: { id: Number(post.data.id) } },
-        body: { postID: Number(post.data.id), userID: currentUserId },
-      });
-      client.queryClient.invalidateQueries({
-        queryKey: ["get", "/api/posts", {}],
-      });
-      client.queryClient.invalidateQueries({
-        queryKey: ["user-posts", currentUserId],
-      });
+      if (isStatusPost) {
+        const endpoint = renderData.favourited
+          ? "/api/statuses/{id}/unfavourite"
+          : "/api/statuses/{id}/favourite";
+        await client.fetchClient.POST(endpoint, {
+          params: { path: { id: String(renderData.id) } },
+        });
+        client.queryClient.invalidateQueries({
+          queryKey: ["account-statuses", authorId],
+        });
+        client.queryClient.invalidateQueries({
+          queryKey: ["get", "/api/accounts/{id}/statuses"],
+        });
+      } else {
+        if (!Number.isFinite(legacyUserId)) {
+          console.warn("User not authenticated, cannot like");
+          return;
+        }
+        await client.fetchClient.POST("/api/posts/{id}/likes", {
+          params: { path: { id: Number(renderData.id) } },
+          body: { postID: Number(renderData.id), userID: legacyUserId },
+        });
+        client.queryClient.invalidateQueries({
+          queryKey: ["get", "/api/posts", {}],
+        });
+        client.queryClient.invalidateQueries({
+          queryKey: ["user-posts", legacyUserId],
+        });
+      }
     } catch (err) {
       console.error("Failed to like post", err);
     }
   };
 
   const shareAction = async () => {
-    if (!("id" in post.data)) return;
+    if (!("id" in renderData)) return;
     if (!currentUserId) {
       console.warn("User not authenticated, cannot share");
       return;
     }
     try {
-      await client.fetchClient.POST("/api/posts/{id}/shares", {
-        params: { path: { id: Number(post.data.id) } },
-        body: { postID: Number(post.data.id), userID: currentUserId },
-      });
-      client.queryClient.invalidateQueries({
-        queryKey: ["get", "/api/posts", {}],
-      });
-      client.queryClient.invalidateQueries({
-        queryKey: ["user-posts", currentUserId],
-      });
+      if (isStatusPost) {
+        const endpoint = renderData.reblogged
+          ? "/api/statuses/{id}/unreblog"
+          : "/api/statuses/{id}/reblog";
+        await client.fetchClient.POST(endpoint, {
+          params: { path: { id: String(renderData.id) } },
+        });
+        client.queryClient.invalidateQueries({
+          queryKey: ["account-statuses", authorId],
+        });
+        client.queryClient.invalidateQueries({
+          queryKey: ["get", "/api/accounts/{id}/statuses"],
+        });
+      } else {
+        if (!Number.isFinite(legacyUserId)) {
+          console.warn("User not authenticated, cannot share");
+          return;
+        }
+        await client.fetchClient.POST("/api/posts/{id}/shares", {
+          params: { path: { id: Number(renderData.id) } },
+          body: { postID: Number(renderData.id), userID: legacyUserId },
+        });
+        client.queryClient.invalidateQueries({
+          queryKey: ["get", "/api/posts", {}],
+        });
+        client.queryClient.invalidateQueries({
+          queryKey: ["user-posts", legacyUserId],
+        });
+      }
     } catch (err) {
       console.error("Failed to share post", err);
     }
@@ -98,16 +182,33 @@ export const PostItem = ({
     >
       <div className="flex space-x-3">
         <div className="flex-1">
+          {resharedBy && (
+            <div className="mb-2 text-xs">
+              <span className="text-green-600">Reshared by </span>
+              <span className="font-medium text-green-700">
+                @{resharedBy.acct || resharedBy.username}
+              </span>
+            </div>
+          )}
           <div className="flex items-start justify-between mb-2">
-            {"username" in post.data && (
+            {authorName && (
               <div className="flex items-center space-x-1">
-                <Link
-                  to={`/profile/${post.data.userID}`}
-                  className="hover:underline font-semibold text-gray-900"
-                  onClick={(event) => event.stopPropagation()}
-                >
-                  {post.data.username}
-                </Link>
+                {authorId ? (
+                  <Link
+                    to={`/profile/${authorId}`}
+                    className="hover:underline font-semibold text-gray-900"
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    {authorName}
+                  </Link>
+                ) : (
+                  <span className="font-semibold text-gray-900">
+                    {authorName}
+                  </span>
+                )}
+                {authorHandle ? (
+                  <span className="text-sm text-gray-500">@{authorHandle}</span>
+                ) : null}
               </div>
             )}
             {showActions && (
@@ -137,11 +238,11 @@ export const PostItem = ({
           </div>
           <div className="flex items-center space-x-1"></div>
           <div className="prose max-w-none text-gray-800">
-            <ReactMarkdown>{post.data.content}</ReactMarkdown>
+            <ReactMarkdown>{content}</ReactMarkdown>
           </div>
 
           <div className="flex justify-between mt-3 text-gray-500 text-sm max-w-md">
-            {"commentCount" in post.data && (
+            {commentCount !== undefined && (
               <button
                 type="button"
                 className="flex items-center space-x-1 hover:text-blue-500 transition"
@@ -153,35 +254,43 @@ export const PostItem = ({
                 }}
               >
                 <MessageCircle size={16} />{" "}
-                <span>{post.data.commentCount}</span>
+                <span>{commentCount}</span>
               </button>
             )}
-            {"shareCount" in post.data && (
+            {shareCount !== undefined && (
               <button
                 type="button"
-                className="flex items-center space-x-1 hover:text-green-500 transition"
+                className={`flex items-center space-x-1 transition ${
+                  isReblogged
+                    ? "text-green-600"
+                    : "text-gray-500 hover:text-green-500"
+                }`}
                 onClick={(event) => {
                   event.stopPropagation();
                   void shareAction();
                 }}
               >
-                <Repeat size={16} /> <span>{post.data.shareCount}</span>
+                <Repeat size={16} /> <span>{shareCount}</span>
               </button>
             )}
-            {"likeCount" in post.data && (
+            {likeCount !== undefined && (
               <button
                 type="button"
-                className="flex items-center space-x-1 hover:text-pink-500 transition"
+                className={`flex items-center space-x-1 transition ${
+                  isFavourited
+                    ? "text-pink-600"
+                    : "text-gray-500 hover:text-pink-500"
+                }`}
                 onClick={(event) => {
                   event.stopPropagation();
                   void likeAction();
                 }}
               >
                 <Heart size={16} />
-                <span>{post.data.likeCount}</span>
+                <span>{likeCount}</span>
               </button>
             )}
-            {"shareCount" in post.data && (
+            {shareCount !== undefined && (
               <button
                 type="button"
                 className="flex items-center space-x-1 hover:text-gray-700 transition"

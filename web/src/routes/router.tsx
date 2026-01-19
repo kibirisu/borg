@@ -34,6 +34,9 @@ import OtherUserPage from "../components/pages/OtherUserPage";
 import SharedPage, {
   loader as sharedLoader,
 } from "../components/pages/SharedPage";
+import TimelinePage, {
+  loader as timelineLoader,
+} from "../components/pages/TimelinePage";
 import UserPage, {
   loader as userPageLoader,
 } from "../components/pages/UserPage";
@@ -88,6 +91,12 @@ function router(client: AppClient) {
             errorElement: <ErrorPage />,
           },
           {
+            path: "timeline",
+            Component: TimelinePage,
+            loader: timelineLoader(client),
+            errorElement: <ErrorPage />,
+          },
+          {
             path: "likes",
             Component: LikesPage,
             loader: likesLoader(client),
@@ -117,13 +126,6 @@ function router(client: AppClient) {
             Component: ProfileChooser,
             loader: userPageLoader(client),
             errorElement: <ErrorPage />,
-            children: [
-              {
-                index: true,
-                Component: Feed,
-                loader: feedLoader(client),
-              },
-            ],
           },
           {
             path: "post/:postId",

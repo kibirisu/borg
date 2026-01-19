@@ -15,36 +15,36 @@ export const action =
       return { form: "No post ID provided" };
     }
 
-    const postId = Number(params.postId);
+    const postId = String(params.postId);
     const formData = await request.formData();
     const contentRaw = formData.get("content")?.toString() ?? "";
-    const userIdRaw = formData.get("userId")?.toString() ?? "";
-    const userId = Number(userIdRaw);
+    const userId = formData.get("userId")?.toString() ?? "";
 
     if (!contentRaw.trim()) {
       return { form: "Comment content cannot be empty" };
     }
-    if (!userId || Number.isNaN(userId)) {
+    if (!userId) {
       return { form: "User not authenticated" };
     }
 
-    const body = {
-      postID: postId,
-      userID: userId,
-      content: contentRaw.trim(),
-    };
-
-    const res = await client.fetchClient.POST("/api/posts/{id}/comments", {
-      params: { path: { id: postId } },
-      body,
+    const res = await client.fetchClient.POST("/api/statuses", {
+      body: { status: contentRaw.trim(), in_reply_to_id: postId },
     });
 
     if (res.error) {
       return { form: "Failed to post comment" };
     }
 
-    client.queryClient.invalidateQueries({ queryKey: ["comments", postId] });
-    client.queryClient.invalidateQueries({ queryKey: ["user-posts"] });
+    client.queryClient.invalidateQueries({
+      queryKey: [
+        "get",
+        "/api/statuses/{id}/replies",
+        { params: { path: { id: postId } } },
+      ],
+    });
+    client.queryClient.invalidateQueries({
+      queryKey: ["account-statuses"],
+    });
     return null;
   };
 
