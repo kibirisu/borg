@@ -310,6 +310,9 @@ DELETE FROM favourites WHERE id = $1;
 -- name: DeleteFavouriteByIDNew :one
 DELETE FROM favourites WHERE id = $1 RETURNING *;
 
+-- name: DeleteFavouriteByStatusID :one
+DELETE FROM favourites WHERE account_id = $1 AND status_id = $2 RETURNING *;
+
 -- name: GetAccountFollowers :many
 SELECT a.* FROM accounts a
 JOIN follows f ON a.id = f.account_id
