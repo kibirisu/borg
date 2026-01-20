@@ -352,7 +352,7 @@ func (s *appService) LookupAccount(ctx context.Context, acct string) (*api.Accou
 		a := &db.GetAccountByIDRow{
 			Account:        account,
 			Acct:           acct,
-			FollowersCount: 0,
+			FollowersCount: 0, // we don't check for followers/following collections of freshly fetched actors
 			FollowingCount: 0,
 		}
 		return mapper.ToAPIAccount(a), nil

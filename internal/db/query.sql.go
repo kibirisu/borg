@@ -63,7 +63,7 @@ func (q *Queries) AddAccount(ctx context.Context, arg AddAccountParams) (Account
 	return i, err
 }
 
-const addFollow = `-- name: AddFollow :one
+const addFollowByActorURI = `-- name: AddFollowByActorURI :one
 WITH follower AS (
     SELECT a.id, a.inbox_uri FROM accounts a WHERE a.uri = $1
 ), follow AS (
@@ -73,15 +73,15 @@ WITH follower AS (
 ) SELECT inbox_uri FROM follower
 `
 
-type AddFollowParams struct {
+type AddFollowByActorURIParams struct {
 	AccountUri      string
 	ID              xid.ID
 	Uri             string
 	TargetAccountID xid.ID
 }
 
-func (q *Queries) AddFollow(ctx context.Context, arg AddFollowParams) (string, error) {
-	row := q.db.QueryRowContext(ctx, addFollow,
+func (q *Queries) AddFollowByActorURI(ctx context.Context, arg AddFollowByActorURIParams) (string, error) {
+	row := q.db.QueryRowContext(ctx, addFollowByActorURI,
 		arg.AccountUri,
 		arg.ID,
 		arg.Uri,
