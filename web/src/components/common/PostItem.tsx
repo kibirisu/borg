@@ -84,8 +84,14 @@ export const PostItem = ({
       const endpoint = renderData.reblogged
         ? "/api/statuses/{id}/unreblog"
         : "/api/statuses/{id}/reblog";
+      const targetId = data.reblog ? data.id : renderData.id;
+      console.log("[PostItem] reblog ids", {
+        originalId: renderData.id,
+        reblogId: data.reblog ? data.id : null,
+        targetId,
+      });
       await client.fetchClient.POST(endpoint, {
-        params: { path: { id: String(renderData.id) } },
+        params: { path: { id: String(targetId) } },
       });
       client.queryClient.invalidateQueries({
         queryKey: ["account-statuses", authorId],
