@@ -141,6 +141,9 @@ type ServerInterface interface {
 	// Undo a reshare of a status.
 	// (POST /api/statuses/{id}/unreblog)
 	PostApiStatusesIdUnreblog(w http.ResponseWriter, r *http.Request, id string)
+	// View statuses liked by logged in user.
+	// (GET /api/timelines/favourite)
+	GetApiTimelinesFavourite(w http.ResponseWriter, r *http.Request)
 	// View statuses from followed users.
 	// (GET /api/timelines/home)
 	GetApiTimelinesHome(w http.ResponseWriter, r *http.Request)
@@ -243,6 +246,12 @@ func (_ Unimplemented) PostApiStatusesIdUnfavourite(w http.ResponseWriter, r *ht
 // Undo a reshare of a status.
 // (POST /api/statuses/{id}/unreblog)
 func (_ Unimplemented) PostApiStatusesIdUnreblog(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// View statuses liked by logged in user.
+// (GET /api/timelines/favourite)
+func (_ Unimplemented) GetApiTimelinesFavourite(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -715,6 +724,26 @@ func (siw *ServerInterfaceWrapper) PostApiStatusesIdUnreblog(w http.ResponseWrit
 	handler.ServeHTTP(w, r)
 }
 
+// GetApiTimelinesFavourite operation middleware
+func (siw *ServerInterfaceWrapper) GetApiTimelinesFavourite(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetApiTimelinesFavourite(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetApiTimelinesHome operation middleware
 func (siw *ServerInterfaceWrapper) GetApiTimelinesHome(w http.ResponseWriter, r *http.Request) {
 
@@ -922,6 +951,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Post(options.BaseURL+"/api/statuses/{id}/unreblog", wrapper.PostApiStatusesIdUnreblog)
 	})
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/timelines/favourite", wrapper.GetApiTimelinesFavourite)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/timelines/home", wrapper.GetApiTimelinesHome)
 	})
 	r.Group(func(r chi.Router) {
@@ -937,28 +969,28 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
