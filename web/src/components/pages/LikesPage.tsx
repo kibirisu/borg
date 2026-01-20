@@ -1,17 +1,25 @@
+import { useQuery } from "@tanstack/react-query";
 import { useContext, useState } from "react";
 import { useLoaderData } from "react-router";
+import type { components } from "../../lib/api/v1";
 import type { AppClient } from "../../lib/client";
 import ClientContext from "../../lib/client";
 import PostComposerOverlay from "../common/PostComposerOverlay";
+import { PostItem } from "../common/PostItem";
 import Sidebar from "../common/Sidebar";
 
-export const loader = (_client: AppClient) => async () => {
-  return {};
+export const loader = (client: AppClient) => async () => {
+  const opts = client.$api.queryOptions("get", "/api/timelines/favourite", {});
+  await client.queryClient.ensureQueryData(opts);
+  return { opts };
 };
 
 export default function LikesPage() {
-  const _client = useContext(ClientContext);
-  useLoaderData();
+  const client = useContext(ClientContext);
+  const { opts } = useLoaderData() as Awaited<
+    ReturnType<ReturnType<typeof loader>>
+  >;
+  const { data, isPending } = useQuery(opts);
   const [isComposerOpen, setIsComposerOpen] = useState(false);
   const [selectedPost, setSelectedPost] = useState<null>(null);
 
@@ -32,11 +40,30 @@ export default function LikesPage() {
           <section className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
             <h1 className="text-2xl font-semibold text-gray-800">Likes</h1>
             <p className="text-gray-500">
-              Posts you have liked will appear here. For now we&apos;re showing
-              a general feed.
+              Your liked posts, all in one place.
             </p>
           </section>
-          {/* Likes by post ID are handled via the form above; feed removed. */}
+          <section className="rounded-2xl bg-transparent min-h-[400px]">
+            {isPending && <p className="text-center text-gray-500">Loading…</p>}
+            {!isPending &&
+              client &&
+              data?.map((post: components["schemas"]["Status"]) => (
+                <div
+                  key={post.id}
+                  className="mb-3 rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden"
+                >
+                  <PostItem post={{ data: post }} client={client} />
+                </div>
+              ))}
+            {!isPending && client && (!data || data.length === 0) && (
+              <p className="text-center text-gray-500">No liked posts yet.</p>
+            )}
+            {!client && (
+              <p className="text-center text-gray-500">
+                Client is not ready yet. Please try again.
+              </p>
+            )}
+          </section>
         </main>
         <Sidebar onPostClick={openComposerForNewPost} />
       </div>
