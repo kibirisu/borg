@@ -269,6 +269,20 @@ paths:
                   $ref: "#/components/schemas/Status"
       security:
         - BearerAuth: []
+  /api/timelines/favourite:
+    get:
+      summary: View statuses liked by logged in user.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Status"
+      security:
+        - BearerAuth: []
   /auth/login:
     post:
       summary: Login the user
