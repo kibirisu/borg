@@ -13,7 +13,7 @@ import { SignUp } from "../components/auth/SignUp";
 import { signInAction } from "../components/auth/signInAction";
 import { signUpAction } from "../components/auth/signUpAction";
 import ErrorPage from "../components/common/ErrorPage";
-import Feed, { loader as feedLoader } from "../components/common/PostsFeed";
+import Feed from "../components/common/PostsFeed";
 import { action as addCommentAction } from "../components/feed/CommentForm";
 import CommentView, {
   CommentsFeed,
@@ -150,8 +150,7 @@ function ProfileChooser() {
   const { id } = useParams();
   const appState = useContext(AppContext);
   const tokenUserId = appState?.userId;
-  const matchOwnProfile =
-    tokenUserId !== null && id === String(tokenUserId);
+  const matchOwnProfile = tokenUserId !== null && id === String(tokenUserId);
   useLoaderData();
   // Provide loader data to the chosen component via context.
   return matchOwnProfile ? <UserPage /> : <OtherUserPage />;

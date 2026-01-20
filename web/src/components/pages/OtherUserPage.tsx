@@ -204,15 +204,13 @@ export default function OtherUserPage() {
                   <span>
                     Followers:{" "}
                     <strong className="text-gray-900">
-                      {followersCount ??
-                        (followers ? followers.length : "—")}
+                      {followersCount ?? (followers ? followers.length : "—")}
                     </strong>
                   </span>
                   <span>
                     Following:{" "}
                     <strong className="text-gray-900">
-                      {followingCount ??
-                        (following ? following.length : "—")}
+                      {followingCount ?? (following ? following.length : "—")}
                     </strong>
                   </span>
                 </div>

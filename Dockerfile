@@ -11,6 +11,7 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 RUN pnpm build
 
 FROM golang:1.25-alpine AS backend
+ENV GOEXPERIMENT="jsonv2"
 WORKDIR /usr/src/app
 COPY go.mod go.sum ./
 RUN go mod download

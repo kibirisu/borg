@@ -61,11 +61,11 @@ export default function ExplorePage() {
   const handleSearch = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmed = searchTerm.trim();
-    const localPattern = /^[A-Za-z0-9._-]+$/;
-    const handlePattern =
-      /^[A-Za-z0-9._-]+@(?:[A-Za-z0-9.-]+\.[A-Za-z]{2,}|localhost)(?::\d+)?$/;
-    if (!localPattern.test(trimmed) && !handlePattern.test(trimmed)) {
-      setSearchError("Format must be user or user@domain");
+    const handlePattern = /^@?[a-zA-Z0-9._-]+(@[a-zA-Z0-9.-]+(:\d+)?)?$/;
+    if (!trimmed || trimmed === "@" || !handlePattern.test(trimmed)) {
+      setSearchError(
+        "Format allowed: username, @username, user@instance, user@domain.com:8080",
+      );
       return;
     }
     if (!client) {
@@ -161,11 +161,10 @@ export default function ExplorePage() {
             <button
               type="submit"
               disabled={lookupMutation.isPending}
-              className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white shadow-sm focus:outline-none focus:ring-4 focus:ring-indigo-300 ${
-                lookupMutation.isPending
+              className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white shadow-sm focus:outline-none focus:ring-4 focus:ring-indigo-300 ${lookupMutation.isPending
                   ? "bg-indigo-300 cursor-not-allowed"
                   : "bg-indigo-600 hover:bg-indigo-700"
-              }`}
+                }`}
             >
               <svg
                 className="h-5 w-5"
@@ -222,21 +221,22 @@ export default function ExplorePage() {
           <section className="rounded-2xl bg-transparent min-h-[400px]">
             {isPending && <p className="text-gray-500 text-center">Loading…</p>}
             {!isPending &&
-              data?.map((post: components["schemas"]["Status"]) => (
-                post && (
-                  <div
-                    key={post.id}
-                    className="mb-3 rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden"
-                  >
-                    <PostItem
-                      post={{ data: post }}
-                      client={client!}
-                      onSelect={handlePostSelect}
-                      onCommentClick={handleCommentClick}
-                    />
-                  </div>
-                )
-              ))}
+              data?.map(
+                (post: components["schemas"]["Status"]) =>
+                  post && (
+                    <div
+                      key={post.id}
+                      className="mb-3 rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden"
+                    >
+                      <PostItem
+                        post={{ data: post }}
+                        client={client!}
+                        onSelect={handlePostSelect}
+                        onCommentClick={handleCommentClick}
+                      />
+                    </div>
+                  ),
+              )}
             {!isPending && !data?.length && (
               <p className="text-center text-gray-500">
                 Start following someone to expore theirs posts!

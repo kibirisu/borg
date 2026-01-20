@@ -131,7 +131,11 @@ export const PostItem = ({
             <div className="mb-2 text-xs">
               <span className="text-green-600">Reshared by </span>
               <span className="font-medium text-green-700">
-                @{String(resharedBy.acct || resharedBy.username).replace(/^@+|@+$/g, "")}
+                @
+                {String(resharedBy.acct || resharedBy.username).replace(
+                  /^@+|@+$/g,
+                  "",
+                )}
               </span>
             </div>
           )}
@@ -195,8 +199,7 @@ export const PostItem = ({
                   }
                 }}
               >
-                <MessageCircle size={16} />{" "}
-                <span>{commentCount}</span>
+                <MessageCircle size={16} /> <span>{commentCount}</span>
               </button>
             )}
             {shareCount !== undefined && (

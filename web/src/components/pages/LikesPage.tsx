@@ -39,24 +39,23 @@ export default function LikesPage() {
         <main className="px-6 py-6 space-y-6">
           <section className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
             <h1 className="text-2xl font-semibold text-gray-800">Likes</h1>
-            <p className="text-gray-500">
-              Your liked posts, all in one place.
-            </p>
+            <p className="text-gray-500">Your liked posts, all in one place.</p>
           </section>
           <section className="rounded-2xl bg-transparent min-h-[400px]">
             {isPending && <p className="text-center text-gray-500">Loading…</p>}
             {!isPending &&
               client &&
-              data?.map((post: components["schemas"]["Status"]) => (
-                post && (
-                  <div
-                    key={post.id}
-                    className="mb-3 rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden"
-                  >
-                    <PostItem post={{ data: post }} client={client} />
-                  </div>
-                )
-              ))}
+              data?.map(
+                (post: components["schemas"]["Status"]) =>
+                  post && (
+                    <div
+                      key={post.id}
+                      className="mb-3 rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden"
+                    >
+                      <PostItem post={{ data: post }} client={client} />
+                    </div>
+                  ),
+              )}
             {!isPending && client && (!data || data.length === 0) && (
               <p className="text-center text-gray-500">No liked posts yet.</p>
             )}

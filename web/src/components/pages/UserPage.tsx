@@ -201,15 +201,13 @@ export default function UserPage() {
                   <span>
                     Followers:{" "}
                     <strong className="text-gray-900">
-                      {followersCount ??
-                        (followers ? followers.length : "—")}
+                      {followersCount ?? (followers ? followers.length : "—")}
                     </strong>
                   </span>
                   <span>
                     Following:{" "}
                     <strong className="text-gray-900">
-                      {followingCount ??
-                        (following ? following.length : "—")}
+                      {followingCount ?? (following ? following.length : "—")}
                     </strong>
                   </span>
                 </div>
@@ -229,26 +227,27 @@ export default function UserPage() {
             {!postsPending && !postsError && (
               <div className="space-y-3">
                 {displayPosts.length > 0 ? (
-                  displayPosts.map((post) => (
-                    post && (
-                    <div
-                      key={post.id}
-                      className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden"
-                    >
-                      <PostItem
-                        post={{ data: post }}
-                        client={client!}
-                        onCommentClick={(p) => {
-                          if (!p.data || !("id" in p.data)) {
-                            return;
-                          }
-                          const targetId = p.data.reblog?.id ?? p.data.id;
-                          navigate(`/post/${targetId}`);
-                        }}
-                      />
-                    </div>
-                    )
-                  ))
+                  displayPosts.map(
+                    (post) =>
+                      post && (
+                        <div
+                          key={post.id}
+                          className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden"
+                        >
+                          <PostItem
+                            post={{ data: post }}
+                            client={client!}
+                            onCommentClick={(p) => {
+                              if (!p.data || !("id" in p.data)) {
+                                return;
+                              }
+                              const targetId = p.data.reblog?.id ?? p.data.id;
+                              navigate(`/post/${targetId}`);
+                            }}
+                          />
+                        </div>
+                      ),
+                  )
                 ) : (
                   <div className="p-4 text-sm text-gray-500">No posts yet.</div>
                 )}
