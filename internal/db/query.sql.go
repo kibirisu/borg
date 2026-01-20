@@ -627,6 +627,32 @@ func (q *Queries) DeleteFavouriteByIDNew(ctx context.Context, id xid.ID) (Favour
 	return i, err
 }
 
+const deleteFavouriteByStatusID = `-- name: DeleteFavouriteByStatusID :one
+DELETE FROM favourites WHERE account_id = $1 AND status_id = $2 RETURNING id, created_at, updated_at, uri, account_id, account_uri, target_account_id, status_id, status_uri
+`
+
+type DeleteFavouriteByStatusIDParams struct {
+	AccountID xid.ID
+	StatusID  xid.ID
+}
+
+func (q *Queries) DeleteFavouriteByStatusID(ctx context.Context, arg DeleteFavouriteByStatusIDParams) (Favourite, error) {
+	row := q.db.QueryRowContext(ctx, deleteFavouriteByStatusID, arg.AccountID, arg.StatusID)
+	var i Favourite
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Uri,
+		&i.AccountID,
+		&i.AccountUri,
+		&i.TargetAccountID,
+		&i.StatusID,
+		&i.StatusUri,
+	)
+	return i, err
+}
+
 const deleteFollow = `-- name: DeleteFollow :exec
 DELETE FROM follows WHERE id = $1
 `
