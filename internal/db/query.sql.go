@@ -1005,6 +1005,123 @@ func (q *Queries) GetFavouriteByURI(ctx context.Context, dollar_1 string) (Favou
 	return i, err
 }
 
+const getFavouritePostsByAccountId = `-- name: GetFavouritePostsByAccountId :many
+SELECT 
+    s.id, s.created_at, s.updated_at, s.uri, s.url, s.local, s.content, s.account_id, s.account_uri, s.in_reply_to_id, s.in_reply_to_uri, s.in_reply_to_account_id, s.reblog_of_id, s.reblog_of_uri, s.reblog_of_account_id,
+    a.id, a.created_at, a.updated_at, a.username, a.uri, a.display_name, a.domain, a.inbox_uri, a.outbox_uri, a.followers_uri, a.following_uri, a.url,
+    reblogged.content AS reblogged_status_content,
+    reblogged.in_reply_to_id AS reblogged_reply_to_id,
+    reblogged.in_reply_to_account_id AS reblogged_reply_to_account_id,
+    reblogged_author.username AS reblogged_username,
+    reblogged_author.display_name AS reblogged_display_name,
+    CONCAT(reblogged_author.username, '@', reblogged_author.domain)::TEXT AS reblogged_acct,
+    CONCAT(a.username, '@', a.domain)::TEXT AS acct,
+    (SELECT COUNT(*) FROM follows f WHERE f.target_account_id = a.id) AS followers_count,
+    (SELECT COUNT(*) FROM follows f WHERE f.target_account_id = reblogged_author.id) AS reblogged_followers_count,
+    (SELECT COUNT(*) FROM follows f WHERE f.account_id = a.id) AS following_count,
+    (SELECT COUNT(*) FROM follows f WHERE f.account_id = reblogged_author.id) AS reblogged_following_count,
+    (SELECT COUNT(*) FROM statuses r WHERE r.in_reply_to_id = COALESCE(s.reblog_of_id, s.id)) AS replies_count,
+    (SELECT COUNT(*) FROM favourites f WHERE f.status_id = COALESCE(s.reblog_of_id, s.id)) AS favourites_count,
+    (SELECT COUNT(*) FROM statuses r WHERE r.reblog_of_id = COALESCE(s.reblog_of_id, s.id)) AS reblogs_count,
+    TRUE AS favourited,
+    EXISTS(SELECT 1 FROM statuses r WHERE r.reblog_of_id = COALESCE(s.reblog_of_id, s.id) AND r.account_id = $1) AS reblogged
+FROM favourites fav
+JOIN statuses s ON fav.status_id = s.id
+JOIN accounts a ON s.account_id = a.id
+LEFT JOIN statuses reblogged ON s.reblog_of_id = reblogged.id
+LEFT JOIN accounts reblogged_author ON reblogged.account_id = reblogged_author.id
+WHERE fav.account_id = $1
+ORDER BY fav.created_at DESC
+`
+
+type GetFavouritePostsByAccountIdRow struct {
+	Status                    Status
+	Account                   Account
+	RebloggedStatusContent    sql.NullString
+	RebloggedReplyToID        *xid.ID
+	RebloggedReplyToAccountID *xid.ID
+	RebloggedUsername         sql.NullString
+	RebloggedDisplayName      sql.NullString
+	RebloggedAcct             string
+	Acct                      string
+	FollowersCount            int64
+	RebloggedFollowersCount   int64
+	FollowingCount            int64
+	RebloggedFollowingCount   int64
+	RepliesCount              int64
+	FavouritesCount           int64
+	ReblogsCount              int64
+	Favourited                bool
+	Reblogged                 bool
+}
+
+func (q *Queries) GetFavouritePostsByAccountId(ctx context.Context, accountID xid.ID) ([]GetFavouritePostsByAccountIdRow, error) {
+	rows, err := q.db.QueryContext(ctx, getFavouritePostsByAccountId, accountID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetFavouritePostsByAccountIdRow
+	for rows.Next() {
+		var i GetFavouritePostsByAccountIdRow
+		if err := rows.Scan(
+			&i.Status.ID,
+			&i.Status.CreatedAt,
+			&i.Status.UpdatedAt,
+			&i.Status.Uri,
+			&i.Status.Url,
+			&i.Status.Local,
+			&i.Status.Content,
+			&i.Status.AccountID,
+			&i.Status.AccountUri,
+			&i.Status.InReplyToID,
+			&i.Status.InReplyToUri,
+			&i.Status.InReplyToAccountID,
+			&i.Status.ReblogOfID,
+			&i.Status.ReblogOfUri,
+			&i.Status.ReblogOfAccountID,
+			&i.Account.ID,
+			&i.Account.CreatedAt,
+			&i.Account.UpdatedAt,
+			&i.Account.Username,
+			&i.Account.Uri,
+			&i.Account.DisplayName,
+			&i.Account.Domain,
+			&i.Account.InboxUri,
+			&i.Account.OutboxUri,
+			&i.Account.FollowersUri,
+			&i.Account.FollowingUri,
+			&i.Account.Url,
+			&i.RebloggedStatusContent,
+			&i.RebloggedReplyToID,
+			&i.RebloggedReplyToAccountID,
+			&i.RebloggedUsername,
+			&i.RebloggedDisplayName,
+			&i.RebloggedAcct,
+			&i.Acct,
+			&i.FollowersCount,
+			&i.RebloggedFollowersCount,
+			&i.FollowingCount,
+			&i.RebloggedFollowingCount,
+			&i.RepliesCount,
+			&i.FavouritesCount,
+			&i.ReblogsCount,
+			&i.Favourited,
+			&i.Reblogged,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getFollowerCollection = `-- name: GetFollowerCollection :one
 SELECT 
     (SELECT followers_uri FROM accounts a WHERE a.username = $1),
@@ -1149,81 +1266,6 @@ func (q *Queries) GetFollowingCollection(ctx context.Context, username string) (
 	var i GetFollowingCollectionRow
 	err := row.Scan(&i.FollowingUri, &i.Count)
 	return i, err
-}
-
-const getLikedPostsByAccountId = `-- name: GetLikedPostsByAccountId :many
-SELECT 
-    s.id, s.created_at, s.updated_at, s.uri, s.url, s.local, s.content, s.account_id, s.account_uri, s.in_reply_to_id, s.in_reply_to_uri, s.in_reply_to_account_id, s.reblog_of_id, s.reblog_of_uri, s.reblog_of_account_id,
-    a.id, a.created_at, a.updated_at, a.username, a.uri, a.display_name, a.domain, a.inbox_uri, a.outbox_uri, a.followers_uri, a.following_uri, a.url,
-    (SELECT COUNT(*) FROM favourites f WHERE f.status_id = s.id) AS like_count,
-    (SELECT COUNT(*) FROM statuses r WHERE r.in_reply_to_id = s.id) AS comment_count,
-    (SELECT COUNT(*) FROM statuses b WHERE b.reblog_of_id = s.id) AS share_count
-FROM favourites f
-JOIN statuses s ON f.status_id = s.id
-JOIN accounts a ON s.account_id = a.id
-WHERE f.account_id = $1
-`
-
-type GetLikedPostsByAccountIdRow struct {
-	Status       Status
-	Account      Account
-	LikeCount    int64
-	CommentCount int64
-	ShareCount   int64
-}
-
-func (q *Queries) GetLikedPostsByAccountId(ctx context.Context, accountID xid.ID) ([]GetLikedPostsByAccountIdRow, error) {
-	rows, err := q.db.QueryContext(ctx, getLikedPostsByAccountId, accountID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []GetLikedPostsByAccountIdRow
-	for rows.Next() {
-		var i GetLikedPostsByAccountIdRow
-		if err := rows.Scan(
-			&i.Status.ID,
-			&i.Status.CreatedAt,
-			&i.Status.UpdatedAt,
-			&i.Status.Uri,
-			&i.Status.Url,
-			&i.Status.Local,
-			&i.Status.Content,
-			&i.Status.AccountID,
-			&i.Status.AccountUri,
-			&i.Status.InReplyToID,
-			&i.Status.InReplyToUri,
-			&i.Status.InReplyToAccountID,
-			&i.Status.ReblogOfID,
-			&i.Status.ReblogOfUri,
-			&i.Status.ReblogOfAccountID,
-			&i.Account.ID,
-			&i.Account.CreatedAt,
-			&i.Account.UpdatedAt,
-			&i.Account.Username,
-			&i.Account.Uri,
-			&i.Account.DisplayName,
-			&i.Account.Domain,
-			&i.Account.InboxUri,
-			&i.Account.OutboxUri,
-			&i.Account.FollowersUri,
-			&i.Account.FollowingUri,
-			&i.Account.Url,
-			&i.LikeCount,
-			&i.CommentCount,
-			&i.ShareCount,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
 }
 
 const getLocalActorByID = `-- name: GetLocalActorByID :one

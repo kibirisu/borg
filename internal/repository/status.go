@@ -23,6 +23,7 @@ type StatusRepository interface {
 	GetByURI(context.Context, string) (db.Status, error)
 	GetLocalByID(context.Context, xid.ID) (db.Status, error)
 	GetHomeTimelineByAccountID(context.Context, xid.ID) ([]db.GetTimelinePostsByAccountIdRow, error)
+	GetFavouriteByAccountID(context.Context, xid.ID) ([]db.GetFavouritePostsByAccountIdRow, error)
 	DeleteByID(context.Context, xid.ID) error
 }
 
@@ -114,6 +115,13 @@ func (r *statusRepository) GetHomeTimelineByAccountID(
 	id xid.ID,
 ) ([]db.GetTimelinePostsByAccountIdRow, error) {
 	return r.q.GetTimelinePostsByAccountId(ctx, id)
+}
+// GetFavouriteByAccountID implements StatusRepository.
+func (r *statusRepository) GetFavouriteByAccountID(
+	ctx context.Context,
+	id xid.ID,
+) ([]db.GetFavouritePostsByAccountIdRow, error) {
+	return r.q.GetFavouritePostsByAccountId(ctx, id)
 }
 
 // DeleteByURI implements StatusRepository.
