@@ -3,6 +3,7 @@ package processing
 import (
 	"context"
 	"errors"
+	"log"
 
 	"github.com/rs/xid"
 
@@ -15,6 +16,7 @@ func (p *processor) AnnounceStatus(
 	activity ap.AnnounceActivitier,
 ) (*xid.ID, error) {
 	uri := activity.GetURI()
+	log.Printf("[Inbox] processing Announce Activity with ID=%s", uri)
 	if uri == "" {
 		return nil, errors.New("invalid object")
 	}
