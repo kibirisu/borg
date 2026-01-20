@@ -272,25 +272,25 @@ func (s *federationService) processUndo(object *domain.ObjectOrLink) (worker.Job
 	switch object.Object.Type {
 	case "Announce":
 		return func(ctx context.Context) error {
-			status, err := s.processor.AnnounceStatus(
+			statusID, err := s.processor.AnnounceStatus(
 				ctx,
 				ap.NewAnnounceActivity(object.Object.ActivityObject),
 			)
 			if err != nil {
 				return err
 			}
-			return s.store.Statuses().DeleteByID(ctx, status.ID)
+			return s.store.Statuses().DeleteByID(ctx, *statusID)
 		}, nil
 	case "Like":
 		return func(ctx context.Context) error {
-			favourite, err := s.processor.LikeStatus(
+			favouriteID, err := s.processor.LikeStatus(
 				ctx,
 				ap.NewLikeActivity(object.Object.ActivityObject),
 			)
 			if err != nil {
 				return err
 			}
-			return s.store.Favourites().DeleteByID(ctx, favourite.ID)
+			return s.store.Favourites().DeleteByID(ctx, *favouriteID)
 		}, nil
 	default:
 		return nil, errors.New("unsupported Activity type")

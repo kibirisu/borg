@@ -660,27 +660,6 @@ func (q *Queries) DeleteFavouriteByID(ctx context.Context, id xid.ID) error {
 	return err
 }
 
-const deleteFavouriteByIDNew = `-- name: DeleteFavouriteByIDNew :one
-DELETE FROM favourites WHERE id = $1 RETURNING id, created_at, updated_at, uri, account_id, account_uri, target_account_id, status_id, status_uri
-`
-
-func (q *Queries) DeleteFavouriteByIDNew(ctx context.Context, id xid.ID) (Favourite, error) {
-	row := q.db.QueryRowContext(ctx, deleteFavouriteByIDNew, id)
-	var i Favourite
-	err := row.Scan(
-		&i.ID,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.Uri,
-		&i.AccountID,
-		&i.AccountUri,
-		&i.TargetAccountID,
-		&i.StatusID,
-		&i.StatusUri,
-	)
-	return i, err
-}
-
 const deleteFavouriteByStatusID = `-- name: DeleteFavouriteByStatusID :one
 DELETE FROM favourites WHERE account_id = $1 AND status_id = $2 RETURNING id, created_at, updated_at, uri, account_id, account_uri, target_account_id, status_id, status_uri
 `

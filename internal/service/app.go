@@ -315,7 +315,6 @@ func (s *appService) UnfollowAccount(ctx context.Context, id string) (worker.Job
 					Object: ap.NewEmptyActor().WithLink(req.TargetAccountUri),
 				}),
 			})
-			return req, nil
 		}
 		return nil, store.Follows().DeleteByID(ctx, req.ID)
 	})
@@ -560,6 +559,9 @@ func (s *appService) UnfavouriteStatus(ctx context.Context, id string) (worker.J
 		return nil, errors.New("auth failure")
 	}
 	loggedInID, err := xid.FromString(token.ID)
+	if err != nil {
+		return nil, err
+	}
 	statusID, err := xid.FromString(id)
 	if err != nil {
 		return nil, err
@@ -665,6 +667,7 @@ func (s *appService) ViewHomeTimeline(ctx context.Context) ([]api.Status, error)
 	}
 	return res, nil
 }
+
 // ViewFavouriteTimeline implements AppService.
 func (s *appService) ViewFavouriteTimeline(ctx context.Context) ([]api.Status, error) {
 	token, ok := ctx.Value(auth.TokenContextKey).(*auth.TokenData)
@@ -687,6 +690,7 @@ func (s *appService) ViewFavouriteTimeline(ctx context.Context) ([]api.Status, e
 	}
 	return res, nil
 }
+
 // ViewRebloggedTimeline implements AppService.
 func (s *appService) ViewRebloggedTimeline(ctx context.Context) ([]api.Status, error) {
 	token, ok := ctx.Value(auth.TokenContextKey).(*auth.TokenData)

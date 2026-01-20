@@ -14,7 +14,6 @@ type FavouriteRepository interface {
 	CreateNew(context.Context, db.CreateFavouriteNewParams) (db.Favourite, error)
 	GetByURI(context.Context, string) (db.Favourite, error)
 	DeleteByID(context.Context, xid.ID) error
-	DeleteByIDNew(context.Context, xid.ID) (db.Favourite, error)
 	DeleteByStatusID(context.Context, xid.ID, xid.ID) (db.Favourite, error)
 }
 
@@ -59,15 +58,14 @@ func (r *favouriteRepository) DeleteByID(ctx context.Context, id xid.ID) error {
 }
 
 // DeleteByIDNew implements FavouriteRepository.
-func (r *favouriteRepository) DeleteByIDNew(ctx context.Context, id xid.ID) (db.Favourite, error) {
-	return r.q.DeleteFavouriteByIDNew(ctx, id)
-}
-// DeleteByIDNew implements FavouriteRepository.
-func (r *favouriteRepository) DeleteByStatusID(ctx context.Context, accountID xid.ID, statusID xid.ID) (db.Favourite, error) {
+func (r *favouriteRepository) DeleteByStatusID(
+	ctx context.Context,
+	accountID xid.ID,
+	statusID xid.ID,
+) (db.Favourite, error) {
 	params := db.DeleteFavouriteByStatusIDParams{
 		AccountID: accountID,
-		StatusID: statusID,
+		StatusID:  statusID,
 	}
 	return r.q.DeleteFavouriteByStatusID(ctx, params)
 }
-

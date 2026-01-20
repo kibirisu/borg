@@ -321,9 +321,6 @@ WHERE f.id = $1 AND a1.domain IS NULL;
 -- name: DeleteFavouriteByID :exec
 DELETE FROM favourites WHERE id = $1;
 
--- name: DeleteFavouriteByIDNew :one
-DELETE FROM favourites WHERE id = $1 RETURNING *;
-
 -- name: DeleteFavouriteByStatusID :one
 DELETE FROM favourites WHERE account_id = $1 AND status_id = $2 RETURNING *;
 

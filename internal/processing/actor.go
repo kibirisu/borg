@@ -12,49 +12,6 @@ import (
 	"github.com/kibirisu/borg/internal/util"
 )
 
-func (p *processor) AddActor(ctx context.Context, actor ap.Actorer) (*xid.ID, error) {
-	switch actor.GetValueType() {
-	case ap.LinkType:
-		uri := actor.GetLink()
-		if util.ExtractDomainFromURI(uri) == p.conf.Address {
-			return nil, errors.New("attempted to fetch local account")
-		}
-		obj, err := p.client.Get(ctx, uri)
-		if err != nil {
-			return nil, err
-		}
-		raw := actor.GetRaw()
-		*raw = *obj
-	case ap.ObjectType:
-		uri := actor.GetRaw().Object.ID
-		if util.ExtractDomainFromURI(uri) == p.conf.Address {
-			return nil, errors.New("attempted to fetch local account")
-		}
-	case ap.InvalidType:
-		fallthrough
-	case ap.NullType:
-		fallthrough
-	default:
-		return nil, errors.New("activity actor is missing")
-	}
-	obj := actor.GetObject()
-	res, err := p.store.Accounts().Add(ctx, db.AddAccountParams{
-		ID:       xid.New(),
-		Username: obj.PreferredUsername,
-		Uri:      obj.ID,
-		Domain: sql.NullString{
-			String: util.ExtractDomainFromURI(obj.ID),
-			Valid:  true,
-		},
-		InboxUri:     obj.Inbox,
-		OutboxUri:    obj.Outbox,
-		FollowersUri: obj.Followers,
-		FollowingUri: obj.Following,
-		Url:          ":3",
-	})
-	return &res.ID, err
-}
-
 func (p *processor) LookupActor(ctx context.Context, object ap.Actorer) (*xid.ID, error) {
 	uri := object.GetURI()
 	if uri == "" {
@@ -132,6 +89,7 @@ func (p *processor) getActorURI(
 		return
 	}
 	if len(webfinger.Links) != 1 {
+		// we actually can process incoming webfinger, we decide to not
 		return uri, errors.New("dealing with webfinger too advanced to understand")
 	}
 	return webfinger.Links[0].Href, nil
