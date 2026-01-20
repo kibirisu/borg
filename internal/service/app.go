@@ -389,6 +389,15 @@ func (s *appService) CreateStatus(
 		}
 		inReplyToID = &id
 	}
+	if inReplyToID != nil {
+		parent, err := s.store.Statuses().GetByID(ctx, db.GetStatusByIDParams{
+			ID:        *inReplyToID,
+			AccountID: accountID,
+		})
+		if err == nil && parent.Status.ReblogOfID != nil {
+			inReplyToID = parent.Status.ReblogOfID
+		}
+	}
 
 	createdStatus, err := s.store.Statuses().CreateNew(ctx, db.CreateStatusNewParams{
 		ID:  statusID,
@@ -589,12 +598,21 @@ func (s *appService) UnfavouriteStatus(ctx context.Context, id string) (worker.J
 
 // UnreblogStatus implements AppService.
 func (s *appService) UnreblogStatus(ctx context.Context, id string) (worker.Job, error) {
+	token, ok := ctx.Value(auth.TokenContextKey).(*auth.TokenData)
+	if !ok {
+		return nil, errors.New("auth failure")
+	}
+
+	accountID, err := xid.FromString(token.ID)
+	if err != nil {
+		return nil, err
+	}
 	statusID, err := xid.FromString(id)
 	if err != nil {
 		return nil, err
 	}
 
-	status, err := s.store.Statuses().DeleteByIDNew(ctx, statusID)
+	status, err := s.store.Statuses().DeleteReblogByAccountAndOriginal(ctx, statusID, accountID)
 	if err != nil {
 		return nil, err
 	}

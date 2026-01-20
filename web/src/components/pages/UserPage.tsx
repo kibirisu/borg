@@ -103,14 +103,17 @@ export default function UserPage() {
     if (!posts) return [];
     const filteredByUser =
       userId !== null
-        ? posts.filter((post) => post.account?.id === userId)
+        ? posts.filter((post) => post && post.account?.id === userId)
         : posts;
     const filtered = filteredByUser.filter(
-      (post) => post.in_reply_to_id == null || post.reblog != null,
+      (post) => post && (post.in_reply_to_id == null || post.reblog != null),
     );
     const seen = new Set<string>();
     const unique: components["schemas"]["Status"][] = [];
     for (const post of filtered) {
+      if (!post) {
+        continue;
+      }
       const key = String(post.id);
       if (seen.has(key)) {
         continue;
@@ -227,6 +230,7 @@ export default function UserPage() {
               <div className="space-y-3">
                 {displayPosts.length > 0 ? (
                   displayPosts.map((post) => (
+                    post && (
                     <div
                       key={post.id}
                       className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden"
@@ -236,12 +240,15 @@ export default function UserPage() {
                         client={client!}
                         showActions
                         onCommentClick={(p) => {
-                          if ("id" in p.data) {
-                            navigate(`/post/${p.data.id}`);
+                          if (!p.data || !("id" in p.data)) {
+                            return;
                           }
+                          const targetId = p.data.reblog?.id ?? p.data.id;
+                          navigate(`/post/${targetId}`);
                         }}
                       />
                     </div>
+                    )
                   ))
                 ) : (
                   <div className="p-4 text-sm text-gray-500">No posts yet.</div>

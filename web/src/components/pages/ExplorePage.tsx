@@ -89,9 +89,11 @@ export default function ExplorePage() {
     setIsComposerOpen(true);
   };
   const handleCommentClick = (post: PostPresentable) => {
-    if (post.data && "id" in post.data) {
-      navigate(`/post/${post.data.id}`);
+    if (!post.data || !("id" in post.data)) {
+      return;
     }
+    const targetId = post.data.reblog?.id ?? post.data.id;
+    navigate(`/post/${targetId}`);
   };
 
   const openComposerForNewPost = () => {

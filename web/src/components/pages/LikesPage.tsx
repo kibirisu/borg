@@ -48,12 +48,14 @@ export default function LikesPage() {
             {!isPending &&
               client &&
               data?.map((post: components["schemas"]["Status"]) => (
-                <div
-                  key={post.id}
-                  className="mb-3 rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden"
-                >
-                  <PostItem post={{ data: post }} client={client} />
-                </div>
+                post && (
+                  <div
+                    key={post.id}
+                    className="mb-3 rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden"
+                  >
+                    <PostItem post={{ data: post }} client={client} />
+                  </div>
+                )
               ))}
             {!isPending && client && (!data || data.length === 0) && (
               <p className="text-center text-gray-500">No liked posts yet.</p>

@@ -178,6 +178,12 @@ WHERE s.account_id = @account_id;
 -- name: DeleteStatusByIDNew :one
 DELETE FROM statuses WHERE id = $1 RETURNING *;
 
+-- name: DeleteReblogByAccountAndOriginal :one
+DELETE FROM statuses
+WHERE reblog_of_id = @original_id
+  AND account_id = @account_id
+RETURNING *;
+
 -- name: CreateFollow :one
 INSERT INTO follows (
     id, uri, account_id, target_account_id

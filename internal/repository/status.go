@@ -18,6 +18,7 @@ type StatusRepository interface {
 	CreateNew(context.Context, db.CreateStatusNewParams) (db.Status, error)
 	ReblogStatus(context.Context, db.CreateReblogParams) (db.Status, error)
 	DeleteByIDNew(context.Context, xid.ID) (db.Status, error)
+	DeleteReblogByAccountAndOriginal(context.Context, xid.ID, xid.ID) (db.Status, error)
 	Create(context.Context, db.CreateStatusParams) (db.Status, error)
 	GetReplies(context.Context, xid.ID, xid.ID) ([]db.GetStatusRepliesRow, error)
 	GetByURI(context.Context, string) (db.Status, error)
@@ -69,6 +70,18 @@ func (r *statusRepository) ReblogStatus(
 // DeleteByIDNew implements StatusRepository.
 func (r *statusRepository) DeleteByIDNew(ctx context.Context, id xid.ID) (db.Status, error) {
 	return r.q.DeleteStatusByIDNew(ctx, id)
+}
+
+// DeleteReblogByAccountAndOriginal implements StatusRepository.
+func (r *statusRepository) DeleteReblogByAccountAndOriginal(
+	ctx context.Context,
+	originalID xid.ID,
+	accountID xid.ID,
+) (db.Status, error) {
+	return r.q.DeleteReblogByAccountAndOriginal(ctx, db.DeleteReblogByAccountAndOriginalParams{
+		OriginalID: originalID,
+		AccountID:  accountID,
+	})
 }
 
 // Create implements StatusRepository.

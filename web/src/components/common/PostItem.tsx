@@ -91,7 +91,7 @@ export const PostItem = ({
       const endpoint = renderData.reblogged
         ? "/api/statuses/{id}/unreblog"
         : "/api/statuses/{id}/reblog";
-      const targetId = data.reblog ? data.id : renderData.id;
+      const targetId = renderData.id;
       await client.fetchClient.POST(endpoint, {
         params: { path: { id: String(targetId) } },
       });
