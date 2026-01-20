@@ -39,7 +39,7 @@ WITH actor AS (
 
 -- name: AddFollowByRequestURI :exec
 WITH request AS (
-    SELECT id, account_id FROM follow_requests WHERE uri = @uri
+    SELECT id, account_id, target_account_id FROM follow_requests WHERE uri = @uri
 ) INSERT INTO follows (
     id, uri, account_id, target_account_id
 ) SELECT request.id, @uri, request.account_id, request.target_account_id FROM request;

@@ -36,8 +36,8 @@ func (a *acceptActivity) GetObject() Activity[Activity[Actor]] {
 func (a *acceptActivity) SetObject(activity Activity[Activity[Actor]]) {
 	a.raw = &domain.ObjectOrLink{
 		Object: &domain.Object{
-			ID:             "",
-			Type:           "",
+			ID:             activity.ID,
+			Type:           activity.Type,
 			ActivityActor:  activity.Actor.GetRaw(),
 			ActivityObject: activity.Object.GetRaw(),
 		},

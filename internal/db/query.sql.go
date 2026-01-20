@@ -94,7 +94,7 @@ func (q *Queries) AddFollowByActorURI(ctx context.Context, arg AddFollowByActorU
 
 const addFollowByRequestURI = `-- name: AddFollowByRequestURI :exec
 WITH request AS (
-    SELECT id, account_id FROM follow_requests WHERE uri = $1
+    SELECT id, account_id, target_account_id FROM follow_requests WHERE uri = $1
 ) INSERT INTO follows (
     id, uri, account_id, target_account_id
 ) SELECT request.id, $1, request.account_id, request.target_account_id FROM request

@@ -306,6 +306,6 @@ func (s *federationService) processUndo(object *domain.ObjectOrLink) (worker.Job
 			return s.store.Favourites().DeleteByID(ctx, *favouriteID)
 		}, nil
 	default:
-		return nil, errors.New("unsupported Activity type")
+		return nil, errors.New("unsupported Activity Object type")
 	}
 }
