@@ -27,6 +27,7 @@ import { action as addPostAction } from "../components/feed/NewPostForm";
 import ExplorePage, {
   loader as exploreLoader,
 } from "../components/pages/ExplorePage";
+import LandingPage from "../components/pages/LandingPage";
 import LikesPage, {
   loader as likesLoader,
 } from "../components/pages/LikesPage";
@@ -67,6 +68,10 @@ function router(client: AppClient) {
           return null;
         },
         children: [
+          {
+            index: true,
+            Component: LandingPage,
+          },
           {
             path: "home",
             Component: Home,
