@@ -230,17 +230,18 @@ func (s *federationService) ProcessIncoming(
 	object *domain.ObjectOrLink,
 	id string,
 ) (worker.Job, error) {
-	if object.GetType() != domain.ObjectType {
-		return nil, errors.New("expected JSON object")
-	}
 	actorID, err := xid.FromString(id)
 	if err != nil {
 		return nil, err
 	}
-	switch object.Object.Type {
+	if object.GetType() != domain.ObjectType {
+		return nil, errors.New("expected JSON object")
+	}
+	obj := object.Object
+	switch obj.Type {
 	case "Create":
 		return func(ctx context.Context) error {
-			_, err := s.processor.LookupStatus(ctx, ap.NewNote(object.Object.ActivityObject))
+			_, err := s.processor.LookupStatus(ctx, ap.NewNote(obj.ActivityObject))
 			return err
 		}, nil
 	case "Follow":
@@ -257,58 +258,52 @@ func (s *federationService) ProcessIncoming(
 			_, err := s.processor.LikeStatus(ctx, ap.NewLikeActivity(object))
 			return err
 		}, nil
-	case "Accept":
-		fallthrough
 	case "Undo":
-		return s.processUndo(object)
+		return s.processUndo(obj.ActivityObject)
+	case "Accept":
+		return func(ctx context.Context) error {
+			return s.store.Follows().
+				AddByRequestURI(ctx, ap.NewFollowActivity(object.Object.ActivityObject).GetURI())
+		}, nil
 	case "Delete":
-		return s.processDelete(object)
+		fallthrough
 	default:
 		return nil, errors.New("unsupported Activity type")
 	}
 }
 
 func (s *federationService) processUndo(object *domain.ObjectOrLink) (worker.Job, error) {
-	switch object.Object.Type {
+	if object.GetType() != domain.ObjectType {
+		return nil, errors.New("expected JSON object")
+	}
+	obj := object.Object
+	uri := obj.ID
+	switch obj.Type {
+	case "Follow":
+		return func(ctx context.Context) error {
+			return s.store.Follows().DeleteByURI(ctx, uri)
+		}, nil
 	case "Announce":
 		return func(ctx context.Context) error {
-			status, err := s.processor.AnnounceStatus(
+			statusID, err := s.processor.AnnounceStatus(
 				ctx,
-				ap.NewAnnounceActivity(object.Object.ActivityObject),
+				ap.NewAnnounceActivity(object),
 			)
 			if err != nil {
 				return err
 			}
-			return s.store.Statuses().DeleteByID(ctx, status.ID)
+			return s.store.Statuses().DeleteByID(ctx, *statusID)
 		}, nil
 	case "Like":
 		return func(ctx context.Context) error {
-			favourite, err := s.processor.LikeStatus(
+			favouriteID, err := s.processor.LikeStatus(
 				ctx,
-				ap.NewLikeActivity(object.Object.ActivityObject),
+				ap.NewLikeActivity(object),
 			)
 			if err != nil {
 				return err
 			}
-			return s.store.Favourites().DeleteByID(ctx, favourite.ID)
-		}, nil
-	default:
-		return nil, errors.New("unsupported Activity type")
-	}
-}
-
-func (s *federationService) processDelete(object *domain.ObjectOrLink) (worker.Job, error) {
-	switch object.Object.Type {
-	case "Note":
-		return func(ctx context.Context) error {
-			status, err := s.processor.LookupStatus(
-				ctx,
-				ap.NewNote(object.Object.ActivityObject),
-			)
-			if err != nil {
-				return err
-			}
-			return s.store.Statuses().DeleteByID(ctx, status.ID)
+			return s.store.Favourites().DeleteByID(ctx, *favouriteID)
 		}, nil
 	default:
 		return nil, errors.New("unsupported Activity type")

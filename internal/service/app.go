@@ -271,22 +271,22 @@ func (s *appService) FollowAccount(ctx context.Context, accountID string) (worke
 	req := followReq.(db.CreateFollowRequestRow)
 
 	return func(ctx context.Context) error {
-		return s.prcessor.SendObject(ctx, follow.GetRaw().Object, req.AccountID)
+		return s.prcessor.SendObject(ctx, follow.GetRaw().Object, req.TargetAccountID)
 	}, nil
 }
 
 // UnfollowAccount implements AppService.
-func (s *appService) UnfollowAccount(ctx context.Context, id string) (worker.Job, error) {
+func (s *appService) UnfollowAccount(ctx context.Context, accountID string) (worker.Job, error) {
 	token, ok := ctx.Value(auth.TokenContextKey).(*auth.TokenData)
 	if !ok {
 		return nil, errors.New("auth failure")
 	}
 
-	targetAccountID, err := xid.FromString(id)
+	targetAccountID, err := xid.FromString(accountID)
 	if err != nil {
 		return nil, err
 	}
-	accountID, err := xid.FromString(token.ID)
+	followerID, err := xid.FromString(token.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -297,7 +297,7 @@ func (s *appService) UnfollowAccount(ctx context.Context, id string) (worker.Job
 		req, err := store.FollowRequests().
 			DeleteByTargetAccountID(ctx, db.DeleteFollowRequestByAccountIDParams{
 				TargetAccountID: targetAccountID,
-				AccountID:       accountID,
+				AccountID:       followerID,
 			})
 		if err != nil {
 			return nil, err
@@ -315,7 +315,6 @@ func (s *appService) UnfollowAccount(ctx context.Context, id string) (worker.Job
 					Object: ap.NewEmptyActor().WithLink(req.TargetAccountUri),
 				}),
 			})
-			return req, nil
 		}
 		return nil, store.Follows().DeleteByID(ctx, req.ID)
 	})
@@ -390,6 +389,7 @@ func (s *appService) CreateStatus(
 		inReplyToID = &id
 	}
 	if inReplyToID != nil {
+		// holy mother of god
 		parent, err := s.store.Statuses().GetByID(ctx, db.GetStatusByIDParams{
 			ID:        *inReplyToID,
 			AccountID: accountID,
@@ -569,6 +569,9 @@ func (s *appService) UnfavouriteStatus(ctx context.Context, id string) (worker.J
 		return nil, errors.New("auth failure")
 	}
 	loggedInID, err := xid.FromString(token.ID)
+	if err != nil {
+		return nil, err
+	}
 	statusID, err := xid.FromString(id)
 	if err != nil {
 		return nil, err
@@ -699,6 +702,7 @@ func (s *appService) ViewHomeTimeline(ctx context.Context) ([]api.Status, error)
 	}
 	return res, nil
 }
+
 // ViewFavouriteTimeline implements AppService.
 func (s *appService) ViewFavouriteTimeline(ctx context.Context) ([]api.Status, error) {
 	token, ok := ctx.Value(auth.TokenContextKey).(*auth.TokenData)
@@ -721,6 +725,7 @@ func (s *appService) ViewFavouriteTimeline(ctx context.Context) ([]api.Status, e
 	}
 	return res, nil
 }
+
 // ViewRebloggedTimeline implements AppService.
 func (s *appService) ViewRebloggedTimeline(ctx context.Context) ([]api.Status, error) {
 	token, ok := ctx.Value(auth.TokenContextKey).(*auth.TokenData)

@@ -23,6 +23,27 @@ INSERT INTO statuses (
     id, uri, url, content, account_id, account_uri
 ) SELECT @id, @uri, @url, @content, a.id, @account_uri FROM accounts a WHERE a.uri = @account_uri;
 
+-- name: AddStatusWithActor :one
+WITH actor AS (
+    INSERT INTO accounts (
+        id, username, uri, domain, inbox_uri, outbox_uri, followers_uri, following_uri, url
+    ) VALUES (
+        @actor_id, @username, @actor_uri, @domain, @inbox_uri, @outbox_uri, @followers_uri, @following_uri, @actor_url
+    ) RETURNING id
+), status AS (
+    INSERT INTO statuses (
+        id, uri, url, content, account_id, account_uri
+    ) SELECT @status_id, @status_uri, @status_url, @content, a.id, @account_uri FROM actor a
+    RETURNING id
+) SELECT id FROM status;
+
+-- name: AddFollowByRequestURI :exec
+WITH request AS (
+    SELECT id, account_id FROM follow_requests WHERE uri = @uri
+) INSERT INTO follows (
+    id, uri, account_id, target_account_id
+) SELECT request.id, @uri, request.account_id, request.target_account_id FROM request;
+
 -- name: AddFollowByActorURI :one
 WITH follower AS (
     SELECT a.id, a.inbox_uri FROM accounts a WHERE a.uri = @account_uri
@@ -196,8 +217,11 @@ INSERT INTO follows (
   @id, @uri, @account_id, @target_account_id
 );
 
--- name: DeleteFollow :exec
+-- name: DeleteFollowByID :exec
 DELETE FROM follows WHERE id = $1;
+
+-- name: DeleteFollowByURI :exec
+DELETE FROM follows WHERE uri = $1;
 
 -- name: GetFollowerCollection :one
 SELECT 
@@ -306,9 +330,6 @@ WHERE f.id = $1 AND a1.domain IS NULL;
 
 -- name: DeleteFavouriteByID :exec
 DELETE FROM favourites WHERE id = $1;
-
--- name: DeleteFavouriteByIDNew :one
-DELETE FROM favourites WHERE id = $1 RETURNING *;
 
 -- name: DeleteFavouriteByStatusID :one
 DELETE FROM favourites WHERE account_id = $1 AND status_id = $2 RETURNING *;

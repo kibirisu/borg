@@ -10,11 +10,13 @@ import (
 
 type FollowRepository interface {
 	Create(context.Context, db.CreateFollowNewParams) error
+	AddByRequestURI(context.Context, string) error
 	AddByActorURI(context.Context, db.AddFollowByActorURIParams) (string, error)
 	GetLocalFollowByID(context.Context, xid.ID) (db.GetLocalFollowByIDRow, error)
 	GetFollowerCollection(context.Context, string) (db.GetFollowerCollectionRow, error)
 	GetFollowingCollection(context.Context, string) (db.GetFollowingCollectionRow, error)
 	DeleteByID(context.Context, xid.ID) error
+	DeleteByURI(context.Context, string) error
 }
 
 type followRepository struct {
@@ -29,6 +31,11 @@ func (r *followRepository) AddByActorURI(
 	follow db.AddFollowByActorURIParams,
 ) (string, error) {
 	return r.q.AddFollowByActorURI(ctx, follow)
+}
+
+// AddByRequestURI implements FollowRepository.
+func (r *followRepository) AddByRequestURI(ctx context.Context, uri string) error {
+	return r.q.AddFollowByRequestURI(ctx, uri)
 }
 
 // GetLocalFollowByID implements FollowRepository.
@@ -62,5 +69,10 @@ func (r *followRepository) GetFollowingCollection(
 
 // DeleteByID implements FollowRepository.
 func (r *followRepository) DeleteByID(ctx context.Context, id xid.ID) error {
-	return r.q.DeleteFollow(ctx, id)
+	return r.q.DeleteFollowByID(ctx, id)
+}
+
+// DeleteByURI implements FollowRepository.
+func (r *followRepository) DeleteByURI(ctx context.Context, uri string) error {
+	return r.q.DeleteFollowByURI(ctx, uri)
 }

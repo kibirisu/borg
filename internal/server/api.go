@@ -20,7 +20,6 @@ func (s *Server) GetWellKnownWebfinger(
 		util.WriteError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-
 	util.WriteWebFingerJSON(w, http.StatusOK, webfinger)
 }
 
@@ -246,6 +245,7 @@ func (s *Server) GetApiTimelinesHome(w http.ResponseWriter, r *http.Request) {
 	}
 	util.WriteJSON(w, http.StatusOK, statuses)
 }
+
 // GetApiTimelinesFavourite implements api.ServerInterface.
 func (s *Server) GetApiTimelinesFavourite(w http.ResponseWriter, r *http.Request) {
 	statuses, err := s.service.App.ViewFavouriteTimeline(r.Context())
@@ -256,6 +256,7 @@ func (s *Server) GetApiTimelinesFavourite(w http.ResponseWriter, r *http.Request
 	}
 	util.WriteJSON(w, http.StatusOK, statuses)
 }
+
 // GetApiTimelinesReblogged implements api.ServerInterface.
 func (s *Server) GetApiTimelinesReblogged(w http.ResponseWriter, r *http.Request) {
 	statuses, err := s.service.App.ViewRebloggedTimeline(r.Context())

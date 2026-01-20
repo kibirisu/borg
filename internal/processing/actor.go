@@ -12,63 +12,21 @@ import (
 	"github.com/kibirisu/borg/internal/util"
 )
 
-func (p *processor) AddActor(ctx context.Context, actor ap.Actorer) error {
-	switch actor.GetValueType() {
-	case ap.LinkType:
-		uri := actor.GetLink()
-		if util.ExtractDomainFromURI(uri) == p.conf.Address {
-			return errors.New("attempted to fetch local account")
-		}
-		obj, err := p.client.Get(ctx, uri)
-		if err != nil {
-			return err
-		}
-		raw := actor.GetRaw()
-		*raw = *obj
-	case ap.ObjectType:
-		uri := actor.GetRaw().Object.ID
-		if util.ExtractDomainFromURI(uri) == p.conf.Address {
-			return errors.New("attempted to fetch local account")
-		}
-	case ap.InvalidType:
-		fallthrough
-	case ap.NullType:
-		fallthrough
-	default:
-		return errors.New("activity actor is missing")
-	}
-	obj := actor.GetObject()
-	_, err := p.store.Accounts().Add(ctx, db.AddAccountParams{
-		ID:       xid.New(),
-		Username: obj.PreferredUsername,
-		Uri:      obj.ID,
-		Domain: sql.NullString{
-			String: util.ExtractDomainFromURI(obj.ID),
-			Valid:  true,
-		},
-		InboxUri:     obj.Inbox,
-		OutboxUri:    obj.Outbox,
-		FollowersUri: obj.Followers,
-		FollowingUri: obj.Following,
-		Url:          ":3",
-	})
-	return err
-}
-
-func (p *processor) LookupActor(ctx context.Context, object ap.Actorer) (db.Account, error) {
+func (p *processor) LookupActor(ctx context.Context, object ap.Actorer) (*xid.ID, error) {
 	uri := object.GetURI()
 	if uri == "" {
-		return db.Account{}, errors.New("invalid object")
+		return nil, errors.New("invalid object")
 	}
 	account, err := p.store.Accounts().GetByURI(ctx, uri)
 	if err != nil {
 		object, err := p.client.Get(ctx, uri)
 		if err != nil {
-			return account, err
+			return nil, err
 		}
-		fetchedActor := ap.NewActor(object)
-		actorData := fetchedActor.GetObject()
+		actorData := ap.NewActor(object).GetObject()
+		id := xid.New()
 		account, err = p.store.Accounts().Create(ctx, db.CreateActorParams{
+			ID:       id,
 			Username: actorData.PreferredUsername,
 			Uri:      actorData.ID,
 			DisplayName: sql.NullString{
@@ -86,10 +44,10 @@ func (p *processor) LookupActor(ctx context.Context, object ap.Actorer) (db.Acco
 			FollowingUri: actorData.Following,
 		})
 		if err != nil {
-			return account, err
+			return &id, err
 		}
 	}
-	return account, nil
+	return &account.ID, nil
 }
 
 // FetchAndStoreAccount implements Processor.
@@ -131,6 +89,7 @@ func (p *processor) getActorURI(
 		return
 	}
 	if len(webfinger.Links) != 1 {
+		// we actually can process incoming webfinger, we decide to not
 		return uri, errors.New("dealing with webfinger too advanced to understand")
 	}
 	return webfinger.Links[0].Href, nil

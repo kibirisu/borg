@@ -92,6 +92,19 @@ func (q *Queries) AddFollowByActorURI(ctx context.Context, arg AddFollowByActorU
 	return inbox_uri, err
 }
 
+const addFollowByRequestURI = `-- name: AddFollowByRequestURI :exec
+WITH request AS (
+    SELECT id, account_id FROM follow_requests WHERE uri = $1
+) INSERT INTO follows (
+    id, uri, account_id, target_account_id
+) SELECT request.id, $1, request.account_id, request.target_account_id FROM request
+`
+
+func (q *Queries) AddFollowByRequestURI(ctx context.Context, uri string) error {
+	_, err := q.db.ExecContext(ctx, addFollowByRequestURI, uri)
+	return err
+}
+
 const addStatus = `-- name: AddStatus :exec
 INSERT INTO statuses (
     id, uri, url, content, account_id, account_uri, in_reply_to_id, in_reply_to_uri, in_reply_to_account_id
@@ -150,6 +163,60 @@ func (q *Queries) AddStatusByActorURI(ctx context.Context, arg AddStatusByActorU
 		arg.AccountUri,
 	)
 	return err
+}
+
+const addStatusWithActor = `-- name: AddStatusWithActor :one
+WITH actor AS (
+    INSERT INTO accounts (
+        id, username, uri, domain, inbox_uri, outbox_uri, followers_uri, following_uri, url
+    ) VALUES (
+        $1, $2, $3, $4, $5, $6, $7, $8, $9
+    ) RETURNING id
+), status AS (
+    INSERT INTO statuses (
+        id, uri, url, content, account_id, account_uri
+    ) SELECT $10, $11, $12, $13, a.id, $14 FROM actor a
+    RETURNING id
+) SELECT id FROM status
+`
+
+type AddStatusWithActorParams struct {
+	ActorID      xid.ID
+	Username     string
+	ActorUri     string
+	Domain       sql.NullString
+	InboxUri     string
+	OutboxUri    string
+	FollowersUri string
+	FollowingUri string
+	ActorUrl     string
+	StatusID     xid.ID
+	StatusUri    string
+	StatusUrl    string
+	Content      sql.NullString
+	AccountUri   string
+}
+
+func (q *Queries) AddStatusWithActor(ctx context.Context, arg AddStatusWithActorParams) (xid.ID, error) {
+	row := q.db.QueryRowContext(ctx, addStatusWithActor,
+		arg.ActorID,
+		arg.Username,
+		arg.ActorUri,
+		arg.Domain,
+		arg.InboxUri,
+		arg.OutboxUri,
+		arg.FollowersUri,
+		arg.FollowingUri,
+		arg.ActorUrl,
+		arg.StatusID,
+		arg.StatusUri,
+		arg.StatusUrl,
+		arg.Content,
+		arg.AccountUri,
+	)
+	var id xid.ID
+	err := row.Scan(&id)
+	return id, err
 }
 
 const authData = `-- name: AuthData :one
@@ -606,27 +673,6 @@ func (q *Queries) DeleteFavouriteByID(ctx context.Context, id xid.ID) error {
 	return err
 }
 
-const deleteFavouriteByIDNew = `-- name: DeleteFavouriteByIDNew :one
-DELETE FROM favourites WHERE id = $1 RETURNING id, created_at, updated_at, uri, account_id, account_uri, target_account_id, status_id, status_uri
-`
-
-func (q *Queries) DeleteFavouriteByIDNew(ctx context.Context, id xid.ID) (Favourite, error) {
-	row := q.db.QueryRowContext(ctx, deleteFavouriteByIDNew, id)
-	var i Favourite
-	err := row.Scan(
-		&i.ID,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.Uri,
-		&i.AccountID,
-		&i.AccountUri,
-		&i.TargetAccountID,
-		&i.StatusID,
-		&i.StatusUri,
-	)
-	return i, err
-}
-
 const deleteFavouriteByStatusID = `-- name: DeleteFavouriteByStatusID :one
 DELETE FROM favourites WHERE account_id = $1 AND status_id = $2 RETURNING id, created_at, updated_at, uri, account_id, account_uri, target_account_id, status_id, status_uri
 `
@@ -653,12 +699,21 @@ func (q *Queries) DeleteFavouriteByStatusID(ctx context.Context, arg DeleteFavou
 	return i, err
 }
 
-const deleteFollow = `-- name: DeleteFollow :exec
+const deleteFollowByID = `-- name: DeleteFollowByID :exec
 DELETE FROM follows WHERE id = $1
 `
 
-func (q *Queries) DeleteFollow(ctx context.Context, id xid.ID) error {
-	_, err := q.db.ExecContext(ctx, deleteFollow, id)
+func (q *Queries) DeleteFollowByID(ctx context.Context, id xid.ID) error {
+	_, err := q.db.ExecContext(ctx, deleteFollowByID, id)
+	return err
+}
+
+const deleteFollowByURI = `-- name: DeleteFollowByURI :exec
+DELETE FROM follows WHERE uri = $1
+`
+
+func (q *Queries) DeleteFollowByURI(ctx context.Context, uri string) error {
+	_, err := q.db.ExecContext(ctx, deleteFollowByURI, uri)
 	return err
 }
 
