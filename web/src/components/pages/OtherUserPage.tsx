@@ -13,7 +13,7 @@ export const loader =
   (client: AppClient) =>
   async ({ params }: LoaderFunctionArgs) => {
     // Pass handle for routing; data is loaded via queries.
-    return { handle: params.handle };
+    return { handle: params.id };
   };
 
 export default function OtherUserPage() {
@@ -49,7 +49,6 @@ export default function OtherUserPage() {
     enabled: Boolean(client) && Boolean(userId),
     queryFn: async () => {
       const id = userId;
-      console.log("[OtherUserPage] fetching profile for id", id);
       if (!id) {
         return null;
       }
@@ -238,7 +237,7 @@ export default function OtherUserPage() {
             )}
           </section>
           {/* POSTS */}
-          <section className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+          <section className="rounded-2xl bg-transparent">
             {postsPending && (
               <div className="p-4 text-sm text-gray-500">Loading posts…</div>
             )}
@@ -247,18 +246,23 @@ export default function OtherUserPage() {
                 Failed to load posts.
               </div>
             )}
-            {!postsPending && !postsError && displayPosts.length > 0
-              ? displayPosts.map((post) => (
-                  <PostItem
+            {!postsPending && !postsError && displayPosts.length > 0 ? (
+              <div className="space-y-3">
+                {displayPosts.map((post) => (
+                  <div
                     key={post.id}
-                    post={{ data: post }}
-                    client={client!}
-                  />
-                ))
-              : !postsPending &&
-                !postsError && (
-                  <div className="p-4 text-sm text-gray-500">No posts yet.</div>
-                )}
+                    className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden"
+                  >
+                    <PostItem post={{ data: post }} client={client!} />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              !postsPending &&
+              !postsError && (
+                <div className="p-4 text-sm text-gray-500">No posts yet.</div>
+              )
+            )}
           </section>
         </main>
         <Sidebar />

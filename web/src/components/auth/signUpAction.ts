@@ -43,7 +43,6 @@ export function signUpAction(client: AppClient) {
     const safePassword = password;
 
     const mutation = async () => {
-      console.log("[signup] sending request", { username: safeUsername });
       return client.fetchClient.POST("/auth/register", {
         body: { username: safeUsername, password: safePassword },
       });
@@ -55,9 +54,6 @@ export function signUpAction(client: AppClient) {
         console.error("[signup] api error");
         return { form: "Registration failed" };
       }
-      console.log("[signup] registration succeeded", {
-        username: safeUsername,
-      });
     } catch (err) {
       console.error("[signup] network/client error", err);
       return { form: "Registration failed" };

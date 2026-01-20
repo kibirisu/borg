@@ -9,7 +9,7 @@ import { PostItem } from "./PostItem";
 export const loader =
   (client: AppClient) =>
   async ({ params }: LoaderFunctionArgs) => {
-    const handle = params.handle;
+    const handle = params.id;
     if (!handle) {
       return { opts: undefined };
     }

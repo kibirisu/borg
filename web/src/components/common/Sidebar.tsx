@@ -173,7 +173,6 @@ export default function Sidebar({ onPostClick }: SidebarProps) {
   const profileTarget = userId ? `/profile/${userId}` : "/signin";
 
   const handlePostClick = () => {
-    console.log("[sidebar] post click", { userId, isAuthenticated });
     onPostClick?.();
   };
 

@@ -19,7 +19,7 @@ export const loader =
   (client: AppClient) =>
   async ({ params }: LoaderFunctionArgs) => {
     // Pass handle for routing; data is loaded via queries.
-    return { handle: params.handle };
+    return { handle: params.id };
   };
 
 export default function UserPage() {
@@ -55,7 +55,6 @@ export default function UserPage() {
     enabled: Boolean(client) && userId !== null,
     queryFn: async () => {
       const id = userId;
-      console.log("[UserPage] fetching profile for id", id);
       if (!id) {
         return null;
       }
@@ -157,7 +156,6 @@ export default function UserPage() {
     },
   });
   const openComposer = () => {
-    console.log("[UserPage] open composer", { userId });
     setComposerOpen(true);
   };
   const closeComposer = () => setComposerOpen(false);

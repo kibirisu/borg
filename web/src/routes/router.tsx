@@ -113,7 +113,7 @@ function router(client: AppClient) {
             ],
           },
           {
-            path: "profile/:handle",
+            path: "profile/:id",
             Component: ProfileChooser,
             loader: userPageLoader(client),
             errorElement: <ErrorPage />,
@@ -147,17 +147,11 @@ function router(client: AppClient) {
 }
 
 function ProfileChooser() {
-  const { handle } = useParams();
+  const { id } = useParams();
   const appState = useContext(AppContext);
   const tokenUserId = appState?.userId;
-  console.log(
-    "[ProfileChooser] handle param",
-    handle,
-    "tokenUserId",
-    tokenUserId,
-  );
   const matchOwnProfile =
-    tokenUserId !== null && handle === String(tokenUserId);
+    tokenUserId !== null && id === String(tokenUserId);
   useLoaderData();
   // Provide loader data to the chosen component via context.
   return matchOwnProfile ? <UserPage /> : <OtherUserPage />;

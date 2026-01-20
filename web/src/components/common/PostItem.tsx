@@ -35,11 +35,18 @@ export const PostItem = ({
   }
   const renderData = data.reblog ?? data;
   const resharedBy = data.reblog ? data.account : null;
-  const authorId = renderData.account?.id;
+  const authorId = renderData.account?.id ?? data.account?.id;
   const authorName =
-    renderData.account?.display_name || renderData.account?.username;
+    renderData.account?.display_name ||
+    renderData.account?.username ||
+    data.account?.display_name ||
+    data.account?.username;
   const authorHandleRaw =
-    renderData.account?.acct || renderData.account?.username;
+    renderData.account?.acct ||
+    renderData.account?.username ||
+    data.account?.acct ||
+    data.account?.username;
+  const profileId = renderData.account?.id ?? data.account?.id ?? null;
   const authorHandle = authorHandleRaw
     ? authorHandleRaw.startsWith("@")
       ? authorHandleRaw.slice(1)
@@ -85,11 +92,6 @@ export const PostItem = ({
         ? "/api/statuses/{id}/unreblog"
         : "/api/statuses/{id}/reblog";
       const targetId = data.reblog ? data.id : renderData.id;
-      console.log("[PostItem] reblog ids", {
-        originalId: renderData.id,
-        reblogId: data.reblog ? data.id : null,
-        targetId,
-      });
       await client.fetchClient.POST(endpoint, {
         params: { path: { id: String(targetId) } },
       });
@@ -129,16 +131,16 @@ export const PostItem = ({
             <div className="mb-2 text-xs">
               <span className="text-green-600">Reshared by </span>
               <span className="font-medium text-green-700">
-                @{resharedBy.acct || resharedBy.username}
+                @{String(resharedBy.acct || resharedBy.username).replace(/^@+|@+$/g, "")}
               </span>
             </div>
           )}
           <div className="flex items-start justify-between mb-2">
             {authorName && (
               <div className="flex items-center space-x-1">
-                {authorId ? (
+                {profileId ? (
                   <Link
-                    to={`/profile/${authorId}`}
+                    to={`/profile/${profileId}`}
                     className="hover:underline font-semibold text-gray-900"
                     onClick={(event) => event.stopPropagation()}
                   >
