@@ -92,6 +92,19 @@ func (q *Queries) AddFollowByActorURI(ctx context.Context, arg AddFollowByActorU
 	return inbox_uri, err
 }
 
+const addFollowByRequestURI = `-- name: AddFollowByRequestURI :exec
+WITH request AS (
+    SELECT id, account_id FROM follow_requests WHERE uri = $1
+) INSERT INTO follows (
+    id, uri, account_id, target_account_id
+) SELECT request.id, $1, request.account_id, request.target_account_id FROM request
+`
+
+func (q *Queries) AddFollowByRequestURI(ctx context.Context, uri string) error {
+	_, err := q.db.ExecContext(ctx, addFollowByRequestURI, uri)
+	return err
+}
+
 const addStatus = `-- name: AddStatus :exec
 INSERT INTO statuses (
     id, uri, url, content, account_id, account_uri, in_reply_to_id, in_reply_to_uri, in_reply_to_account_id
@@ -686,12 +699,21 @@ func (q *Queries) DeleteFavouriteByStatusID(ctx context.Context, arg DeleteFavou
 	return i, err
 }
 
-const deleteFollow = `-- name: DeleteFollow :exec
+const deleteFollowByID = `-- name: DeleteFollowByID :exec
 DELETE FROM follows WHERE id = $1
 `
 
-func (q *Queries) DeleteFollow(ctx context.Context, id xid.ID) error {
-	_, err := q.db.ExecContext(ctx, deleteFollow, id)
+func (q *Queries) DeleteFollowByID(ctx context.Context, id xid.ID) error {
+	_, err := q.db.ExecContext(ctx, deleteFollowByID, id)
+	return err
+}
+
+const deleteFollowByURI = `-- name: DeleteFollowByURI :exec
+DELETE FROM follows WHERE uri = $1
+`
+
+func (q *Queries) DeleteFollowByURI(ctx context.Context, uri string) error {
+	_, err := q.db.ExecContext(ctx, deleteFollowByURI, uri)
 	return err
 }
 

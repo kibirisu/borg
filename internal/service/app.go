@@ -271,22 +271,22 @@ func (s *appService) FollowAccount(ctx context.Context, accountID string) (worke
 	req := followReq.(db.CreateFollowRequestRow)
 
 	return func(ctx context.Context) error {
-		return s.prcessor.SendObject(ctx, follow.GetRaw().Object, req.AccountID)
+		return s.prcessor.SendObject(ctx, follow.GetRaw().Object, req.TargetAccountID)
 	}, nil
 }
 
 // UnfollowAccount implements AppService.
-func (s *appService) UnfollowAccount(ctx context.Context, id string) (worker.Job, error) {
+func (s *appService) UnfollowAccount(ctx context.Context, accountID string) (worker.Job, error) {
 	token, ok := ctx.Value(auth.TokenContextKey).(*auth.TokenData)
 	if !ok {
 		return nil, errors.New("auth failure")
 	}
 
-	targetAccountID, err := xid.FromString(id)
+	targetAccountID, err := xid.FromString(accountID)
 	if err != nil {
 		return nil, err
 	}
-	accountID, err := xid.FromString(token.ID)
+	followerID, err := xid.FromString(token.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -297,7 +297,7 @@ func (s *appService) UnfollowAccount(ctx context.Context, id string) (worker.Job
 		req, err := store.FollowRequests().
 			DeleteByTargetAccountID(ctx, db.DeleteFollowRequestByAccountIDParams{
 				TargetAccountID: targetAccountID,
-				AccountID:       accountID,
+				AccountID:       followerID,
 			})
 		if err != nil {
 			return nil, err

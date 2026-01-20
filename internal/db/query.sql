@@ -37,6 +37,13 @@ WITH actor AS (
     RETURNING id
 ) SELECT id FROM status;
 
+-- name: AddFollowByRequestURI :exec
+WITH request AS (
+    SELECT id, account_id FROM follow_requests WHERE uri = @uri
+) INSERT INTO follows (
+    id, uri, account_id, target_account_id
+) SELECT request.id, @uri, request.account_id, request.target_account_id FROM request;
+
 -- name: AddFollowByActorURI :one
 WITH follower AS (
     SELECT a.id, a.inbox_uri FROM accounts a WHERE a.uri = @account_uri
@@ -210,8 +217,11 @@ INSERT INTO follows (
   @id, @uri, @account_id, @target_account_id
 );
 
--- name: DeleteFollow :exec
+-- name: DeleteFollowByID :exec
 DELETE FROM follows WHERE id = $1;
+
+-- name: DeleteFollowByURI :exec
+DELETE FROM follows WHERE uri = $1;
 
 -- name: GetFollowerCollection :one
 SELECT 
