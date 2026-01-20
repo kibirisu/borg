@@ -4,6 +4,7 @@ import { useLoaderData } from "react-router";
 import type { components } from "../../lib/api/v1";
 import type { AppClient } from "../../lib/client";
 import ClientContext from "../../lib/client";
+import AppContext from "../../lib/state";
 import PostComposerOverlay from "../common/PostComposerOverlay";
 import { PostItem, type PostPresentable } from "../common/PostItem";
 import Sidebar from "../common/Sidebar";
@@ -16,6 +17,7 @@ export const loader = (client: AppClient) => async () => {
 
 export default function SharedPage() {
   const client = useContext(ClientContext);
+  const appState = useContext(AppContext);
   const { opts } = useLoaderData() as Awaited<
     ReturnType<ReturnType<typeof loader>>
   >;
@@ -25,6 +27,7 @@ export default function SharedPage() {
   const [selectedPost, setSelectedPost] = useState<PostPresentable | null>(
     null,
   );
+  const userId = appState?.userId ?? null;
 
   const handlePostSelect = (post: PostPresentable) => {
     setSelectedPost(post);
@@ -39,6 +42,22 @@ export default function SharedPage() {
   const closeComposer = () => {
     setIsComposerOpen(false);
     setSelectedPost(null);
+  };
+
+  const handleCreatePost = async (content: string) => {
+    if (!client || userId === null) {
+      throw new Error("User not authenticated");
+    }
+    const replyToId = selectedPost?.data?.reblog?.id ?? selectedPost?.data?.id ?? null;
+    await client.fetchClient.POST("/api/statuses", {
+      body: { status: content, in_reply_to_id: replyToId },
+    });
+    await client.queryClient.invalidateQueries({
+      queryKey: ["account-statuses", userId],
+    });
+    await client.queryClient.invalidateQueries({
+      queryKey: ["get", "/api/timelines/home", {}],
+    });
   };
 
   return (
@@ -83,6 +102,7 @@ export default function SharedPage() {
         isOpen={isComposerOpen}
         onClose={closeComposer}
         replyTo={selectedPost}
+        onSubmit={handleCreatePost}
       />
     </div>
   );

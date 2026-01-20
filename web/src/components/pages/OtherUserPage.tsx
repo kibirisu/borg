@@ -6,6 +6,7 @@ import type { components } from "../../lib/api/v1";
 import type { AppClient } from "../../lib/client";
 import ClientContext from "../../lib/client";
 import AppContext from "../../lib/state";
+import PostComposerOverlay from "../common/PostComposerOverlay";
 import { PostItem } from "../common/PostItem";
 import Sidebar from "../common/Sidebar";
 
@@ -41,6 +42,7 @@ export default function OtherUserPage() {
   const [isFollowed, setIsFollowed] = useState(false);
   const [followError, setFollowError] = useState<string | null>(null);
   const [followPending, setFollowPending] = useState(false);
+  const [isComposerOpen, setIsComposerOpen] = useState(false);
 
   const { data: profileData } = useQuery<
     components["schemas"]["Account"] | null
@@ -178,6 +180,29 @@ export default function OtherUserPage() {
     );
   }, [followers, tokenUserId]);
 
+  const openComposer = () => {
+    setIsComposerOpen(true);
+  };
+
+  const closeComposer = () => {
+    setIsComposerOpen(false);
+  };
+
+  const handleCreatePost = async (content: string) => {
+    if (!client || tokenUserId === null) {
+      throw new Error("User not authenticated");
+    }
+    await client.fetchClient.POST("/api/statuses", {
+      body: { status: content, in_reply_to_id: null },
+    });
+    await client.queryClient.invalidateQueries({
+      queryKey: ["account-statuses", tokenUserId],
+    });
+    await client.queryClient.invalidateQueries({
+      queryKey: ["get", "/api/timelines/home", {}],
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="grid grid-cols-[1fr_256px] gap-6">
@@ -263,8 +288,14 @@ export default function OtherUserPage() {
             )}
           </section>
         </main>
-        <Sidebar />
+        <Sidebar onPostClick={openComposer} />
       </div>
+      <PostComposerOverlay
+        isOpen={isComposerOpen}
+        onClose={closeComposer}
+        replyTo={null}
+        onSubmit={handleCreatePost}
+      />
     </div>
   );
 }
