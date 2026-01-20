@@ -43,7 +43,18 @@ export const action =
       ],
     });
     client.queryClient.invalidateQueries({
+      queryKey: [
+        "get",
+        "/api/statuses/{id}",
+        { params: { path: { id: postId } } },
+      ],
+    });
+    client.queryClient.invalidateQueries({
       queryKey: ["account-statuses"],
+      exact: false,
+    });
+    client.queryClient.invalidateQueries({
+      queryKey: ["get", "/api/timelines/home", {}],
     });
     return null;
   };
@@ -67,7 +78,7 @@ export default function CommentForm() {
   return (
     <Form
       method="post"
-      className="p-4 border-t border-gray-200 bg-white flex flex-col gap-3"
+      className="fixed bottom-0 left-0 right-0 z-50 w-full border-t border-gray-200 bg-white flex flex-col gap-3 p-4 shadow-[0_-8px_24px_-12px_rgba(0,0,0,0.3)]"
     >
       <input type="hidden" name="userId" value={userId ?? ""} />
       {!isAuthenticated && (

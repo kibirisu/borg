@@ -131,6 +131,12 @@ export default function OtherUserPage() {
       return res.data ?? [];
     },
   });
+  const displayPosts = useMemo(() => {
+    if (!posts) return [];
+    return posts.filter(
+      (post) => post.in_reply_to_id == null || post.reblog != null,
+    );
+  }, [posts]);
 
   const handleFollow = async () => {
     if (!client || userId === null) {
@@ -241,8 +247,8 @@ export default function OtherUserPage() {
                 Failed to load posts.
               </div>
             )}
-            {!postsPending && !postsError && posts && posts.length > 0
-              ? posts.map((post) => (
+            {!postsPending && !postsError && displayPosts.length > 0
+              ? displayPosts.map((post) => (
                   <PostItem
                     key={post.id}
                     post={{ data: post }}

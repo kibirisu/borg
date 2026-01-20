@@ -7,25 +7,10 @@ import type { AppClient } from "../../lib/client";
 import AppContext from "../../lib/state";
 
 type Status = components["schemas"]["Status"];
-type LegacyPost = {
-  id: number | string;
-  content: string;
-  username?: string;
-  userID?: number | string;
-  likeCount?: number;
-  shareCount?: number;
-  commentCount?: number;
-};
 
-interface StatusData {
+export type PostPresentable = {
   data: Status;
-}
-
-interface LegacyPostData {
-  data: LegacyPost;
-}
-
-export type PostPresentable = StatusData | LegacyPostData;
+};
 
 interface PostProps {
   post: PostPresentable;
@@ -44,118 +29,70 @@ export const PostItem = ({
 }: PostProps) => {
   const appState = useContext(AppContext);
   const currentUserId = appState?.userId ?? null;
-  const legacyUserId = currentUserId ? Number(currentUserId) : NaN;
-  const isStatus = (data: Status | LegacyPost): data is Status => {
-    return "account" in data || "favourites_count" in data;
-  };
   const data = post.data;
-  const isStatusPost = isStatus(data);
-  const renderData =
-    isStatusPost && data.reblog ? data.reblog : data;
-  const resharedBy =
-    isStatusPost && data.reblog ? data.account : null;
-  const authorId = isStatusPost ? renderData.account?.id : renderData.userID;
-  const authorName = isStatusPost
-    ? renderData.account?.display_name || renderData.account?.username
-    : renderData.username;
-  const authorHandleRaw = isStatusPost
-    ? renderData.account?.acct || renderData.account?.username
-    : renderData.username;
+  if (!data) {
+    return null;
+  }
+  const renderData = data.reblog ?? data;
+  const resharedBy = data.reblog ? data.account : null;
+  const authorId = renderData.account?.id;
+  const authorName =
+    renderData.account?.display_name || renderData.account?.username;
+  const authorHandleRaw =
+    renderData.account?.acct || renderData.account?.username;
   const authorHandle = authorHandleRaw
     ? authorHandleRaw.startsWith("@")
       ? authorHandleRaw.slice(1)
       : authorHandleRaw
     : "";
   const content = renderData.content;
-  const commentCount = isStatusPost
-    ? renderData.replies_count
-    : renderData.commentCount;
-  const shareCount = isStatusPost
-    ? renderData.reblogs_count
-    : renderData.shareCount;
-  const likeCount = isStatusPost
-    ? renderData.favourites_count
-    : renderData.likeCount;
-  const isFavourited = isStatusPost ? Boolean(renderData.favourited) : false;
-  const isReblogged = isStatusPost ? Boolean(renderData.reblogged) : false;
+  const commentCount = renderData.replies_count;
+  const shareCount = renderData.reblogs_count;
+  const likeCount = renderData.favourites_count;
+  const isFavourited = Boolean(renderData.favourited);
+  const isReblogged = Boolean(renderData.reblogged);
 
   const likeAction = async () => {
-    if (!("id" in renderData)) return;
     if (!currentUserId) {
       console.warn("User not authenticated, cannot like");
       return;
     }
     try {
-      if (isStatusPost) {
-        const endpoint = renderData.favourited
-          ? "/api/statuses/{id}/unfavourite"
-          : "/api/statuses/{id}/favourite";
-        await client.fetchClient.POST(endpoint, {
-          params: { path: { id: String(renderData.id) } },
-        });
-        client.queryClient.invalidateQueries({
-          queryKey: ["account-statuses", authorId],
-        });
-        client.queryClient.invalidateQueries({
-          queryKey: ["get", "/api/accounts/{id}/statuses"],
-        });
-      } else {
-        if (!Number.isFinite(legacyUserId)) {
-          console.warn("User not authenticated, cannot like");
-          return;
-        }
-        await client.fetchClient.POST("/api/posts/{id}/likes", {
-          params: { path: { id: Number(renderData.id) } },
-          body: { postID: Number(renderData.id), userID: legacyUserId },
-        });
-        client.queryClient.invalidateQueries({
-          queryKey: ["get", "/api/posts", {}],
-        });
-        client.queryClient.invalidateQueries({
-          queryKey: ["user-posts", legacyUserId],
-        });
-      }
+      const endpoint = renderData.favourited
+        ? "/api/statuses/{id}/unfavourite"
+        : "/api/statuses/{id}/favourite";
+      await client.fetchClient.POST(endpoint, {
+        params: { path: { id: String(renderData.id) } },
+      });
+      client.queryClient.invalidateQueries({
+        queryKey: ["account-statuses", authorId],
+      });
+      client.queryClient.invalidateQueries({
+        queryKey: ["get", "/api/accounts/{id}/statuses"],
+      });
     } catch (err) {
       console.error("Failed to like post", err);
     }
   };
 
   const shareAction = async () => {
-    if (!("id" in renderData)) return;
     if (!currentUserId) {
       console.warn("User not authenticated, cannot share");
       return;
     }
     try {
-      if (isStatusPost) {
-        const endpoint = renderData.reblogged
-          ? "/api/statuses/{id}/unreblog"
-          : "/api/statuses/{id}/reblog";
-        await client.fetchClient.POST(endpoint, {
-          params: { path: { id: String(renderData.id) } },
-        });
-        client.queryClient.invalidateQueries({
-          queryKey: ["account-statuses", authorId],
-        });
-        client.queryClient.invalidateQueries({
-          queryKey: ["get", "/api/accounts/{id}/statuses"],
-        });
-      } else {
-        if (!Number.isFinite(legacyUserId)) {
-          console.warn("User not authenticated, cannot share");
-          return;
-        }
-        await client.fetchClient.POST("/api/posts/{id}/shares", {
-          params: { path: { id: Number(renderData.id) } },
-          body: { postID: Number(renderData.id), userID: legacyUserId },
-        });
-        client.queryClient.invalidateQueries({
-          queryKey: ["get", "/api/posts", {}],
-        });
-        client.queryClient.invalidateQueries({
-          queryKey: ["user-posts", legacyUserId],
-        });
-      }
+      const endpoint = renderData.reblogged
+        ? "/api/statuses/{id}/unreblog"
+        : "/api/statuses/{id}/reblog";
+      await client.fetchClient.POST(endpoint, {
+        params: { path: { id: String(renderData.id) } },
+      });
+      client.queryClient.invalidateQueries({
+        queryKey: ["account-statuses", authorId],
+      });
+      client.queryClient.invalidateQueries({
+        queryKey: ["get", "/api/accounts/{id}/statuses"],
+      });
     } catch (err) {
       console.error("Failed to share post", err);
     }
@@ -206,9 +143,6 @@ export const PostItem = ({
                     {authorName}
                   </span>
                 )}
-                {authorHandle ? (
-                  <span className="text-sm text-gray-500">@{authorHandle}</span>
-                ) : null}
               </div>
             )}
             {showActions && (
@@ -245,7 +179,7 @@ export const PostItem = ({
             {commentCount !== undefined && (
               <button
                 type="button"
-                className="flex items-center space-x-1 hover:text-blue-500 transition"
+                className="flex items-center space-x-1 hover:text-blue-500 transition cursor-pointer"
                 onClick={(event) => {
                   event.stopPropagation();
                   if (onCommentClick) {
@@ -293,7 +227,7 @@ export const PostItem = ({
             {shareCount !== undefined && (
               <button
                 type="button"
-                className="flex items-center space-x-1 hover:text-gray-700 transition"
+                className="flex items-center space-x-1 hover:text-gray-700 transition cursor-pointer"
                 onClick={(event) => event.stopPropagation()}
               >
                 <Share2 size={16} />

@@ -102,10 +102,13 @@ export default function UserPage() {
   });
   const displayPosts = useMemo(() => {
     if (!posts) return [];
-    const filtered =
+    const filteredByUser =
       userId !== null
         ? posts.filter((post) => post.account?.id === userId)
         : posts;
+    const filtered = filteredByUser.filter(
+      (post) => post.in_reply_to_id == null || post.reblog != null,
+    );
     const seen = new Set<string>();
     const unique: components["schemas"]["Status"][] = [];
     for (const post of filtered) {

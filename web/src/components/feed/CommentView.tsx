@@ -73,8 +73,18 @@ export default function CommentView() {
     return null;
   }
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="w-full bg-white border border-gray-200 overflow-hidden divide-y divide-gray-200 shadow-sm">
+    <div className="min-h-screen bg-gray-50 pb-28">
+      <div className="px-6 pt-6">
+        <button
+          type="button"
+          onClick={() => window.history.back()}
+          aria-label="Go back"
+          className="inline-flex items-center justify-center border border-black text-black rounded-[7px] text-sm p-2.5"
+        >
+          <i className="bi bi-arrow-left" />
+        </button>
+      </div>
+      <div className="mt-4 w-full bg-white border border-gray-200 overflow-hidden divide-y divide-gray-200 shadow-sm">
         <div className="bg-white">
           {postData && postData.data ? (
             <PostItem
@@ -85,13 +95,11 @@ export default function CommentView() {
             <div className="p-6 text-center text-gray-600">Post not found.</div>
           )}
         </div>
-        <div className="p-4 bg-gray-50">
-          <CommentForm />
-        </div>
-        <div className="bg-white">
+        <div className="bg-gray-100">
           <CommentsFeed opts={commentOpts} postId={postId} />
         </div>
       </div>
+      <CommentForm />
     </div>
   );
 }
@@ -138,15 +146,18 @@ export function CommentsFeed({
     );
   }
   return (
-    <div className="divide-y divide-gray-200">
+    <div className="p-4">
       {data && data.length > 0 ? (
-        data.map((comment: components["schemas"]["Status"]) => (
-          <PostItem
-            key={comment.id}
-            post={{ data: comment }}
-            client={client!}
-          />
-        ))
+        <div className="space-y-3">
+          {data.map((comment: components["schemas"]["Status"]) => (
+            <div
+              key={comment.id}
+              className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden"
+            >
+              <PostItem post={{ data: comment }} client={client!} />
+            </div>
+          ))}
+        </div>
       ) : (
         <div className="p-6 text-center text-gray-600">No comments yet.</div>
       )}

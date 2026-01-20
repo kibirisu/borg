@@ -9,7 +9,12 @@ import { PostItem, type PostPresentable } from "../common/PostItem";
 import Sidebar from "../common/Sidebar";
 
 export const loader = (client: AppClient) => async () => {
-  const opts = client.$api.queryOptions("get", "/api/timelines/home", {});
+  const token = localStorage.getItem("jwt");
+  const cleaned = token ? token.replace(/^Bearer:\s*/i, "") : null;
+  const headers = cleaned ? { Authorization: `Bearer: ${cleaned}` } : undefined;
+  const opts = client.$api.queryOptions("get", "/api/timelines/home", {
+    headers,
+  });
   await client.queryClient.ensureQueryData(opts);
   return { opts };
 };
@@ -84,7 +89,7 @@ export default function ExplorePage() {
     setIsComposerOpen(true);
   };
   const handleCommentClick = (post: PostPresentable) => {
-    if ("id" in post.data) {
+    if (post.data && "id" in post.data) {
       navigate(`/post/${post.data.id}`);
     }
   };
@@ -185,20 +190,28 @@ export default function ExplorePage() {
               <FoundUserItem account={searchResult} />
             </div>
           )}
-          <section className="bg-white rounded-2xl border border-gray-200 p-4 space-y-4 min-h-[400px]">
+          <section className="rounded-2xl bg-transparent min-h-[400px]">
             {isPending && <p className="text-gray-500 text-center">Loading…</p>}
             {!isPending &&
               data?.map((post: components["schemas"]["Status"]) => (
-                <PostItem
-                  key={post.id}
-                  post={{ data: post }}
-                  client={client!}
-                  onSelect={handlePostSelect}
-                  onCommentClick={handleCommentClick}
-                />
+                post && (
+                  <div
+                    key={post.id}
+                    className="mb-3 rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden"
+                  >
+                    <PostItem
+                      post={{ data: post }}
+                      client={client!}
+                      onSelect={handlePostSelect}
+                      onCommentClick={handleCommentClick}
+                    />
+                  </div>
+                )
               ))}
             {!isPending && !data?.length && (
-              <p className="text-center text-gray-500">Start following someone to expore theirs posts!</p>
+              <p className="text-center text-gray-500">
+                Start following someone to expore theirs posts!
+              </p>
             )}
           </section>
         </main>

@@ -63,7 +63,7 @@ export default function SharedPage() {
               logic soon, so we are reusing a general feed for now.
             </p>
           </section>
-          <section className="bg-white rounded-2xl border border-gray-200 p-4 space-y-4 min-h-[400px]">
+          <section className="rounded-2xl bg-transparent min-h-[400px]">
             {isPending && <p className="text-center text-gray-500">Loading…</p>}
             {!isPending &&
               opts &&
