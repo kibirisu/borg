@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 
+	"github.com/rs/xid"
+
 	"github.com/kibirisu/borg/internal/ap"
 	"github.com/kibirisu/borg/internal/db"
 )
@@ -19,17 +21,20 @@ func (p *processor) AnnounceStatus(
 	status, err := p.store.Statuses().GetByURI(ctx, uri)
 	if err != nil {
 		activityData := activity.GetObject()
-		actor, err := p.LookupActor(ctx, activityData.Actor)
+		actorID, err := p.LookupActor(ctx, activityData.Actor)
 		if err != nil {
 			return status, err
 		}
-		announcedStatus, err := p.LookupStatus(ctx, activityData.Object)
+		reblogOfID, err := p.LookupStatus(ctx, activityData.Object)
 		if err != nil {
 			return status, err
 		}
 		return p.store.Statuses().Create(ctx, db.CreateStatusParams{
-			AccountID:  actor.ID,
-			ReblogOfID: &announcedStatus.ID,
+			AccountID:  *actorID,
+			ReblogOfID: reblogOfID,
+			ID:         xid.New(),
+			AccountUri: activityData.Actor.GetURI(),
+			Uri:        uri,
 		})
 	}
 	return status, nil

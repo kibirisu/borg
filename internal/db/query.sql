@@ -23,6 +23,20 @@ INSERT INTO statuses (
     id, uri, url, content, account_id, account_uri
 ) SELECT @id, @uri, @url, @content, a.id, @account_uri FROM accounts a WHERE a.uri = @account_uri;
 
+-- name: AddStatusWithActor :one
+WITH actor AS (
+    INSERT INTO accounts (
+        id, username, uri, domain, inbox_uri, outbox_uri, followers_uri, following_uri, url
+    ) VALUES (
+        @actor_id, @username, @actor_uri, @domain, @inbox_uri, @outbox_uri, @followers_uri, @following_uri, @actor_url
+    ) RETURNING id
+), status AS (
+    INSERT INTO statuses (
+        id, uri, url, content, account_id, account_uri
+    ) SELECT @status_id, @status_uri, @status_url, @content, a.id, @account_uri FROM actor a
+    RETURNING id
+) SELECT id FROM status;
+
 -- name: AddFollowByActorURI :one
 WITH follower AS (
     SELECT a.id, a.inbox_uri FROM accounts a WHERE a.uri = @account_uri

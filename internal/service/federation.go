@@ -301,14 +301,14 @@ func (s *federationService) processDelete(object *domain.ObjectOrLink) (worker.J
 	switch object.Object.Type {
 	case "Note":
 		return func(ctx context.Context) error {
-			status, err := s.processor.LookupStatus(
+			statusID, err := s.processor.LookupStatus(
 				ctx,
 				ap.NewNote(object.Object.ActivityObject),
 			)
 			if err != nil {
 				return err
 			}
-			return s.store.Statuses().DeleteByID(ctx, status.ID)
+			return s.store.Statuses().DeleteByID(ctx, *statusID)
 		}, nil
 	default:
 		return nil, errors.New("unsupported Activity type")

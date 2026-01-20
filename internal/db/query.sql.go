@@ -152,6 +152,60 @@ func (q *Queries) AddStatusByActorURI(ctx context.Context, arg AddStatusByActorU
 	return err
 }
 
+const addStatusWithActor = `-- name: AddStatusWithActor :one
+WITH actor AS (
+    INSERT INTO accounts (
+        id, username, uri, domain, inbox_uri, outbox_uri, followers_uri, following_uri, url
+    ) VALUES (
+        $1, $2, $3, $4, $5, $6, $7, $8, $9
+    ) RETURNING id
+), status AS (
+    INSERT INTO statuses (
+        id, uri, url, content, account_id, account_uri
+    ) SELECT $10, $11, $12, $13, a.id, $14 FROM actor a
+    RETURNING id
+) SELECT id FROM status
+`
+
+type AddStatusWithActorParams struct {
+	ActorID      xid.ID
+	Username     string
+	ActorUri     string
+	Domain       sql.NullString
+	InboxUri     string
+	OutboxUri    string
+	FollowersUri string
+	FollowingUri string
+	ActorUrl     string
+	StatusID     xid.ID
+	StatusUri    string
+	StatusUrl    string
+	Content      sql.NullString
+	AccountUri   string
+}
+
+func (q *Queries) AddStatusWithActor(ctx context.Context, arg AddStatusWithActorParams) (xid.ID, error) {
+	row := q.db.QueryRowContext(ctx, addStatusWithActor,
+		arg.ActorID,
+		arg.Username,
+		arg.ActorUri,
+		arg.Domain,
+		arg.InboxUri,
+		arg.OutboxUri,
+		arg.FollowersUri,
+		arg.FollowingUri,
+		arg.ActorUrl,
+		arg.StatusID,
+		arg.StatusUri,
+		arg.StatusUrl,
+		arg.Content,
+		arg.AccountUri,
+	)
+	var id xid.ID
+	err := row.Scan(&id)
+	return id, err
+}
+
 const authData = `-- name: AuthData :one
 SELECT a.id, a.uri, u.password_hash FROM accounts a JOIN users u ON a.id = u.account_id WHERE a.username = $1
 `

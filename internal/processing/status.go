@@ -52,54 +52,63 @@ func (p *processor) AddStatus(ctx context.Context, status ap.Noter) (*xid.ID, er
 			AccountUri: obj.AttributedTo.GetURI(),
 		})
 		if err != nil {
-			if err = p.AddActor(ctx, obj.AttributedTo); err != nil {
-				return nil, err
-			}
-			return nil, errors.New("unimplemented")
+			p.store.Statuses().AddWithActor(ctx, db.AddStatusWithActorParams{
+				ActorID:      xid.New(),
+				Username:     "",
+				ActorUri:     "",
+				Domain:       sql.NullString{},
+				InboxUri:     "",
+				OutboxUri:    "",
+				FollowersUri: "",
+				FollowingUri: "",
+				ActorUrl:     "",
+				StatusID:     id,
+				StatusUri:    "",
+				StatusUrl:    "",
+				Content:      sql.NullString{},
+				AccountUri:   "",
+			})
 		}
 		return &id, nil
 	}
 	return nil, errors.New("unimplemented")
 }
 
-func (p *processor) LookupStatus(ctx context.Context, object ap.Noter) (db.Status, error) {
+func (p *processor) LookupStatus(ctx context.Context, object ap.Noter) (*xid.ID, error) {
 	uri := object.GetURI()
 	if uri == "" {
-		return db.Status{}, errors.New("invalid object")
+		return nil, errors.New("invalid object")
 	}
 	status, err := p.store.Statuses().GetByURI(ctx, uri)
 	if err != nil {
 		object, err := p.client.Get(ctx, uri)
 		if err != nil {
-			return status, err
+			return nil, err
 		}
-		fetchedStatus := ap.NewNote(object)
-		statusData := fetchedStatus.GetObject()
-		account, err := p.LookupActor(ctx, statusData.AttributedTo)
+		statusData := ap.NewNote(object).GetObject()
+		accountID, err := p.LookupActor(ctx, statusData.AttributedTo)
 		if err != nil {
-			return status, err
+			return nil, err
 		}
 		var inReplyToID *xid.ID
 		if statusData.InReplyTo.GetRaw() != nil {
-			parentStatus, err := p.LookupStatus(ctx, statusData.InReplyTo)
+			inReplyToID, err = p.LookupStatus(ctx, statusData.InReplyTo)
 			if err != nil {
-				return status, err
+				return nil, err
 			}
-			inReplyToID = &parentStatus.ID
 		}
 		status, err = p.store.Statuses().Create(ctx, db.CreateStatusParams{
-			Url:   "nope",
-			Local: sql.NullBool{},
+			Url: "nope",
 			Content: sql.NullString{
 				String: statusData.Content,
 				Valid:  true,
 			},
-			AccountID:   account.ID,
+			AccountID:   *accountID,
 			InReplyToID: inReplyToID,
 		})
 		if err != nil {
-			return status, err
+			return nil, err
 		}
 	}
-	return status, nil
+	return &status.ID, nil
 }
