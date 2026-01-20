@@ -18,7 +18,7 @@ INSERT INTO users (
     $1, $2, $3
 );
 
--- name: AddFollow :one
+-- name: AddFollowByActorURI :one
 WITH follower AS (
     SELECT a.id, a.inbox_uri FROM accounts a WHERE a.uri = @account_uri
 ), follow AS (

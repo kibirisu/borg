@@ -15,15 +15,15 @@ import (
 func (p *processor) AcceptFollow(
 	ctx context.Context,
 	activity ap.FollowActivitier,
-	id xid.ID,
+	targetAccountID xid.ID,
 ) error {
 	activityData := activity.GetObject()
-	acceptID := xid.New()
-	inbox, err := p.store.Follows().AddFollow(ctx, db.AddFollowParams{
-		ID:              acceptID,
+	followID := xid.New()
+	inbox, err := p.store.Follows().AddFollowByActorURI(ctx, db.AddFollowByActorURIParams{
+		ID:              followID,
 		Uri:             activityData.ID,
 		AccountUri:      activityData.Actor.GetURI(),
-		TargetAccountID: id,
+		TargetAccountID: targetAccountID,
 	})
 	if err != nil {
 		obj, err := p.client.Get(ctx, activityData.Actor.GetURI())
@@ -33,7 +33,7 @@ func (p *processor) AcceptFollow(
 		actor := ap.NewActor(obj).GetObject()
 		res, err := p.store.WithTX(ctx, func(ctx context.Context, s repo.Store) (any, error) {
 			accountID := xid.New()
-			_, err := s.Accounts().AddAccount(ctx, db.AddAccountParams{
+			account, err := s.Accounts().AddAccount(ctx, db.AddAccountParams{
 				ID:       accountID,
 				Username: actor.PreferredUsername,
 				Uri:      actor.ID,
@@ -50,12 +50,13 @@ func (p *processor) AcceptFollow(
 			if err != nil {
 				return nil, err
 			}
-			return s.Follows().AddFollow(ctx, db.AddFollowParams{
-				AccountUri:      actor.ID,
-				ID:              accountID,
+			err = s.Follows().CreateNew(ctx, db.CreateFollowNewParams{
+				ID:              followID,
 				Uri:             activityData.ID,
-				TargetAccountID: id,
+				AccountID:       account.ID,
+				TargetAccountID: targetAccountID,
 			})
+			return actor.Inbox, err
 		})
 		if err != nil {
 			return err
