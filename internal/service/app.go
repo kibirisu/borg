@@ -553,11 +553,16 @@ func (s *appService) ReblogStatus(ctx context.Context, statusID string) (worker.
 
 // UnfavouriteStatus implements AppService.
 func (s *appService) UnfavouriteStatus(ctx context.Context, id string) (worker.Job, error) {
-	favID, err := xid.FromString(id)
+	token, ok := ctx.Value(auth.TokenContextKey).(*auth.TokenData)
+	if !ok {
+		return nil, errors.New("auth failure")
+	}
+	loggedInID, err := xid.FromString(token.ID)
+	statusID, err := xid.FromString(id)
 	if err != nil {
 		return nil, err
 	}
-	fav, err := s.store.Favourites().DeleteByIDNew(ctx, favID)
+	fav, err := s.store.Favourites().DeleteByStatusID(ctx, loggedInID, statusID)
 	if err != nil {
 		return nil, err
 	}
