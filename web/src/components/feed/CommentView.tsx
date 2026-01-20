@@ -16,21 +16,31 @@ export const loader =
     if (!params.postId) {
       return { postOpts: undefined, commentOpts: undefined, postId: undefined };
     }
-    const postId = String(params.postId);
-    const queryParams = { params: { path: { id: postId } } };
+    const routePostId = String(params.postId);
+    const routeParams = { params: { path: { id: routePostId } } };
+    const routePostOpts = client.$api.queryOptions(
+      "get",
+      "/api/statuses/{id}",
+      routeParams,
+    );
+    const postData = await client.queryClient.ensureQueryData(routePostOpts);
+    const canonicalPostId = postData?.reblog?.id ?? routePostId;
+    const canonicalParams = { params: { path: { id: canonicalPostId } } };
     const postOpts = client.$api.queryOptions(
       "get",
       "/api/statuses/{id}",
-      queryParams,
+      canonicalParams,
     );
     const commentOpts = client.$api.queryOptions(
       "get",
       "/api/statuses/{id}/replies",
-      queryParams,
+      canonicalParams,
     );
     client.queryClient.prefetchQuery(commentOpts);
-    await client.queryClient.ensureQueryData(postOpts);
-    return { postOpts, commentOpts, postId };
+    if (canonicalPostId !== routePostId) {
+      await client.queryClient.ensureQueryData(postOpts);
+    }
+    return { postOpts, commentOpts, postId: canonicalPostId };
   };
 export const commentsLoader =
   (client: AppClient) =>
@@ -99,7 +109,7 @@ export default function CommentView() {
           <CommentsFeed opts={commentOpts} postId={postId} />
         </div>
       </div>
-      <CommentForm />
+      <CommentForm postId={postId} />
     </div>
   );
 }
@@ -150,12 +160,14 @@ export function CommentsFeed({
       {data && data.length > 0 ? (
         <div className="space-y-3">
           {data.map((comment: components["schemas"]["Status"]) => (
-            <div
-              key={comment.id}
-              className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden"
-            >
-              <PostItem post={{ data: comment }} client={client!} />
-            </div>
+            comment && (
+              <div
+                key={comment.id}
+                className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden"
+              >
+                <PostItem post={{ data: comment }} client={client!} />
+              </div>
+            )
           ))}
         </div>
       ) : (

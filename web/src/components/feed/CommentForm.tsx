@@ -11,12 +11,15 @@ import AppContext from "../../lib/state";
 export const action =
   (client: AppClient) =>
   async ({ request, params }: ActionFunctionArgs) => {
-    if (!params.postId) {
+    const fallbackPostId = params.postId ? String(params.postId) : "";
+    const formData = await request.formData();
+    const replyToId = formData.get("replyToId")?.toString() ?? "";
+    const postId = replyToId || fallbackPostId;
+
+    if (!postId) {
       return { form: "No post ID provided" };
     }
 
-    const postId = String(params.postId);
-    const formData = await request.formData();
     const contentRaw = formData.get("content")?.toString() ?? "";
     const userId = formData.get("userId")?.toString() ?? "";
 
@@ -59,7 +62,7 @@ export const action =
     return null;
   };
 
-export default function CommentForm() {
+export default function CommentForm({ postId }: { postId?: string }) {
   const appState = useContext(AppContext);
   const errors = useActionData() as { form?: string } | undefined;
   const navigation = useNavigation();
@@ -81,6 +84,7 @@ export default function CommentForm() {
       className="fixed bottom-0 left-0 right-0 z-50 w-full border-t border-gray-200 bg-white flex flex-col gap-3 p-4 shadow-[0_-8px_24px_-12px_rgba(0,0,0,0.3)]"
     >
       <input type="hidden" name="userId" value={userId ?? ""} />
+      <input type="hidden" name="replyToId" value={postId ?? ""} />
       {!isAuthenticated && (
         <div className="rounded-lg bg-yellow-50 border border-dashed border-yellow-200 p-3 text-sm text-gray-700">
           Sign in to comment.

@@ -23,10 +23,12 @@ export const action =
       return { form: "You must be logged in to post." };
     }
 
-    const mutationOpts = client.$api.queryOptions("post", "/api/statuses", {
+    const res = await client.fetchClient.POST("/api/statuses", {
       body: { status: content, in_reply_to_id: null },
     });
-    await client.queryClient.ensureQueryData(mutationOpts);
+    if (res.error) {
+      return { form: "Failed to create post." };
+    }
     client.queryClient.invalidateQueries({
       queryKey: ["account-statuses", userId],
     });
