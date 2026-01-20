@@ -238,7 +238,6 @@ export default function UserPage() {
                       <PostItem
                         post={{ data: post }}
                         client={client!}
-                        showActions
                         onCommentClick={(p) => {
                           if (!p.data || !("id" in p.data)) {
                             return;
