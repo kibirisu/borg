@@ -738,41 +738,6 @@ func (q *Queries) DeleteStatusByIDNew(ctx context.Context, id xid.ID) (Status, e
 	return i, err
 }
 
-const deleteReblogByAccountAndOriginal = `-- name: DeleteReblogByAccountAndOriginal :one
-DELETE FROM statuses
-WHERE reblog_of_id = $1
-  AND account_id = $2
-RETURNING id, created_at, updated_at, uri, url, local, content, account_id, account_uri, in_reply_to_id, in_reply_to_uri, in_reply_to_account_id, reblog_of_id, reblog_of_uri, reblog_of_account_id
-`
-
-type DeleteReblogByAccountAndOriginalParams struct {
-	OriginalID xid.ID
-	AccountID  xid.ID
-}
-
-func (q *Queries) DeleteReblogByAccountAndOriginal(ctx context.Context, arg DeleteReblogByAccountAndOriginalParams) (Status, error) {
-	row := q.db.QueryRowContext(ctx, deleteReblogByAccountAndOriginal, arg.OriginalID, arg.AccountID)
-	var i Status
-	err := row.Scan(
-		&i.ID,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.Uri,
-		&i.Url,
-		&i.Local,
-		&i.Content,
-		&i.AccountID,
-		&i.AccountUri,
-		&i.InReplyToID,
-		&i.InReplyToUri,
-		&i.InReplyToAccountID,
-		&i.ReblogOfID,
-		&i.ReblogOfUri,
-		&i.ReblogOfAccountID,
-	)
-	return i, err
-}
-
 const getAccountByID = `-- name: GetAccountByID :one
 SELECT 
     a.id, a.created_at, a.updated_at, a.username, a.uri, a.display_name, a.domain, a.inbox_uri, a.outbox_uri, a.followers_uri, a.following_uri, a.url,

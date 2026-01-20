@@ -612,7 +612,23 @@ func (s *appService) UnreblogStatus(ctx context.Context, id string) (worker.Job,
 		return nil, err
 	}
 
-	status, err := s.store.Statuses().DeleteReblogByAccountAndOriginal(ctx, statusID, accountID)
+	reblogs, err := s.store.Statuses().GetRebloggedByAccountID(ctx, accountID)
+	if err != nil {
+		return nil, err
+	}
+	var reblogID *xid.ID
+	for _, reblog := range reblogs {
+		if reblog.Status.ReblogOfID != nil && *reblog.Status.ReblogOfID == statusID {
+			id := reblog.Status.ID
+			reblogID = &id
+			break
+		}
+	}
+	if reblogID == nil {
+		return nil, sql.ErrNoRows
+	}
+
+	status, err := s.store.Statuses().DeleteByIDNew(ctx, *reblogID)
 	if err != nil {
 		return nil, err
 	}
