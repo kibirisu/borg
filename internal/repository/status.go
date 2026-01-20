@@ -9,7 +9,8 @@ import (
 )
 
 type StatusRepository interface {
-	GetByIDNew(context.Context, db.GetStatusByIDNewParams) (db.GetStatusByIDNewRow, error)
+	AddByActorURI(context.Context, db.AddStatusByActorURIParams) error
+	GetByID(context.Context, db.GetStatusByIDParams) (db.GetStatusByIDRow, error)
 	GetByAccountID(
 		context.Context,
 		db.GetStatusesByAccountIDParams,
@@ -19,10 +20,8 @@ type StatusRepository interface {
 	DeleteByIDNew(context.Context, xid.ID) (db.Status, error)
 	Create(context.Context, db.CreateStatusParams) (db.Status, error)
 	GetReplies(context.Context, xid.ID, xid.ID) ([]db.GetStatusRepliesRow, error)
-	GetByID(context.Context, xid.ID) (db.Status, error)
 	GetByURI(context.Context, string) (db.Status, error)
 	GetLocalByID(context.Context, xid.ID) (db.Status, error)
-	GetByIDWithMetadata(context.Context, xid.ID) (db.GetStatusByIdWithMetadataRow, error)
 	GetHomeTimelineByAccountID(context.Context, xid.ID) ([]db.GetTimelinePostsByAccountIdRow, error)
 	DeleteByID(context.Context, xid.ID) error
 }
@@ -33,12 +32,20 @@ type statusRepository struct {
 
 var _ StatusRepository = (*statusRepository)(nil)
 
-// GetByIDNew implements StatusRepository.
-func (r *statusRepository) GetByIDNew(
+// AddByActorURI implements StatusRepository.
+func (r *statusRepository) AddByActorURI(
 	ctx context.Context,
-	ids db.GetStatusByIDNewParams,
-) (db.GetStatusByIDNewRow, error) {
-	return r.q.GetStatusByIDNew(ctx, ids)
+	status db.AddStatusByActorURIParams,
+) error {
+	return r.q.AddStatusByActorURI(ctx, status)
+}
+
+// GetByID implements StatusRepository.
+func (r *statusRepository) GetByID(
+	ctx context.Context,
+	ids db.GetStatusByIDParams,
+) (db.GetStatusByIDRow, error) {
+	return r.q.GetStatusByID(ctx, ids)
 }
 
 // CreateNew implements StatusRepository.
@@ -83,11 +90,6 @@ func (r *statusRepository) GetReplies(
 	return r.q.GetStatusReplies(ctx, param)
 }
 
-// GetById implements StatusRepository.
-func (r *statusRepository) GetByID(ctx context.Context, id xid.ID) (db.Status, error) {
-	return r.q.GetStatusById(ctx, id)
-}
-
 // GetByAccountID implements StatusRepository.
 func (r *statusRepository) GetByAccountID(
 	ctx context.Context,
@@ -104,14 +106,6 @@ func (r *statusRepository) GetByURI(ctx context.Context, uri string) (db.Status,
 // GetLocalByID implements StatusRepository.
 func (r *statusRepository) GetLocalByID(ctx context.Context, id xid.ID) (db.Status, error) {
 	return r.q.GetLocalStatusByID(ctx, id)
-}
-
-// GetById implements StatusRepository.
-func (r *statusRepository) GetByIDWithMetadata(
-	ctx context.Context,
-	id xid.ID,
-) (db.GetStatusByIdWithMetadataRow, error) {
-	return r.q.GetStatusByIdWithMetadata(ctx, id)
 }
 
 // GetHomeTimelineByAccountID implements StatusRepository.

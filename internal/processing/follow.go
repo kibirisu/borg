@@ -19,7 +19,7 @@ func (p *processor) AcceptFollow(
 ) error {
 	activityData := activity.GetObject()
 	followID := xid.New()
-	inbox, err := p.store.Follows().AddFollowByActorURI(ctx, db.AddFollowByActorURIParams{
+	inbox, err := p.store.Follows().AddByActorURI(ctx, db.AddFollowByActorURIParams{
 		ID:              followID,
 		Uri:             activityData.ID,
 		AccountUri:      activityData.Actor.GetURI(),
@@ -31,9 +31,10 @@ func (p *processor) AcceptFollow(
 			return err
 		}
 		actor := ap.NewActor(obj).GetObject()
+
 		res, err := p.store.WithTX(ctx, func(ctx context.Context, s repo.Store) (any, error) {
 			accountID := xid.New()
-			account, err := s.Accounts().AddAccount(ctx, db.AddAccountParams{
+			_, err := s.Accounts().Add(ctx, db.AddAccountParams{
 				ID:       accountID,
 				Username: actor.PreferredUsername,
 				Uri:      actor.ID,
@@ -50,10 +51,10 @@ func (p *processor) AcceptFollow(
 			if err != nil {
 				return nil, err
 			}
-			err = s.Follows().CreateNew(ctx, db.CreateFollowNewParams{
+			err = s.Follows().Create(ctx, db.CreateFollowNewParams{
 				ID:              followID,
 				Uri:             activityData.ID,
-				AccountID:       account.ID,
+				AccountID:       accountID,
 				TargetAccountID: targetAccountID,
 			})
 			return actor.Inbox, err

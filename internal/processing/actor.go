@@ -12,6 +12,49 @@ import (
 	"github.com/kibirisu/borg/internal/util"
 )
 
+func (p *processor) AddActor(ctx context.Context, actor ap.Actorer) error {
+	switch actor.GetValueType() {
+	case ap.LinkType:
+		uri := actor.GetLink()
+		if util.ExtractDomainFromURI(uri) == p.conf.Address {
+			return errors.New("attempted to fetch local account")
+		}
+		obj, err := p.client.Get(ctx, uri)
+		if err != nil {
+			return err
+		}
+		raw := actor.GetRaw()
+		*raw = *obj
+	case ap.ObjectType:
+		uri := actor.GetRaw().Object.ID
+		if util.ExtractDomainFromURI(uri) == p.conf.Address {
+			return errors.New("attempted to fetch local account")
+		}
+	case ap.InvalidType:
+		fallthrough
+	case ap.NullType:
+		fallthrough
+	default:
+		return errors.New("activity actor is missing")
+	}
+	obj := actor.GetObject()
+	_, err := p.store.Accounts().Add(ctx, db.AddAccountParams{
+		ID:       xid.New(),
+		Username: obj.PreferredUsername,
+		Uri:      obj.ID,
+		Domain: sql.NullString{
+			String: util.ExtractDomainFromURI(obj.ID),
+			Valid:  true,
+		},
+		InboxUri:     obj.Inbox,
+		OutboxUri:    obj.Outbox,
+		FollowersUri: obj.Followers,
+		FollowingUri: obj.Following,
+		Url:          ":3",
+	})
+	return err
+}
+
 func (p *processor) LookupActor(ctx context.Context, object ap.Actorer) (db.Account, error) {
 	uri := object.GetURI()
 	if uri == "" {
@@ -63,7 +106,7 @@ func (p *processor) FetchAndStoreAccount(
 		return
 	}
 	actor := ap.NewActor(obj).GetObject()
-	return p.store.Accounts().AddAccount(ctx, db.AddAccountParams{
+	return p.store.Accounts().Add(ctx, db.AddAccountParams{
 		ID:       xid.New(),
 		Username: actor.PreferredUsername,
 		Uri:      actor.ID,

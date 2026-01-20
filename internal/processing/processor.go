@@ -6,6 +6,7 @@ import (
 	"github.com/rs/xid"
 
 	"github.com/kibirisu/borg/internal/ap"
+	conf "github.com/kibirisu/borg/internal/config"
 	"github.com/kibirisu/borg/internal/db"
 	"github.com/kibirisu/borg/internal/domain"
 	repo "github.com/kibirisu/borg/internal/repository"
@@ -13,7 +14,6 @@ import (
 )
 
 type Processor interface {
-	AddAccount(context.Context, string) error
 	LookupActor(context.Context, ap.Actorer) (db.Account, error)
 	LookupStatus(context.Context, ap.Noter) (db.Status, error)
 	AnnounceStatus(context.Context, ap.AnnounceActivitier) (db.Status, error)
@@ -27,10 +27,11 @@ type Processor interface {
 type processor struct {
 	store  repo.Store
 	client transport.Client
+	conf   *conf.Config
 }
 
 var _ Processor = (*processor)(nil)
 
-func New(store repo.Store, client transport.Client) Processor {
-	return &processor{store, client}
+func New(store repo.Store, client transport.Client, conf *conf.Config) Processor {
+	return &processor{store, client, conf}
 }
