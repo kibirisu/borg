@@ -17,7 +17,7 @@ func ToAPIAccount(account *db.GetAccountByIDRow) *api.Account {
 	}
 }
 
-func ToAPIStatus(status *db.GetStatusByIDNewRow) *api.Status {
+func ToAPIStatus(status *db.GetStatusByIDRow) *api.Status {
 	var inReplyToID, inReplyToAccountID *string
 
 	if status.Status.ReblogOfID == nil {

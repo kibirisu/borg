@@ -171,7 +171,7 @@ func (s *appService) GetAccountStatuses(ctx context.Context, id string) ([]api.S
 	res := make([]api.Status, len(statuses))
 	for idx, status := range statuses {
 		// _, _ = status, idx
-		s := db.GetStatusByIDNewRow(status)
+		s := db.GetStatusByIDRow(status)
 		res[idx] = *mapper.ToAPIStatus(&s)
 	}
 	return res, nil
@@ -250,7 +250,7 @@ func (s *appService) FollowAccount(ctx context.Context, accountID string) (worke
 			})
 			return req, nil
 		}
-		err = store.Follows().CreateNew(ctx, db.CreateFollowNewParams{
+		err = store.Follows().Create(ctx, db.CreateFollowNewParams{
 			ID:              id,
 			Uri:             s.builder.FollowURI(token.ID, id.String()),
 			AccountID:       req.AccountID,
@@ -455,7 +455,7 @@ func (s *appService) ViewStatus(ctx context.Context, id string) (*api.Status, er
 		return nil, err
 	}
 
-	status, err := s.store.Statuses().GetByIDNew(ctx, db.GetStatusByIDNewParams{
+	status, err := s.store.Statuses().GetByID(ctx, db.GetStatusByIDParams{
 		ID:        statusID,
 		AccountID: accountID,
 	})
@@ -630,7 +630,7 @@ func (s *appService) GetStatusReplies(ctx context.Context, id string) ([]api.Sta
 	}
 	res := make([]api.Status, len(statuses))
 	for idx, status := range statuses {
-		s := db.GetStatusByIDNewRow(status)
+		s := db.GetStatusByIDRow(status)
 		res[idx] = *mapper.ToAPIStatus(&s)
 	}
 	return res, nil
@@ -653,7 +653,7 @@ func (s *appService) ViewHomeTimeline(ctx context.Context) ([]api.Status, error)
 
 	res := make([]api.Status, len(statuses))
 	for idx, status := range statuses {
-		s := db.GetStatusByIDNewRow(status)
+		s := db.GetStatusByIDRow(status)
 		res[idx] = *mapper.ToAPIStatus(&s)
 	}
 	return res, nil

@@ -18,6 +18,11 @@ INSERT INTO users (
     $1, $2, $3
 );
 
+-- name: AddStatusByActorURI :exec
+INSERT INTO statuses (
+    id, uri, url, content, account_id, account_uri
+) SELECT @id, @uri, @url, @content, a.id, @account_uri FROM accounts a WHERE a.uri = @account_uri;
+
 -- name: AddFollowByActorURI :one
 WITH follower AS (
     SELECT a.id, a.inbox_uri FROM accounts a WHERE a.uri = @account_uri
@@ -85,13 +90,10 @@ SELECT inbox_uri FROM accounts a JOIN follows f ON a.id = f.account_id WHERE f.t
 -- name: GetAccountInbox :one
 SELECT inbox_uri FROM accounts WHERE id = $1;
 
--- name: GetStatusById :one
-SELECT * FROM statuses WHERE id = $1;
-
 -- name: GetLocalStatusByID :one
 SELECT * FROM statuses WHERE id = $1 AND local;
 
--- name: GetStatusByIDNew :one
+-- name: GetStatusByID :one
 SELECT 
     sqlc.embed(s),
     sqlc.embed(a),
@@ -175,17 +177,6 @@ WHERE s.account_id = @account_id;
 
 -- name: DeleteStatusByIDNew :one
 DELETE FROM statuses WHERE id = $1 RETURNING *;
-
--- name: GetStatusByIdWithMetadata :one
-SELECT 
-    sqlc.embed(s),
-    sqlc.embed(a),
-    (SELECT COUNT(*) FROM favourites f WHERE f.status_id = s.id) AS like_count,
-    (SELECT COUNT(*) FROM statuses r WHERE r.in_reply_to_id = s.id) AS comment_count,
-    (SELECT COUNT(*) FROM statuses b WHERE b.reblog_of_id = s.id) AS share_count
-FROM statuses s
-JOIN accounts a ON s.account_id = a.id
-WHERE s.id = $1;
 
 -- name: CreateFollow :one
 INSERT INTO follows (
@@ -312,9 +303,6 @@ SELECT
 FROM follows f JOIN accounts a1 ON f.account_id = a1.id
 JOIN accounts a2 ON f.target_account_id = a2.id
 WHERE f.id = $1 AND a1.domain IS NULL;
-
--- name: GetFollowByURI :one
-SELECT * FROM follows WHERE uri LIKE '%' || $1::text;
 
 -- name: DeleteFavouriteByID :exec
 DELETE FROM favourites WHERE id = $1;
