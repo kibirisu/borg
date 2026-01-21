@@ -42,7 +42,6 @@ func (p *processor) LookupStatus(ctx context.Context, object ap.Noter) (*xid.ID,
 		}
 		status, err = p.store.Statuses().Add(ctx, db.AddStatusParams{
 			ID:         xid.New(),
-			Url:        "nope",
 			AccountID:  *accountID,
 			AccountUri: statusData.AttributedTo.GetLink(),
 			Content: sql.NullString{

@@ -17,7 +17,7 @@ const addAccount = `-- name: AddAccount :one
 INSERT INTO accounts (
     id, username, uri, domain, inbox_uri, outbox_uri, followers_uri, following_uri, url
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9
+    $1, $2, $3, $4, $5, $6, $7, $8, ''
 ) RETURNING id, created_at, updated_at, username, uri, display_name, domain, inbox_uri, outbox_uri, followers_uri, following_uri, url
 `
 
@@ -30,7 +30,6 @@ type AddAccountParams struct {
 	OutboxUri    string
 	FollowersUri string
 	FollowingUri string
-	Url          string
 }
 
 func (q *Queries) AddAccount(ctx context.Context, arg AddAccountParams) (Account, error) {
@@ -43,7 +42,6 @@ func (q *Queries) AddAccount(ctx context.Context, arg AddAccountParams) (Account
 		arg.OutboxUri,
 		arg.FollowersUri,
 		arg.FollowingUri,
-		arg.Url,
 	)
 	var i Account
 	err := row.Scan(
@@ -152,14 +150,13 @@ const addReblog = `-- name: AddReblog :one
 INSERT INTO statuses (
     id, uri, url, account_id, account_uri, reblog_of_id, reblog_of_account_id
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7
+    $1, $2, '', $3, $4, $5, $6
 ) RETURNING id, created_at, updated_at, uri, url, local, content, account_id, account_uri, in_reply_to_id, in_reply_to_uri, in_reply_to_account_id, reblog_of_id, reblog_of_uri, reblog_of_account_id
 `
 
 type AddReblogParams struct {
 	ID                xid.ID
 	ReblogUri         string
-	Url               string
 	AccountID         xid.ID
 	AccountUri        string
 	ReblogOfID        *xid.ID
@@ -170,7 +167,6 @@ func (q *Queries) AddReblog(ctx context.Context, arg AddReblogParams) (Status, e
 	row := q.db.QueryRowContext(ctx, addReblog,
 		arg.ID,
 		arg.ReblogUri,
-		arg.Url,
 		arg.AccountID,
 		arg.AccountUri,
 		arg.ReblogOfID,
@@ -201,14 +197,13 @@ const addStatus = `-- name: AddStatus :one
 INSERT INTO statuses (
     id, url, local, content, account_id, account_uri, in_reply_to_id, reblog_of_id, uri
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9
+    $1, '', $2, $3, $4, $5, $6, $7, $8
 )
 RETURNING id, created_at, updated_at, uri, url, local, content, account_id, account_uri, in_reply_to_id, in_reply_to_uri, in_reply_to_account_id, reblog_of_id, reblog_of_uri, reblog_of_account_id
 `
 
 type AddStatusParams struct {
 	ID          xid.ID
-	Url         string
 	Local       sql.NullBool
 	Content     sql.NullString
 	AccountID   xid.ID
@@ -221,7 +216,6 @@ type AddStatusParams struct {
 func (q *Queries) AddStatus(ctx context.Context, arg AddStatusParams) (Status, error) {
 	row := q.db.QueryRowContext(ctx, addStatus,
 		arg.ID,
-		arg.Url,
 		arg.Local,
 		arg.Content,
 		arg.AccountID,
@@ -254,13 +248,12 @@ func (q *Queries) AddStatus(ctx context.Context, arg AddStatusParams) (Status, e
 const addStatusByActorURI = `-- name: AddStatusByActorURI :exec
 INSERT INTO statuses (
     id, uri, url, content, account_id, account_uri
-) SELECT $1, $2, $3, $4, a.id, $5 FROM accounts a WHERE a.uri = $5
+) SELECT $1, $2, '', $3, a.id, $4 FROM accounts a WHERE a.uri = $4
 `
 
 type AddStatusByActorURIParams struct {
 	ID         xid.ID
 	Uri        string
-	Url        string
 	Content    sql.NullString
 	AccountUri string
 }
@@ -269,7 +262,6 @@ func (q *Queries) AddStatusByActorURI(ctx context.Context, arg AddStatusByActorU
 	_, err := q.db.ExecContext(ctx, addStatusByActorURI,
 		arg.ID,
 		arg.Uri,
-		arg.Url,
 		arg.Content,
 		arg.AccountUri,
 	)
@@ -297,7 +289,7 @@ const createActor = `-- name: CreateActor :one
 INSERT INTO accounts (
     id, username, uri, display_name, domain, inbox_uri, outbox_uri, url, followers_uri, following_uri
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+    $1, $2, $3, $4, $5, $6, $7, '', $8, $9
 ) RETURNING id, created_at, updated_at, username, uri, display_name, domain, inbox_uri, outbox_uri, followers_uri, following_uri, url
 `
 
@@ -309,7 +301,6 @@ type CreateActorParams struct {
 	Domain       sql.NullString
 	InboxUri     string
 	OutboxUri    string
-	Url          string
 	FollowersUri string
 	FollowingUri string
 }
@@ -323,7 +314,6 @@ func (q *Queries) CreateActor(ctx context.Context, arg CreateActorParams) (Accou
 		arg.Domain,
 		arg.InboxUri,
 		arg.OutboxUri,
-		arg.Url,
 		arg.FollowersUri,
 		arg.FollowingUri,
 	)
@@ -478,12 +468,12 @@ func (q *Queries) CreateFollowRequest(ctx context.Context, arg CreateFollowReque
 
 const createReblog = `-- name: CreateReblog :one
 WITH parent AS (
-    SELECT s.uri, s.account_id FROM statuses s WHERE s.id = $6
+    SELECT s.uri, s.account_id FROM statuses s WHERE s.id = $5
 ) INSERT INTO statuses (
     id, uri, url, local, account_id, account_uri, 
     reblog_of_id, reblog_of_uri, reblog_of_account_id
 ) VALUES (
-    $1, $2, $3, TRUE, $4, $5, $6,
+    $1, $2, '', TRUE, $3, $4, $5,
     (SELECT uri FROM parent),
     (SELECT account_id FROM parent)
 ) RETURNING id, created_at, updated_at, uri, url, local, content, account_id, account_uri, in_reply_to_id, in_reply_to_uri, in_reply_to_account_id, reblog_of_id, reblog_of_uri, reblog_of_account_id
@@ -492,7 +482,6 @@ WITH parent AS (
 type CreateReblogParams struct {
 	ID         xid.ID
 	Uri        string
-	Url        string
 	AccountID  xid.ID
 	AccountUri string
 	ReblogOfID *xid.ID
@@ -502,7 +491,6 @@ func (q *Queries) CreateReblog(ctx context.Context, arg CreateReblogParams) (Sta
 	row := q.db.QueryRowContext(ctx, createReblog,
 		arg.ID,
 		arg.Uri,
-		arg.Url,
 		arg.AccountID,
 		arg.AccountUri,
 		arg.ReblogOfID,
@@ -530,12 +518,12 @@ func (q *Queries) CreateReblog(ctx context.Context, arg CreateReblogParams) (Sta
 
 const createStatus = `-- name: CreateStatus :one
 WITH parent AS (
-    SELECT uri, account_id FROM statuses WHERE id = $7
+    SELECT uri, account_id FROM statuses WHERE id = $6
 ) INSERT INTO statuses (
     id, uri, url, local, content, account_id, account_uri, 
     in_reply_to_id, in_reply_to_uri, in_reply_to_account_id
 ) VALUES (
-    $1, $2, $3, true, $4, $5, $6, $7,
+    $1, $2, '', true, $3, $4, $5, $6,
     (SELECT uri FROM parent),
     (SELECT account_id FROM parent)
 ) RETURNING id, created_at, updated_at, uri, url, local, content, account_id, account_uri, in_reply_to_id, in_reply_to_uri, in_reply_to_account_id, reblog_of_id, reblog_of_uri, reblog_of_account_id
@@ -544,7 +532,6 @@ WITH parent AS (
 type CreateStatusParams struct {
 	ID          xid.ID
 	Uri         string
-	Url         string
 	Content     sql.NullString
 	AccountID   xid.ID
 	AccountUri  string
@@ -555,7 +542,6 @@ func (q *Queries) CreateStatus(ctx context.Context, arg CreateStatusParams) (Sta
 	row := q.db.QueryRowContext(ctx, createStatus,
 		arg.ID,
 		arg.Uri,
-		arg.Url,
 		arg.Content,
 		arg.AccountID,
 		arg.AccountUri,

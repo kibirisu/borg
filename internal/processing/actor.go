@@ -41,7 +41,6 @@ func (p *processor) LookupActor(ctx context.Context, object ap.Actorer) (*xid.ID
 			},
 			InboxUri:     actorData.Inbox,
 			OutboxUri:    actorData.Outbox,
-			Url:          "nope",
 			FollowersUri: actorData.Followers,
 			FollowingUri: actorData.Following,
 		})
@@ -78,7 +77,6 @@ func (p *processor) FetchAndStoreAccount(
 		OutboxUri:    actor.Outbox,
 		FollowersUri: actor.Followers,
 		FollowingUri: actor.Following,
-		Url:          ":3", // webfinger may provide url btw
 	})
 }
 

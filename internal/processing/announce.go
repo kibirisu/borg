@@ -45,7 +45,6 @@ func (p *processor) AnnounceStatus(
 			ID:                xid.New(),
 			AccountUri:        activityData.Actor.GetURI(),
 			ReblogUri:         uri,
-			Url:               "",
 			ReblogOfAccountID: nil, // risky
 		})
 		if err != nil {

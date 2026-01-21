@@ -8,7 +8,7 @@ SELECT a.id, a.uri, u.password_hash FROM accounts a JOIN users u ON a.id = u.acc
 INSERT INTO accounts (
     id, username, uri, display_name, domain, inbox_uri, outbox_uri, url, followers_uri, following_uri
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+    $1, $2, $3, $4, $5, $6, $7, '', $8, $9
 ) RETURNING *;
 
 -- name: CreateUser :exec
@@ -21,7 +21,7 @@ INSERT INTO users (
 -- name: AddStatusByActorURI :exec
 INSERT INTO statuses (
     id, uri, url, content, account_id, account_uri
-) SELECT @id, @uri, @url, @content, a.id, @account_uri FROM accounts a WHERE a.uri = @account_uri;
+) SELECT @id, @uri, '', @content, a.id, @account_uri FROM accounts a WHERE a.uri = @account_uri;
 
 -- name: AddFollowByRequestURI :exec
 WITH request AS (
@@ -43,7 +43,7 @@ WITH follower AS (
 INSERT INTO accounts (
     id, username, uri, domain, inbox_uri, outbox_uri, followers_uri, following_uri, url
 ) VALUES (
-    @id, @username, @uri, @domain, @inbox_uri, @outbox_uri, @followers_uri, @following_uri, @url
+    @id, @username, @uri, @domain, @inbox_uri, @outbox_uri, @followers_uri, @following_uri, ''
 ) RETURNING *;
 
 -- name: GetLocalActorByID :one
@@ -218,14 +218,14 @@ WITH account AS (
 INSERT INTO statuses (
     id, uri, url, account_id, account_uri, reblog_of_id, reblog_of_account_id
 ) VALUES (
-    @id, @reblog_uri, @url, @account_id, @account_uri, @reblog_of_id, @reblog_of_account_id
+    @id, @reblog_uri, '', @account_id, @account_uri, @reblog_of_id, @reblog_of_account_id
 ) RETURNING *;
 
 -- name: AddStatus :one
 INSERT INTO statuses (
     id, url, local, content, account_id, account_uri, in_reply_to_id, reblog_of_id, uri
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9
+    $1, '', $2, $3, $4, $5, $6, $7, $8
 )
 RETURNING *;
 
@@ -236,7 +236,7 @@ WITH parent AS (
     id, uri, url, local, content, account_id, account_uri, 
     in_reply_to_id, in_reply_to_uri, in_reply_to_account_id
 ) VALUES (
-    @id, @uri, @url, true, @content, @account_id, @account_uri, @in_reply_to_id,
+    @id, @uri, '', true, @content, @account_id, @account_uri, @in_reply_to_id,
     (SELECT uri FROM parent),
     (SELECT account_id FROM parent)
 ) RETURNING *;
@@ -251,7 +251,7 @@ WITH parent AS (
     id, uri, url, local, account_id, account_uri, 
     reblog_of_id, reblog_of_uri, reblog_of_account_id
 ) VALUES (
-    @id, @uri, @url, TRUE, @account_id, @account_uri, @reblog_of_id,
+    @id, @uri, '', TRUE, @account_id, @account_uri, @reblog_of_id,
     (SELECT uri FROM parent),
     (SELECT account_id FROM parent)
 ) RETURNING *;

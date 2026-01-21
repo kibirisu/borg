@@ -89,7 +89,6 @@ func (s *appService) Register(ctx context.Context, form api.AuthForm) error {
 			},
 			InboxUri:     actorURIs.Inbox,
 			OutboxUri:    actorURIs.Outbox,
-			Url:          "not gonna use that rn",
 			Domain:       sql.NullString{},
 			FollowersUri: actorURIs.Followers,
 			FollowingUri: actorURIs.Following,
@@ -392,7 +391,6 @@ func (s *appService) CreateStatus(
 	createdStatus, err := s.store.Statuses().Create(ctx, db.CreateStatusParams{
 		ID:  statusID,
 		Uri: statusURIs.Status,
-		Url: "not needed rn",
 		Content: sql.NullString{
 			String: status.Status,
 			Valid:  true,
@@ -531,7 +529,6 @@ func (s *appService) ReblogStatus(ctx context.Context, statusID string) (worker.
 	reblog, err := s.store.Statuses().ReblogStatus(ctx, db.CreateReblogParams{
 		ID:         id,
 		Uri:        s.builder.AnnounceURI(token.ID, id.String()),
-		Url:        "no",
 		AccountID:  accountID,
 		AccountUri: token.URI,
 		ReblogOfID: &reblogOfID,

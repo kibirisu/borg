@@ -46,7 +46,6 @@ func (p *processor) AcceptFollow(
 				OutboxUri:    actor.Outbox,
 				FollowersUri: actor.Followers,
 				FollowingUri: actor.Following,
-				Url:          ":3",
 			})
 			if err != nil {
 				return nil, err
