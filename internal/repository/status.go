@@ -9,8 +9,6 @@ import (
 )
 
 type StatusRepository interface {
-	AddByActorURI(context.Context, db.AddStatusByActorURIParams) error
-	AddWithActor(context.Context, db.AddStatusWithActorParams) (xid.ID, error)
 	AddReblog(context.Context, db.AddReblogParams) (db.Status, error)
 	GetByID(context.Context, db.GetStatusByIDParams) (db.GetStatusByIDRow, error)
 	GetByAccountID(
@@ -35,22 +33,6 @@ type statusRepository struct {
 }
 
 var _ StatusRepository = (*statusRepository)(nil)
-
-// AddByActorURI implements StatusRepository.
-func (r *statusRepository) AddByActorURI(
-	ctx context.Context,
-	status db.AddStatusByActorURIParams,
-) error {
-	return r.q.AddStatusByActorURI(ctx, status)
-}
-
-// AddWithActor implements StatusRepository.
-func (r *statusRepository) AddWithActor(
-	ctx context.Context,
-	status db.AddStatusWithActorParams,
-) (xid.ID, error) {
-	return r.q.AddStatusWithActor(ctx, status)
-}
 
 // AddReblog implements StatusRepository.
 func (r *statusRepository) AddReblog(

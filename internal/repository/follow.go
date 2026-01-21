@@ -9,7 +9,7 @@ import (
 )
 
 type FollowRepository interface {
-	Create(context.Context, db.CreateFollowNewParams) error
+	Create(context.Context, db.CreateFollowParams) error
 	AddByRequestURI(context.Context, string) error
 	AddByActorURI(context.Context, db.AddFollowByActorURIParams) (string, error)
 	GetLocalFollowByID(context.Context, xid.ID) (db.GetLocalFollowByIDRow, error)
@@ -47,8 +47,8 @@ func (r *followRepository) GetLocalFollowByID(
 }
 
 // Create implements FollowRepository.
-func (r *followRepository) Create(ctx context.Context, follow db.CreateFollowNewParams) error {
-	return r.q.CreateFollowNew(ctx, follow)
+func (r *followRepository) Create(ctx context.Context, follow db.CreateFollowParams) error {
+	return r.q.CreateFollow(ctx, follow)
 }
 
 // GetFollowerCollection implements FollowRepository.

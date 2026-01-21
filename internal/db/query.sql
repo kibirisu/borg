@@ -1,5 +1,5 @@
 -- name: GetActorByURI :one
-SELECT * FROM accounts WHERE uri LIKE '%' || $1::text;
+SELECT * FROM accounts WHERE uri = $1;
 
 -- name: AuthData :one
 SELECT a.id, a.uri, u.password_hash FROM accounts a JOIN users u ON a.id = u.account_id WHERE a.username = $1;
@@ -22,20 +22,6 @@ INSERT INTO users (
 INSERT INTO statuses (
     id, uri, url, content, account_id, account_uri
 ) SELECT @id, @uri, @url, @content, a.id, @account_uri FROM accounts a WHERE a.uri = @account_uri;
-
--- name: AddStatusWithActor :one
-WITH actor AS (
-    INSERT INTO accounts (
-        id, username, uri, domain, inbox_uri, outbox_uri, followers_uri, following_uri, url
-    ) VALUES (
-        @actor_id, @username, @actor_uri, @domain, @inbox_uri, @outbox_uri, @followers_uri, @following_uri, @actor_url
-    ) RETURNING id
-), status AS (
-    INSERT INTO statuses (
-        id, uri, url, content, account_id, account_uri
-    ) SELECT @status_id, @status_uri, @status_url, @content, a.id, @account_uri FROM actor a
-    RETURNING id
-) SELECT id FROM status;
 
 -- name: AddFollowByRequestURI :exec
 WITH request AS (
@@ -189,18 +175,7 @@ LEFT JOIN statuses reblogged ON s.reblog_of_id = reblogged.id
 LEFT JOIN accounts reblogged_author ON reblogged.account_id = reblogged_author.id
 WHERE s.account_id = @account_id;
 
--- name: CreateFollow :one
-INSERT INTO follows (
-    id, uri, account_id, target_account_id
-) VALUES (
-    $1, $2, $3, $4
-) ON CONFLICT (account_id, target_account_id) 
-DO UPDATE SET 
-    uri = EXCLUDED.uri,
-    updated_at = CURRENT_TIMESTAMP
-RETURNING *;
-
--- name: CreateFollowNew :exec
+-- name: CreateFollow :exec
 INSERT INTO follows (
   id, uri, account_id, target_account_id
 ) VALUES (

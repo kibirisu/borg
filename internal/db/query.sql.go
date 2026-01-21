@@ -276,60 +276,6 @@ func (q *Queries) AddStatusByActorURI(ctx context.Context, arg AddStatusByActorU
 	return err
 }
 
-const addStatusWithActor = `-- name: AddStatusWithActor :one
-WITH actor AS (
-    INSERT INTO accounts (
-        id, username, uri, domain, inbox_uri, outbox_uri, followers_uri, following_uri, url
-    ) VALUES (
-        $1, $2, $3, $4, $5, $6, $7, $8, $9
-    ) RETURNING id
-), status AS (
-    INSERT INTO statuses (
-        id, uri, url, content, account_id, account_uri
-    ) SELECT $10, $11, $12, $13, a.id, $14 FROM actor a
-    RETURNING id
-) SELECT id FROM status
-`
-
-type AddStatusWithActorParams struct {
-	ActorID      xid.ID
-	Username     string
-	ActorUri     string
-	Domain       sql.NullString
-	InboxUri     string
-	OutboxUri    string
-	FollowersUri string
-	FollowingUri string
-	ActorUrl     string
-	StatusID     xid.ID
-	StatusUri    string
-	StatusUrl    string
-	Content      sql.NullString
-	AccountUri   string
-}
-
-func (q *Queries) AddStatusWithActor(ctx context.Context, arg AddStatusWithActorParams) (xid.ID, error) {
-	row := q.db.QueryRowContext(ctx, addStatusWithActor,
-		arg.ActorID,
-		arg.Username,
-		arg.ActorUri,
-		arg.Domain,
-		arg.InboxUri,
-		arg.OutboxUri,
-		arg.FollowersUri,
-		arg.FollowingUri,
-		arg.ActorUrl,
-		arg.StatusID,
-		arg.StatusUri,
-		arg.StatusUrl,
-		arg.Content,
-		arg.AccountUri,
-	)
-	var id xid.ID
-	err := row.Scan(&id)
-	return id, err
-}
-
 const authData = `-- name: AuthData :one
 SELECT a.id, a.uri, u.password_hash FROM accounts a JOIN users u ON a.id = u.account_id WHERE a.username = $1
 `
@@ -456,16 +402,12 @@ func (q *Queries) CreateFavourite(ctx context.Context, arg CreateFavouriteParams
 	return i, err
 }
 
-const createFollow = `-- name: CreateFollow :one
+const createFollow = `-- name: CreateFollow :exec
 INSERT INTO follows (
-    id, uri, account_id, target_account_id
+  id, uri, account_id, target_account_id
 ) VALUES (
-    $1, $2, $3, $4
-) ON CONFLICT (account_id, target_account_id) 
-DO UPDATE SET 
-    uri = EXCLUDED.uri,
-    updated_at = CURRENT_TIMESTAMP
-RETURNING id, created_at, updated_at, uri, account_id, target_account_id
+  $1, $2, $3, $4
+)
 `
 
 type CreateFollowParams struct {
@@ -475,42 +417,8 @@ type CreateFollowParams struct {
 	TargetAccountID xid.ID
 }
 
-func (q *Queries) CreateFollow(ctx context.Context, arg CreateFollowParams) (Follow, error) {
-	row := q.db.QueryRowContext(ctx, createFollow,
-		arg.ID,
-		arg.Uri,
-		arg.AccountID,
-		arg.TargetAccountID,
-	)
-	var i Follow
-	err := row.Scan(
-		&i.ID,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.Uri,
-		&i.AccountID,
-		&i.TargetAccountID,
-	)
-	return i, err
-}
-
-const createFollowNew = `-- name: CreateFollowNew :exec
-INSERT INTO follows (
-  id, uri, account_id, target_account_id
-) VALUES (
-  $1, $2, $3, $4
-)
-`
-
-type CreateFollowNewParams struct {
-	ID              xid.ID
-	Uri             string
-	AccountID       xid.ID
-	TargetAccountID xid.ID
-}
-
-func (q *Queries) CreateFollowNew(ctx context.Context, arg CreateFollowNewParams) error {
-	_, err := q.db.ExecContext(ctx, createFollowNew,
+func (q *Queries) CreateFollow(ctx context.Context, arg CreateFollowParams) error {
+	_, err := q.db.ExecContext(ctx, createFollow,
 		arg.ID,
 		arg.Uri,
 		arg.AccountID,
@@ -1050,11 +958,11 @@ func (q *Queries) GetAccountWebfinger(ctx context.Context, username string) (Get
 }
 
 const getActorByURI = `-- name: GetActorByURI :one
-SELECT id, created_at, updated_at, username, uri, display_name, domain, inbox_uri, outbox_uri, followers_uri, following_uri, url FROM accounts WHERE uri LIKE '%' || $1::text
+SELECT id, created_at, updated_at, username, uri, display_name, domain, inbox_uri, outbox_uri, followers_uri, following_uri, url FROM accounts WHERE uri = $1
 `
 
-func (q *Queries) GetActorByURI(ctx context.Context, dollar_1 string) (Account, error) {
-	row := q.db.QueryRowContext(ctx, getActorByURI, dollar_1)
+func (q *Queries) GetActorByURI(ctx context.Context, uri string) (Account, error) {
+	row := q.db.QueryRowContext(ctx, getActorByURI, uri)
 	var i Account
 	err := row.Scan(
 		&i.ID,

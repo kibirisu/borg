@@ -252,7 +252,7 @@ func (s *appService) FollowAccount(ctx context.Context, accountID string) (worke
 			})
 			return req, nil
 		}
-		err = store.Follows().Create(ctx, db.CreateFollowNewParams{
+		err = store.Follows().Create(ctx, db.CreateFollowParams{
 			ID:              id,
 			Uri:             s.builder.FollowURI(token.ID, id.String()),
 			AccountID:       req.AccountID,

@@ -51,7 +51,7 @@ func (p *processor) AcceptFollow(
 			if err != nil {
 				return nil, err
 			}
-			err = s.Follows().Create(ctx, db.CreateFollowNewParams{
+			err = s.Follows().Create(ctx, db.CreateFollowParams{
 				ID:              followID,
 				Uri:             activityData.ID,
 				AccountID:       accountID,
