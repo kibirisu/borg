@@ -10,8 +10,8 @@ import (
 
 type FavouriteRepository interface {
 	GetLocalLikeByID(context.Context, xid.ID) (db.GetLocalLikeByIDRow, error)
-	Create(context.Context, db.CreateFavouriteParams) (db.Favourite, error)
-	CreateNew(context.Context, db.CreateFavouriteNewParams) (db.Favourite, error)
+	Create(context.Context, db.CreateFavouriteParams) (db.CreateFavouriteRow, error)
+	AddLike(context.Context, db.AddLikeParams) (db.Favourite, error)
 	GetByURI(context.Context, string) (db.Favourite, error)
 	DeleteByID(context.Context, xid.ID) error
 	DeleteByStatusID(context.Context, xid.ID, xid.ID) (db.Favourite, error)
@@ -34,17 +34,17 @@ func (r *favouriteRepository) GetLocalLikeByID(
 // Create implements FavouriteRepository.
 func (r *favouriteRepository) Create(
 	ctx context.Context,
-	params db.CreateFavouriteParams,
-) (db.Favourite, error) {
-	return r.q.CreateFavourite(ctx, params)
+	favourite db.CreateFavouriteParams,
+) (db.CreateFavouriteRow, error) {
+	return r.q.CreateFavourite(ctx, favourite)
 }
 
-// CreateNew implements FavouriteRepository.
-func (r *favouriteRepository) CreateNew(
+// AddLike implements FavouriteRepository.
+func (r *favouriteRepository) AddLike(
 	ctx context.Context,
-	favourite db.CreateFavouriteNewParams,
+	like db.AddLikeParams,
 ) (db.Favourite, error) {
-	return r.q.CreateFavouriteNew(ctx, favourite)
+	return r.q.AddLike(ctx, like)
 }
 
 // GetByURI implements FavouriteRepository.

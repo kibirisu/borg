@@ -17,10 +17,9 @@ type StatusRepository interface {
 		context.Context,
 		db.GetStatusesByAccountIDParams,
 	) ([]db.GetStatusesByAccountIDRow, error)
-	CreateNew(context.Context, db.CreateStatusNewParams) (db.Status, error)
-	ReblogStatus(context.Context, db.CreateReblogParams) (db.Status, error)
-	DeleteByIDNew(context.Context, xid.ID) (db.Status, error)
 	Create(context.Context, db.CreateStatusParams) (db.Status, error)
+	ReblogStatus(context.Context, db.CreateReblogParams) (db.Status, error)
+	Add(context.Context, db.AddStatusParams) (db.Status, error)
 	GetReplies(context.Context, xid.ID, xid.ID) ([]db.GetStatusRepliesRow, error)
 	GetByURI(context.Context, string) (db.Status, error)
 	GetLocalByID(context.Context, xid.ID) (db.Status, error)
@@ -28,6 +27,7 @@ type StatusRepository interface {
 	GetFavouriteByAccountID(context.Context, xid.ID) ([]db.GetFavouritePostsByAccountIdRow, error)
 	GetRebloggedByAccountID(context.Context, xid.ID) ([]db.GetRebloggedPostsByAccountIdRow, error)
 	DeleteByID(context.Context, xid.ID) error
+	DeleteReblogByStatusID(context.Context, *xid.ID, xid.ID) (db.Status, error)
 }
 
 type statusRepository struct {
@@ -68,12 +68,12 @@ func (r *statusRepository) GetByID(
 	return r.q.GetStatusByID(ctx, ids)
 }
 
-// CreateNew implements StatusRepository.
-func (r *statusRepository) CreateNew(
+// Create implements StatusRepository.
+func (r *statusRepository) Create(
 	ctx context.Context,
-	status db.CreateStatusNewParams,
+	status db.CreateStatusParams,
 ) (db.Status, error) {
-	return r.q.CreateStatusNew(ctx, status)
+	return r.q.CreateStatus(ctx, status)
 }
 
 // ReblogStatus implements StatusRepository.
@@ -84,17 +84,12 @@ func (r *statusRepository) ReblogStatus(
 	return r.q.CreateReblog(ctx, reblog)
 }
 
-// DeleteByIDNew implements StatusRepository.
-func (r *statusRepository) DeleteByIDNew(ctx context.Context, id xid.ID) (db.Status, error) {
-	return r.q.DeleteStatusByIDNew(ctx, id)
-}
-
-// Create implements StatusRepository.
-func (r *statusRepository) Create(
+// Add implements StatusRepository.
+func (r *statusRepository) Add(
 	ctx context.Context,
-	status db.CreateStatusParams,
+	status db.AddStatusParams,
 ) (db.Status, error) {
-	return r.q.CreateStatus(ctx, status)
+	return r.q.AddStatus(ctx, status)
 }
 
 // GetReplies implements StatusRepository.
@@ -155,4 +150,16 @@ func (r *statusRepository) GetRebloggedByAccountID(
 // DeleteByURI implements StatusRepository.
 func (r *statusRepository) DeleteByID(ctx context.Context, id xid.ID) error {
 	return r.q.DeleteStatusByID(ctx, id)
+}
+
+// DeleteReblogByStatusID implements StatusRepository.
+func (r *statusRepository) DeleteReblogByStatusID(
+	ctx context.Context,
+	statusID *xid.ID,
+	accountID xid.ID,
+) (db.Status, error) {
+	return r.q.DeleteReblogByStatusID(ctx, db.DeleteReblogByStatusIDParams{
+		AccountID:  accountID,
+		ReblogOfID: statusID,
+	})
 }

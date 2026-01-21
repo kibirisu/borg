@@ -60,13 +60,6 @@ INSERT INTO accounts (
     @id, @username, @uri, @domain, @inbox_uri, @outbox_uri, @followers_uri, @following_uri, @url
 ) RETURNING *;
 
--- name: AddStatus :exec
-INSERT INTO statuses (
-    id, uri, url, content, account_id, account_uri, in_reply_to_id, in_reply_to_uri, in_reply_to_account_id
-) VALUES (
-    @id, @uri, @url, @content, @account_id, @account_uri, @in_reply_to_id, @in_reply_to_uri, @in_reply_to_account_id
-);
-
 -- name: GetLocalActorByID :one
 SELECT * FROM accounts WHERE id = $1 AND domain IS NULL;
 
@@ -150,7 +143,7 @@ SELECT
     reblogged_author.username AS reblogged_username,
     reblogged_author.display_name AS reblogged_display_name,
     CONCAT(reblogged_author.username, '@', reblogged_author.domain)::TEXT AS reblogged_acct,
-    CONCAT(a.username, '@', a.domain)::TEXT AS acct,
+    CONCAT(a.username, '@' || a.domain)::TEXT AS acct,
     (SELECT COUNT(*) FROM follows f WHERE f.target_account_id = a.id) AS followers_count,
     (SELECT COUNT(*) FROM follows f WHERE f.target_account_id = reblogged_author.id) AS reblogged_followers_count,
     (SELECT COUNT(*) FROM follows f WHERE f.account_id = a.id) AS following_count,
@@ -195,9 +188,6 @@ JOIN accounts a ON s.account_id = a.id
 LEFT JOIN statuses reblogged ON s.reblog_of_id = reblogged.id
 LEFT JOIN accounts reblogged_author ON reblogged.account_id = reblogged_author.id
 WHERE s.account_id = @account_id;
-
--- name: DeleteStatusByIDNew :one
-DELETE FROM statuses WHERE id = $1 RETURNING *;
 
 -- name: CreateFollow :one
 INSERT INTO follows (
@@ -256,7 +246,7 @@ INSERT INTO statuses (
     @id, @reblog_uri, @url, @account_id, @account_uri, @reblog_of_id, @reblog_of_account_id
 ) RETURNING *;
 
--- name: CreateStatus :one
+-- name: AddStatus :one
 INSERT INTO statuses (
     id, url, local, content, account_id, account_uri, in_reply_to_id, reblog_of_id, uri
 ) VALUES (
@@ -264,7 +254,7 @@ INSERT INTO statuses (
 )
 RETURNING *;
 
--- name: CreateStatusNew :one
+-- name: CreateStatus :one
 WITH parent AS (
     SELECT uri, account_id FROM statuses WHERE id = @in_reply_to_id
 ) INSERT INTO statuses (
@@ -286,10 +276,13 @@ WITH parent AS (
     id, uri, url, local, account_id, account_uri, 
     reblog_of_id, reblog_of_uri, reblog_of_account_id
 ) VALUES (
-    @id, @uri, @url, true, @account_id, @account_uri, @reblog_of_id,
+    @id, @uri, @url, TRUE, @account_id, @account_uri, @reblog_of_id,
     (SELECT uri FROM parent),
     (SELECT account_id FROM parent)
 ) RETURNING *;
+
+-- name: DeleteReblogByStatusID :one
+DELETE FROM statuses WHERE id = (SELECT s.id FROM statuses s WHERE s.account_id = $1 AND s.reblog_of_id = $2) RETURNING *;
 
 -- name: GetLocalLikeByID :one
 SELECT 
@@ -300,28 +293,23 @@ FROM favourites f JOIN accounts a ON f.account_id = a.id
 JOIN statuses s ON f.status_id = s.id
 WHERE f.id = $1 AND a.domain IS NULL;
 
--- name: CreateFavourite :one
+-- name: AddLike :one
 INSERT INTO favourites (
-    id,
-    account_id, 
-    status_id,
-    uri
-) VALUES (
-    $1, $2, $3, $4
-)
-RETURNING *;
-
--- name: CreateFavouriteNew :one
-WITH favourited AS (
-    SELECT account_id, account_uri, uri FROM statuses WHERE id = $5
-) INSERT INTO favourites (
     id, uri, account_id, account_uri, target_account_id, status_id, status_uri
 ) VALUES (
-    $1, $2, $3, $4,
-    (SELECT account_id FROM favourited),
-    $5,
-    (SELECT uri FROM favourited)
+    $1, $2, $3, $4, $5, $6, $7
 ) RETURNING *;
+
+-- name: CreateFavourite :one
+WITH status AS (
+    SELECT s.local, s.account_id, s.account_uri, s.uri FROM statuses s WHERE s.id = @status_id
+), favourite AS (
+    INSERT INTO favourites (
+        id, uri, account_id, account_uri, target_account_id, status_id, status_uri
+    ) SELECT 
+        @id, @uri, @account_id, @account_uri, status.account_id,
+        @status_id, status.uri FROM status RETURNING *
+) SELECT f.*, status.local FROM favourite f, status;
 
 -- name: GetFavouriteByURI :one
 SELECT * FROM favourites WHERE uri LIKE '%' || $1::text;

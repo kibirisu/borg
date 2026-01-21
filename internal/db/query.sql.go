@@ -105,6 +105,49 @@ func (q *Queries) AddFollowByRequestURI(ctx context.Context, uri string) error {
 	return err
 }
 
+const addLike = `-- name: AddLike :one
+INSERT INTO favourites (
+    id, uri, account_id, account_uri, target_account_id, status_id, status_uri
+) VALUES (
+    $1, $2, $3, $4, $5, $6, $7
+) RETURNING id, created_at, updated_at, uri, account_id, account_uri, target_account_id, status_id, status_uri
+`
+
+type AddLikeParams struct {
+	ID              xid.ID
+	Uri             string
+	AccountID       xid.ID
+	AccountUri      string
+	TargetAccountID xid.ID
+	StatusID        xid.ID
+	StatusUri       string
+}
+
+func (q *Queries) AddLike(ctx context.Context, arg AddLikeParams) (Favourite, error) {
+	row := q.db.QueryRowContext(ctx, addLike,
+		arg.ID,
+		arg.Uri,
+		arg.AccountID,
+		arg.AccountUri,
+		arg.TargetAccountID,
+		arg.StatusID,
+		arg.StatusUri,
+	)
+	var i Favourite
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Uri,
+		&i.AccountID,
+		&i.AccountUri,
+		&i.TargetAccountID,
+		&i.StatusID,
+		&i.StatusUri,
+	)
+	return i, err
+}
+
 const addReblog = `-- name: AddReblog :one
 INSERT INTO statuses (
     id, uri, url, account_id, account_uri, reblog_of_id, reblog_of_account_id
@@ -154,39 +197,58 @@ func (q *Queries) AddReblog(ctx context.Context, arg AddReblogParams) (Status, e
 	return i, err
 }
 
-const addStatus = `-- name: AddStatus :exec
+const addStatus = `-- name: AddStatus :one
 INSERT INTO statuses (
-    id, uri, url, content, account_id, account_uri, in_reply_to_id, in_reply_to_uri, in_reply_to_account_id
+    id, url, local, content, account_id, account_uri, in_reply_to_id, reblog_of_id, uri
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7, $8, $9
 )
+RETURNING id, created_at, updated_at, uri, url, local, content, account_id, account_uri, in_reply_to_id, in_reply_to_uri, in_reply_to_account_id, reblog_of_id, reblog_of_uri, reblog_of_account_id
 `
 
 type AddStatusParams struct {
-	ID                 xid.ID
-	Uri                string
-	Url                string
-	Content            sql.NullString
-	AccountID          xid.ID
-	AccountUri         string
-	InReplyToID        *xid.ID
-	InReplyToUri       sql.NullString
-	InReplyToAccountID *xid.ID
+	ID          xid.ID
+	Url         string
+	Local       sql.NullBool
+	Content     sql.NullString
+	AccountID   xid.ID
+	AccountUri  string
+	InReplyToID *xid.ID
+	ReblogOfID  *xid.ID
+	Uri         string
 }
 
-func (q *Queries) AddStatus(ctx context.Context, arg AddStatusParams) error {
-	_, err := q.db.ExecContext(ctx, addStatus,
+func (q *Queries) AddStatus(ctx context.Context, arg AddStatusParams) (Status, error) {
+	row := q.db.QueryRowContext(ctx, addStatus,
 		arg.ID,
-		arg.Uri,
 		arg.Url,
+		arg.Local,
 		arg.Content,
 		arg.AccountID,
 		arg.AccountUri,
 		arg.InReplyToID,
-		arg.InReplyToUri,
-		arg.InReplyToAccountID,
+		arg.ReblogOfID,
+		arg.Uri,
 	)
-	return err
+	var i Status
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Uri,
+		&i.Url,
+		&i.Local,
+		&i.Content,
+		&i.AccountID,
+		&i.AccountUri,
+		&i.InReplyToID,
+		&i.InReplyToUri,
+		&i.InReplyToAccountID,
+		&i.ReblogOfID,
+		&i.ReblogOfUri,
+		&i.ReblogOfAccountID,
+	)
+	return i, err
 }
 
 const addStatusByActorURI = `-- name: AddStatusByActorURI :exec
@@ -338,76 +400,47 @@ func (q *Queries) CreateActor(ctx context.Context, arg CreateActorParams) (Accou
 }
 
 const createFavourite = `-- name: CreateFavourite :one
-INSERT INTO favourites (
-    id,
-    account_id, 
-    status_id,
-    uri
-) VALUES (
-    $1, $2, $3, $4
-)
-RETURNING id, created_at, updated_at, uri, account_id, account_uri, target_account_id, status_id, status_uri
+WITH status AS (
+    SELECT s.local, s.account_id, s.account_uri, s.uri FROM statuses s WHERE s.id = $1
+), favourite AS (
+    INSERT INTO favourites (
+        id, uri, account_id, account_uri, target_account_id, status_id, status_uri
+    ) SELECT 
+        $2, $3, $4, $5, status.account_id,
+        $1, status.uri FROM status RETURNING id, created_at, updated_at, uri, account_id, account_uri, target_account_id, status_id, status_uri
+) SELECT f.id, f.created_at, f.updated_at, f.uri, f.account_id, f.account_uri, f.target_account_id, f.status_id, f.status_uri, status.local FROM favourite f, status
 `
 
 type CreateFavouriteParams struct {
-	ID        xid.ID
-	AccountID xid.ID
-	StatusID  xid.ID
-	Uri       string
-}
-
-func (q *Queries) CreateFavourite(ctx context.Context, arg CreateFavouriteParams) (Favourite, error) {
-	row := q.db.QueryRowContext(ctx, createFavourite,
-		arg.ID,
-		arg.AccountID,
-		arg.StatusID,
-		arg.Uri,
-	)
-	var i Favourite
-	err := row.Scan(
-		&i.ID,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.Uri,
-		&i.AccountID,
-		&i.AccountUri,
-		&i.TargetAccountID,
-		&i.StatusID,
-		&i.StatusUri,
-	)
-	return i, err
-}
-
-const createFavouriteNew = `-- name: CreateFavouriteNew :one
-WITH favourited AS (
-    SELECT account_id, account_uri, uri FROM statuses WHERE id = $5
-) INSERT INTO favourites (
-    id, uri, account_id, account_uri, target_account_id, status_id, status_uri
-) VALUES (
-    $1, $2, $3, $4,
-    (SELECT account_id FROM favourited),
-    $5,
-    (SELECT uri FROM favourited)
-) RETURNING id, created_at, updated_at, uri, account_id, account_uri, target_account_id, status_id, status_uri
-`
-
-type CreateFavouriteNewParams struct {
+	StatusID   xid.ID
 	ID         xid.ID
 	Uri        string
 	AccountID  xid.ID
 	AccountUri string
-	StatusID   xid.ID
 }
 
-func (q *Queries) CreateFavouriteNew(ctx context.Context, arg CreateFavouriteNewParams) (Favourite, error) {
-	row := q.db.QueryRowContext(ctx, createFavouriteNew,
+type CreateFavouriteRow struct {
+	ID              xid.ID
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+	Uri             string
+	AccountID       xid.ID
+	AccountUri      string
+	TargetAccountID xid.ID
+	StatusID        xid.ID
+	StatusUri       string
+	Local           sql.NullBool
+}
+
+func (q *Queries) CreateFavourite(ctx context.Context, arg CreateFavouriteParams) (CreateFavouriteRow, error) {
+	row := q.db.QueryRowContext(ctx, createFavourite,
+		arg.StatusID,
 		arg.ID,
 		arg.Uri,
 		arg.AccountID,
 		arg.AccountUri,
-		arg.StatusID,
 	)
-	var i Favourite
+	var i CreateFavouriteRow
 	err := row.Scan(
 		&i.ID,
 		&i.CreatedAt,
@@ -418,6 +451,7 @@ func (q *Queries) CreateFavouriteNew(ctx context.Context, arg CreateFavouriteNew
 		&i.TargetAccountID,
 		&i.StatusID,
 		&i.StatusUri,
+		&i.Local,
 	)
 	return i, err
 }
@@ -541,7 +575,7 @@ WITH parent AS (
     id, uri, url, local, account_id, account_uri, 
     reblog_of_id, reblog_of_uri, reblog_of_account_id
 ) VALUES (
-    $1, $2, $3, true, $4, $5, $6,
+    $1, $2, $3, TRUE, $4, $5, $6,
     (SELECT uri FROM parent),
     (SELECT account_id FROM parent)
 ) RETURNING id, created_at, updated_at, uri, url, local, content, account_id, account_uri, in_reply_to_id, in_reply_to_uri, in_reply_to_account_id, reblog_of_id, reblog_of_uri, reblog_of_account_id
@@ -587,60 +621,6 @@ func (q *Queries) CreateReblog(ctx context.Context, arg CreateReblogParams) (Sta
 }
 
 const createStatus = `-- name: CreateStatus :one
-INSERT INTO statuses (
-    id, url, local, content, account_id, account_uri, in_reply_to_id, reblog_of_id, uri
-) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9
-)
-RETURNING id, created_at, updated_at, uri, url, local, content, account_id, account_uri, in_reply_to_id, in_reply_to_uri, in_reply_to_account_id, reblog_of_id, reblog_of_uri, reblog_of_account_id
-`
-
-type CreateStatusParams struct {
-	ID          xid.ID
-	Url         string
-	Local       sql.NullBool
-	Content     sql.NullString
-	AccountID   xid.ID
-	AccountUri  string
-	InReplyToID *xid.ID
-	ReblogOfID  *xid.ID
-	Uri         string
-}
-
-func (q *Queries) CreateStatus(ctx context.Context, arg CreateStatusParams) (Status, error) {
-	row := q.db.QueryRowContext(ctx, createStatus,
-		arg.ID,
-		arg.Url,
-		arg.Local,
-		arg.Content,
-		arg.AccountID,
-		arg.AccountUri,
-		arg.InReplyToID,
-		arg.ReblogOfID,
-		arg.Uri,
-	)
-	var i Status
-	err := row.Scan(
-		&i.ID,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.Uri,
-		&i.Url,
-		&i.Local,
-		&i.Content,
-		&i.AccountID,
-		&i.AccountUri,
-		&i.InReplyToID,
-		&i.InReplyToUri,
-		&i.InReplyToAccountID,
-		&i.ReblogOfID,
-		&i.ReblogOfUri,
-		&i.ReblogOfAccountID,
-	)
-	return i, err
-}
-
-const createStatusNew = `-- name: CreateStatusNew :one
 WITH parent AS (
     SELECT uri, account_id FROM statuses WHERE id = $7
 ) INSERT INTO statuses (
@@ -653,7 +633,7 @@ WITH parent AS (
 ) RETURNING id, created_at, updated_at, uri, url, local, content, account_id, account_uri, in_reply_to_id, in_reply_to_uri, in_reply_to_account_id, reblog_of_id, reblog_of_uri, reblog_of_account_id
 `
 
-type CreateStatusNewParams struct {
+type CreateStatusParams struct {
 	ID          xid.ID
 	Uri         string
 	Url         string
@@ -663,8 +643,8 @@ type CreateStatusNewParams struct {
 	InReplyToID *xid.ID
 }
 
-func (q *Queries) CreateStatusNew(ctx context.Context, arg CreateStatusNewParams) (Status, error) {
-	row := q.db.QueryRowContext(ctx, createStatusNew,
+func (q *Queries) CreateStatus(ctx context.Context, arg CreateStatusParams) (Status, error) {
+	row := q.db.QueryRowContext(ctx, createStatus,
 		arg.ID,
 		arg.Uri,
 		arg.Url,
@@ -806,21 +786,17 @@ func (q *Queries) DeleteFollowRequestByAccountID(ctx context.Context, arg Delete
 	return i, err
 }
 
-const deleteStatusByID = `-- name: DeleteStatusByID :exec
-DELETE FROM statuses WHERE id = $1
+const deleteReblogByStatusID = `-- name: DeleteReblogByStatusID :one
+DELETE FROM statuses WHERE id = (SELECT s.id FROM statuses s WHERE s.account_id = $1 AND s.reblog_of_id = $2) RETURNING id, created_at, updated_at, uri, url, local, content, account_id, account_uri, in_reply_to_id, in_reply_to_uri, in_reply_to_account_id, reblog_of_id, reblog_of_uri, reblog_of_account_id
 `
 
-func (q *Queries) DeleteStatusByID(ctx context.Context, id xid.ID) error {
-	_, err := q.db.ExecContext(ctx, deleteStatusByID, id)
-	return err
+type DeleteReblogByStatusIDParams struct {
+	AccountID  xid.ID
+	ReblogOfID *xid.ID
 }
 
-const deleteStatusByIDNew = `-- name: DeleteStatusByIDNew :one
-DELETE FROM statuses WHERE id = $1 RETURNING id, created_at, updated_at, uri, url, local, content, account_id, account_uri, in_reply_to_id, in_reply_to_uri, in_reply_to_account_id, reblog_of_id, reblog_of_uri, reblog_of_account_id
-`
-
-func (q *Queries) DeleteStatusByIDNew(ctx context.Context, id xid.ID) (Status, error) {
-	row := q.db.QueryRowContext(ctx, deleteStatusByIDNew, id)
+func (q *Queries) DeleteReblogByStatusID(ctx context.Context, arg DeleteReblogByStatusIDParams) (Status, error) {
+	row := q.db.QueryRowContext(ctx, deleteReblogByStatusID, arg.AccountID, arg.ReblogOfID)
 	var i Status
 	err := row.Scan(
 		&i.ID,
@@ -840,6 +816,15 @@ func (q *Queries) DeleteStatusByIDNew(ctx context.Context, id xid.ID) (Status, e
 		&i.ReblogOfAccountID,
 	)
 	return i, err
+}
+
+const deleteStatusByID = `-- name: DeleteStatusByID :exec
+DELETE FROM statuses WHERE id = $1
+`
+
+func (q *Queries) DeleteStatusByID(ctx context.Context, id xid.ID) error {
+	_, err := q.db.ExecContext(ctx, deleteStatusByID, id)
+	return err
 }
 
 const getAccountByID = `-- name: GetAccountByID :one
@@ -1764,7 +1749,7 @@ SELECT
     reblogged_author.username AS reblogged_username,
     reblogged_author.display_name AS reblogged_display_name,
     CONCAT(reblogged_author.username, '@', reblogged_author.domain)::TEXT AS reblogged_acct,
-    CONCAT(a.username, '@', a.domain)::TEXT AS acct,
+    CONCAT(a.username, '@' || a.domain)::TEXT AS acct,
     (SELECT COUNT(*) FROM follows f WHERE f.target_account_id = a.id) AS followers_count,
     (SELECT COUNT(*) FROM follows f WHERE f.target_account_id = reblogged_author.id) AS reblogged_followers_count,
     (SELECT COUNT(*) FROM follows f WHERE f.account_id = a.id) AS following_count,

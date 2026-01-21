@@ -22,7 +22,7 @@ var _ Worker = (*worker)(nil)
 
 func New(ctx context.Context) Worker {
 	w := &worker{make(chan Job)}
-	for range 5 {
+	for range 3 {
 		go w.spawn(ctx)
 	}
 	return w

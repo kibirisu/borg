@@ -40,7 +40,7 @@ func (p *processor) LookupStatus(ctx context.Context, object ap.Noter) (*xid.ID,
 				return nil, err
 			}
 		}
-		status, err = p.store.Statuses().Create(ctx, db.CreateStatusParams{
+		status, err = p.store.Statuses().Add(ctx, db.AddStatusParams{
 			ID:         xid.New(),
 			Url:        "nope",
 			AccountID:  *accountID,

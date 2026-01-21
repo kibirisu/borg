@@ -256,11 +256,11 @@ func (s *federationService) ProcessIncoming(
 		}, nil
 	case "Like":
 		return func(ctx context.Context) error {
-			_, err := s.processor.LikeStatus(ctx, ap.NewLikeActivity(object))
+			_, err := s.processor.LikeStatus(ctx, ap.NewLikeActivity(object), actorID)
 			return err
 		}, nil
 	case "Undo":
-		return s.processUndo(obj.ActivityObject)
+		return s.processUndo(obj.ActivityObject, actorID)
 	case "Accept":
 		return func(ctx context.Context) error {
 			return s.store.Follows().
@@ -273,7 +273,10 @@ func (s *federationService) ProcessIncoming(
 	}
 }
 
-func (s *federationService) processUndo(object *domain.ObjectOrLink) (worker.Job, error) {
+func (s *federationService) processUndo(
+	object *domain.ObjectOrLink,
+	actorID xid.ID,
+) (worker.Job, error) {
 	if object.GetType() != domain.ObjectType {
 		return nil, errors.New("expected JSON object")
 	}
@@ -300,6 +303,7 @@ func (s *federationService) processUndo(object *domain.ObjectOrLink) (worker.Job
 			favouriteID, err := s.processor.LikeStatus(
 				ctx,
 				ap.NewLikeActivity(object),
+				actorID,
 			)
 			if err != nil {
 				return err

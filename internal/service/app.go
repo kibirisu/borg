@@ -389,7 +389,7 @@ func (s *appService) CreateStatus(
 		inReplyToID = &id
 	}
 
-	createdStatus, err := s.store.Statuses().CreateNew(ctx, db.CreateStatusNewParams{
+	createdStatus, err := s.store.Statuses().Create(ctx, db.CreateStatusParams{
 		ID:  statusID,
 		Uri: statusURIs.Status,
 		Url: "not needed rn",
@@ -484,7 +484,7 @@ func (s *appService) FavouriteStatus(ctx context.Context, favouritedID string) (
 		return nil, err
 	}
 
-	favourite, err := s.store.Favourites().CreateNew(ctx, db.CreateFavouriteNewParams{
+	favourite, err := s.store.Favourites().Create(ctx, db.CreateFavouriteParams{
 		ID:         id,
 		AccountID:  accountID,
 		AccountUri: token.URI,
@@ -495,7 +495,7 @@ func (s *appService) FavouriteStatus(ctx context.Context, favouritedID string) (
 		return nil, err
 	}
 
-	if token.ID == favourite.TargetAccountID.String() {
+	if favourite.Local.Bool {
 		return worker.EmptyJob, nil
 	}
 
@@ -605,23 +605,7 @@ func (s *appService) UnreblogStatus(ctx context.Context, id string) (worker.Job,
 		return nil, err
 	}
 
-	reblogs, err := s.store.Statuses().GetRebloggedByAccountID(ctx, accountID)
-	if err != nil {
-		return nil, err
-	}
-	var reblogID *xid.ID
-	for _, reblog := range reblogs {
-		if reblog.Status.ReblogOfID != nil && *reblog.Status.ReblogOfID == statusID {
-			id := reblog.Status.ID
-			reblogID = &id
-			break
-		}
-	}
-	if reblogID == nil {
-		return nil, sql.ErrNoRows
-	}
-
-	status, err := s.store.Statuses().DeleteByIDNew(ctx, *reblogID)
+	status, err := s.store.Statuses().DeleteReblogByStatusID(ctx, &statusID, accountID)
 	if err != nil {
 		return nil, err
 	}

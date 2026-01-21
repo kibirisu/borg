@@ -16,7 +16,7 @@ func (p *processor) AnnounceStatus(
 	activity ap.AnnounceActivitier,
 ) (*xid.ID, error) {
 	uri := activity.GetURI()
-	log.Printf("[Inbox] [Processing] [Announce] processing Activity with ID=%s", uri)
+	log.Printf("[Processing] [Announce] processing Activity with ID=%s", uri)
 	if uri == "" {
 		return nil, errors.New("invalid object")
 	}
