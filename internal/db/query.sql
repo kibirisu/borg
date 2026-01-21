@@ -249,6 +249,13 @@ WITH account AS (
     DELETE FROM follow_requests WHERE account_id = @account_id AND target_account_id = (SELECT id FROM account) RETURNING *
 ) SELECT r.*, account.local FROM request r, account;
 
+-- name: AddReblog :one
+INSERT INTO statuses (
+    id, uri, url, account_id, account_uri, reblog_of_id, reblog_of_account_id
+) VALUES (
+    @id, @reblog_uri, @url, @account_id, @account_uri, @reblog_of_id, @reblog_of_account_id
+) RETURNING *;
+
 -- name: CreateStatus :one
 INSERT INTO statuses (
     id, url, local, content, account_id, account_uri, in_reply_to_id, reblog_of_id, uri

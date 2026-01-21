@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"log"
 
 	"github.com/rs/xid"
 
@@ -13,6 +14,7 @@ import (
 
 func (p *processor) LookupStatus(ctx context.Context, object ap.Noter) (*xid.ID, error) {
 	uri := object.GetURI()
+	log.Printf("[Processing] [Status] processing Object with ID=%s", uri)
 	if uri == "" {
 		return nil, errors.New("invalid object")
 	}
@@ -23,6 +25,10 @@ func (p *processor) LookupStatus(ctx context.Context, object ap.Noter) (*xid.ID,
 			return nil, err
 		}
 		statusData := ap.NewNote(object).GetObject()
+		log.Printf(
+			"[Processing] [Status] processing Actor with ID=%s",
+			statusData.AttributedTo.GetURI(),
+		)
 		accountID, err := p.LookupActor(ctx, statusData.AttributedTo)
 		if err != nil {
 			return nil, err

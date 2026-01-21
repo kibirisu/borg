@@ -105,6 +105,55 @@ func (q *Queries) AddFollowByRequestURI(ctx context.Context, uri string) error {
 	return err
 }
 
+const addReblog = `-- name: AddReblog :one
+INSERT INTO statuses (
+    id, uri, url, account_id, account_uri, reblog_of_id, reblog_of_account_id
+) VALUES (
+    $1, $2, $3, $4, $5, $6, $7
+) RETURNING id, created_at, updated_at, uri, url, local, content, account_id, account_uri, in_reply_to_id, in_reply_to_uri, in_reply_to_account_id, reblog_of_id, reblog_of_uri, reblog_of_account_id
+`
+
+type AddReblogParams struct {
+	ID                xid.ID
+	ReblogUri         string
+	Url               string
+	AccountID         xid.ID
+	AccountUri        string
+	ReblogOfID        *xid.ID
+	ReblogOfAccountID *xid.ID
+}
+
+func (q *Queries) AddReblog(ctx context.Context, arg AddReblogParams) (Status, error) {
+	row := q.db.QueryRowContext(ctx, addReblog,
+		arg.ID,
+		arg.ReblogUri,
+		arg.Url,
+		arg.AccountID,
+		arg.AccountUri,
+		arg.ReblogOfID,
+		arg.ReblogOfAccountID,
+	)
+	var i Status
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Uri,
+		&i.Url,
+		&i.Local,
+		&i.Content,
+		&i.AccountID,
+		&i.AccountUri,
+		&i.InReplyToID,
+		&i.InReplyToUri,
+		&i.InReplyToAccountID,
+		&i.ReblogOfID,
+		&i.ReblogOfUri,
+		&i.ReblogOfAccountID,
+	)
+	return i, err
+}
+
 const addStatus = `-- name: AddStatus :exec
 INSERT INTO statuses (
     id, uri, url, content, account_id, account_uri, in_reply_to_id, in_reply_to_uri, in_reply_to_account_id

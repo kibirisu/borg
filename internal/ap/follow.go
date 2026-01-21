@@ -31,6 +31,14 @@ func NewEmptyFollowActivity() FollowActivitier {
 	return &followActivity{activity{object{}}}
 }
 
+func NewUndoFollowActivity(from *domain.ObjectOrLink) UndoFollowActiviter {
+	return &undoFollowActivity{activity{object{from}}}
+}
+
+func NewEmptyUndoFollowActivity() UndoFollowActiviter {
+	return &undoFollowActivity{activity{object{}}}
+}
+
 // GetObject implements FollowActivitier.
 // Subtle: this method shadows the method (activity).GetObject of followActivity.activity.
 func (f *followActivity) GetObject() Activity[Actor] {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"log"
 
 	"github.com/rs/xid"
 
@@ -14,6 +15,7 @@ import (
 
 func (p *processor) LookupActor(ctx context.Context, object ap.Actorer) (*xid.ID, error) {
 	uri := object.GetURI()
+	log.Printf("[Processing] [Actor] processing Object with ID=%s", uri)
 	if uri == "" {
 		return nil, errors.New("invalid object")
 	}

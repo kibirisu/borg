@@ -304,7 +304,7 @@ func (s *appService) UnfollowAccount(ctx context.Context, accountID string) (wor
 		}
 		if !req.Local {
 			actor := ap.NewEmptyActor().WithLink(token.URI)
-			undo.SetObject(ap.Activity[ap.Activity[ap.Actor]]{
+			undo = ap.NewEmptyUndoFollowActivity().WithObject(ap.Activity[ap.Activity[ap.Actor]]{
 				ID:    "doesn't matter",
 				Type:  "Undo",
 				Actor: actor,
@@ -316,7 +316,7 @@ func (s *appService) UnfollowAccount(ctx context.Context, accountID string) (wor
 				}),
 			})
 		}
-		return nil, store.Follows().DeleteByID(ctx, req.ID)
+		return req, store.Follows().DeleteByID(ctx, req.ID)
 	})
 	if err != nil {
 		return nil, err
@@ -387,16 +387,6 @@ func (s *appService) CreateStatus(
 			return nil, err
 		}
 		inReplyToID = &id
-	}
-	if inReplyToID != nil {
-		// holy mother of god
-		parent, err := s.store.Statuses().GetByID(ctx, db.GetStatusByIDParams{
-			ID:        *inReplyToID,
-			AccountID: accountID,
-		})
-		if err == nil && parent.Status.ReblogOfID != nil {
-			inReplyToID = parent.Status.ReblogOfID
-		}
 	}
 
 	createdStatus, err := s.store.Statuses().CreateNew(ctx, db.CreateStatusNewParams{
@@ -642,7 +632,7 @@ func (s *appService) UnreblogStatus(ctx context.Context, id string) (worker.Job,
 		Type:  "Undo",
 		Actor: actor,
 		Object: ap.NewEmptyAnnounceActivity().WithObject(ap.Activity[ap.Note]{
-			ID:     id,
+			ID:     status.Uri,
 			Type:   "Announce",
 			Actor:  actor,
 			Object: ap.NewEmptyNote().WithLink(status.ReblogOfUri.String),

@@ -11,6 +11,7 @@ import (
 type StatusRepository interface {
 	AddByActorURI(context.Context, db.AddStatusByActorURIParams) error
 	AddWithActor(context.Context, db.AddStatusWithActorParams) (xid.ID, error)
+	AddReblog(context.Context, db.AddReblogParams) (db.Status, error)
 	GetByID(context.Context, db.GetStatusByIDParams) (db.GetStatusByIDRow, error)
 	GetByAccountID(
 		context.Context,
@@ -49,6 +50,14 @@ func (r *statusRepository) AddWithActor(
 	status db.AddStatusWithActorParams,
 ) (xid.ID, error) {
 	return r.q.AddStatusWithActor(ctx, status)
+}
+
+// AddReblog implements StatusRepository.
+func (r *statusRepository) AddReblog(
+	ctx context.Context,
+	reblog db.AddReblogParams,
+) (db.Status, error) {
+	return r.q.AddReblog(ctx, reblog)
 }
 
 // GetByID implements StatusRepository.

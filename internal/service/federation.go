@@ -238,6 +238,7 @@ func (s *federationService) ProcessIncoming(
 		return nil, errors.New("expected JSON object")
 	}
 	obj := object.Object
+	log.Printf("[Service] [Federation] received Activity: %s", obj.Type)
 	switch obj.Type {
 	case "Create":
 		return func(ctx context.Context) error {
