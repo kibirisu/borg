@@ -6,14 +6,15 @@ import type { components } from "../../lib/api/v1";
 import type { AppClient } from "../../lib/client";
 import ClientContext from "../../lib/client";
 import AppContext from "../../lib/state";
+import PostComposerOverlay from "../common/PostComposerOverlay";
 import { PostItem } from "../common/PostItem";
 import Sidebar from "../common/Sidebar";
 
 export const loader =
   (client: AppClient) =>
   async ({ params }: LoaderFunctionArgs) => {
-    // Backend profile endpoints are unimplemented; pass handle for display only.
-    return { handle: params.handle };
+    // Pass handle for routing; data is loaded via queries.
+    return { handle: params.id };
   };
 
 export default function OtherUserPage() {
@@ -25,7 +26,7 @@ export default function OtherUserPage() {
   const queryClient = useQueryClient();
   const tokenUserId = appState?.userId ?? null;
   const userId = useMemo(() => {
-    if (handle && !Number.isNaN(Number(handle))) return Number(handle);
+    if (handle) return String(handle);
     return null;
   }, [handle]);
   const derivedUsername = useMemo(() => {
@@ -34,71 +35,80 @@ export default function OtherUserPage() {
     }
     return appState?.username ?? "";
   }, [handle, appState?.username]);
-  const derivedBio =
+  const fallbackDisplay =
     tokenUserId !== null
-      ? `u r logged in `
+      ? "Signed-in profile"
       : "Profile data is unavailable until the API endpoint is implemented.";
   const [isFollowed, setIsFollowed] = useState(false);
   const [followError, setFollowError] = useState<string | null>(null);
   const [followPending, setFollowPending] = useState(false);
+  const [isComposerOpen, setIsComposerOpen] = useState(false);
 
-  const { data: profileData } = useQuery({
-    queryKey: ["profile", handle ?? derivedUsername],
-    enabled: Boolean(client) && Boolean(handle),
+  const { data: profileData } = useQuery<
+    components["schemas"]["Account"] | null
+  >({
+    queryKey: ["profile", userId ?? derivedUsername],
+    enabled: Boolean(client) && Boolean(userId),
     queryFn: async () => {
-      const id = handle ? Number(handle) : null;
-      console.log("[OtherUserPage] fetching profile for id", id);
+      const id = userId;
       if (!id) {
-        return { username: derivedUsername, bio: derivedBio };
+        return null;
       }
-      const res = await client!.fetchClient.GET("/api/users/{id}", {
-        params: { path: { id } },
+      const res = await client!.fetchClient.GET("/api/accounts/{id}", {
+        params: { path: { id: String(id) } },
       });
       if (res.error || !res.data) {
         console.warn("[OtherUserPage] profile fetch failed");
-        return {
-          username: derivedUsername,
-          bio: derivedBio,
-        };
+        return null;
       }
-      return {
-        username: res.data.username,
-        bio: (res.data as any).bio ?? derivedBio,
-      };
+      return res.data;
     },
   });
+  const profileHandleRaw = profileData?.acct ?? derivedUsername;
+  const profileHandle = profileHandleRaw
+    ? profileHandleRaw.startsWith("@")
+      ? profileHandleRaw.slice(1)
+      : profileHandleRaw
+    : "";
+  const profileDisplay =
+    profileData?.display_name ||
+    profileData?.username ||
+    derivedUsername ||
+    fallbackDisplay;
+  const followersCount = profileData?.followers_count;
+  const followingCount = profileData?.following_count;
 
-  const { data: followers } = useQuery<components["schemas"]["User"][]>({
+  const { data: followers } = useQuery<components["schemas"]["Account"][]>({
     queryKey: ["followers", userId],
     enabled: Boolean(client) && userId !== null,
     queryFn: async () => {
       if (!client || userId === null) {
         throw new Error("Client or user not ready");
       }
-      const res = await client.fetchClient.GET("/api/users/{id}/followers", {
+      const res = await client.fetchClient.GET("/api/accounts/{id}/followers", {
         params: { path: { id: userId } },
       });
       if (res.error) {
         throw new Error("Failed to fetch followers");
       }
-      return (res.data as components["schemas"]["User"][]) ?? [];
+      return (res.data as components["schemas"]["Account"][]) ?? [];
     },
   });
 
-  const { data: following } = useQuery<components["schemas"]["User"][]>({
+  const { data: following } = useQuery<components["schemas"]["Account"][]>({
     queryKey: ["following", userId],
     enabled: Boolean(client) && userId !== null,
     queryFn: async () => {
       if (!client || userId === null) {
         throw new Error("Client or user not ready");
       }
-      const res = await client.fetchClient.GET("/api/users/{id}/following", {
+      const res = await client.fetchClient.GET("/api/accounts/{id}/following", {
         params: { path: { id: userId } },
       });
       if (res.error) {
         throw new Error("Failed to fetch following");
       }
-      return (res.data as components["schemas"]["User"][]) ?? [];
+      return (res.data as components["schemas"]["Account"][]) ?? [];
     },
   });
 
@@ -106,14 +116,14 @@ export default function OtherUserPage() {
     data: posts,
     isPending: postsPending,
     isError: postsError,
-  } = useQuery<components["schemas"]["Post"][]>({
-    queryKey: ["user-posts", userId, "other"],
+  } = useQuery<components["schemas"]["Status"][]>({
+    queryKey: ["account-statuses", userId, "other"],
     enabled: Boolean(client) && userId !== null,
     queryFn: async () => {
       if (!client || userId === null) {
         throw new Error("Client or user not ready");
       }
-      const res = await client.fetchClient.GET("/api/users/{id}/posts", {
+      const res = await client.fetchClient.GET("/api/accounts/{id}/statuses", {
         params: { path: { id: userId } },
       });
       if (res.error) {
@@ -122,6 +132,12 @@ export default function OtherUserPage() {
       return res.data ?? [];
     },
   });
+  const displayPosts = useMemo(() => {
+    if (!posts) return [];
+    return posts.filter(
+      (post) => post.in_reply_to_id == null || post.reblog != null,
+    );
+  }, [posts]);
 
   const handleFollow = async () => {
     if (!client || userId === null) {
@@ -131,17 +147,24 @@ export default function OtherUserPage() {
     setFollowError(null);
     setFollowPending(true);
     try {
-      const res = await client.fetchClient.POST("/api/accounts/{id}/follow", {
+      const endpoint = isFollowed
+        ? "/api/accounts/{id}/unfollow"
+        : "/api/accounts/{id}/follow";
+      const res = await client.fetchClient.POST(endpoint, {
         params: { path: { id: userId } },
       });
       if (res.error) {
-        setFollowError("Failed to follow user");
+        setFollowError(
+          isFollowed ? "Failed to unfollow user" : "Failed to follow user",
+        );
       } else {
-        setIsFollowed(true);
+        setIsFollowed(!isFollowed);
         queryClient.invalidateQueries({ queryKey: ["followers", userId] });
       }
     } catch (err) {
-      setFollowError("Failed to follow user");
+      setFollowError(
+        isFollowed ? "Failed to unfollow user" : "Failed to follow user",
+      );
     } finally {
       setFollowPending(false);
     }
@@ -152,8 +175,33 @@ export default function OtherUserPage() {
       setIsFollowed(false);
       return;
     }
-    setIsFollowed(followers.some((follower) => follower.id === tokenUserId));
+    setIsFollowed(
+      followers.some((follower) => follower.id === String(tokenUserId)),
+    );
   }, [followers, tokenUserId]);
+
+  const openComposer = () => {
+    setIsComposerOpen(true);
+  };
+
+  const closeComposer = () => {
+    setIsComposerOpen(false);
+  };
+
+  const handleCreatePost = async (content: string) => {
+    if (!client || tokenUserId === null) {
+      throw new Error("User not authenticated");
+    }
+    await client.fetchClient.POST("/api/statuses", {
+      body: { status: content, in_reply_to_id: null },
+    });
+    await client.queryClient.invalidateQueries({
+      queryKey: ["account-statuses", tokenUserId],
+    });
+    await client.queryClient.invalidateQueries({
+      queryKey: ["get", "/api/timelines/home", {}],
+    });
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -171,21 +219,23 @@ export default function OtherUserPage() {
                 </div>
               </div>
               <div className="flex-1">
-                <p className="text-gray-500">@{profileData?.username}</p>
+                <p className="text-gray-500">
+                  {profileHandle ? `@${profileHandle}` : "@"}
+                </p>
                 <p className="text-2xl font-semibold text-gray-800">
-                  {profileData?.bio}
+                  {profileDisplay}
                 </p>
                 <div className="mt-4 flex items-center gap-8 text-sm text-gray-600">
                   <span>
                     Followers:{" "}
                     <strong className="text-gray-900">
-                      {followers ? followers.length : "—"}
+                      {followersCount ?? (followers ? followers.length : "—")}
                     </strong>
                   </span>
                   <span>
                     Following:{" "}
                     <strong className="text-gray-900">
-                      {following ? following.length : "—"}
+                      {followingCount ?? (following ? following.length : "—")}
                     </strong>
                   </span>
                 </div>
@@ -210,7 +260,7 @@ export default function OtherUserPage() {
             )}
           </section>
           {/* POSTS */}
-          <section className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+          <section className="rounded-2xl bg-transparent">
             {postsPending && (
               <div className="p-4 text-sm text-gray-500">Loading posts…</div>
             )}
@@ -219,22 +269,33 @@ export default function OtherUserPage() {
                 Failed to load posts.
               </div>
             )}
-            {!postsPending && !postsError && posts && posts.length > 0
-              ? posts.map((post) => (
-                  <PostItem
+            {!postsPending && !postsError && displayPosts.length > 0 ? (
+              <div className="space-y-3">
+                {displayPosts.map((post) => (
+                  <div
                     key={post.id}
-                    post={{ data: post }}
-                    client={client!}
-                  />
-                ))
-              : !postsPending &&
-                !postsError && (
-                  <div className="p-4 text-sm text-gray-500">No posts yet.</div>
-                )}
+                    className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden"
+                  >
+                    <PostItem post={{ data: post }} client={client!} />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              !postsPending &&
+              !postsError && (
+                <div className="p-4 text-sm text-gray-500">No posts yet.</div>
+              )
+            )}
           </section>
         </main>
-        <Sidebar />
+        <Sidebar onPostClick={openComposer} />
       </div>
+      <PostComposerOverlay
+        isOpen={isComposerOpen}
+        onClose={closeComposer}
+        replyTo={null}
+        onSubmit={handleCreatePost}
+      />
     </div>
   );
 }

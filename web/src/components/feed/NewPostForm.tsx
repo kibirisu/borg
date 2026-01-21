@@ -5,7 +5,6 @@ import {
   useActionData,
   useNavigation,
 } from "react-router";
-import type { components } from "../../lib/api/v1";
 import type { AppClient } from "../../lib/client";
 import decodeToken from "../../lib/decode";
 import AppContext from "../../lib/state";
@@ -15,27 +14,23 @@ export const action =
   async ({ request }: ActionFunctionArgs) => {
     const formData = await request.formData();
     const content = formData.get("content") as string;
-    const userIdRaw = formData.get("userId");
-    const userId = typeof userIdRaw === "string" ? Number(userIdRaw) : null;
+    const userId = formData.get("userId")?.toString() ?? "";
 
     if (!content || !content.trim()) {
       throw new Error("Post content cannot be empty");
     }
-    if (!userId || Number.isNaN(userId)) {
+    if (!userId) {
       return { form: "You must be logged in to post." };
     }
 
-    const newPostData: components["schemas"]["NewPost"] = {
-      userID: userId,
-      content,
-    };
-
-    const mutationOpts = client.$api.queryOptions("post", "/api/posts", {
-      body: newPostData,
+    const res = await client.fetchClient.POST("/api/statuses", {
+      body: { status: content, in_reply_to_id: null },
     });
-    await client.queryClient.ensureQueryData(mutationOpts);
+    if (res.error) {
+      return { form: "Failed to create post." };
+    }
     client.queryClient.invalidateQueries({
-      queryKey: ["get", "/api/posts", {}],
+      queryKey: ["account-statuses", userId],
     });
 
     return null;

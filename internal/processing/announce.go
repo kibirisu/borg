@@ -3,6 +3,7 @@ package processing
 import (
 	"context"
 	"errors"
+	"log"
 
 	"github.com/rs/xid"
 
@@ -15,26 +16,37 @@ func (p *processor) AnnounceStatus(
 	activity ap.AnnounceActivitier,
 ) (*xid.ID, error) {
 	uri := activity.GetURI()
+	log.Printf("[Processing] [Announce] processing Activity with ID=%s", uri)
 	if uri == "" {
 		return nil, errors.New("invalid object")
 	}
 	status, err := p.store.Statuses().GetByURI(ctx, uri)
 	if err != nil {
 		activityData := activity.GetObject()
+		log.Printf(
+			"[Processing] [Announce] processing Actor with ID=%s",
+			activityData.Actor.GetURI(),
+		)
 		actorID, err := p.LookupActor(ctx, activityData.Actor)
 		if err != nil {
 			return nil, err
 		}
+		log.Printf(
+			"[Processing] [Announce] processing Status with ID=%s",
+			activityData.Object.GetURI(),
+		)
 		reblogOfID, err := p.LookupStatus(ctx, activityData.Object)
 		if err != nil {
 			return nil, err
 		}
-		status, err = p.store.Statuses().Create(ctx, db.CreateStatusParams{
-			AccountID:  *actorID,
-			ReblogOfID: reblogOfID,
-			ID:         xid.New(),
-			AccountUri: activityData.Actor.GetURI(),
-			Uri:        uri,
+		status, err = p.store.Statuses().AddReblog(ctx, db.AddReblogParams{
+			AccountID:         *actorID,
+			ReblogOfID:        reblogOfID,
+			ID:                xid.New(),
+			AccountUri:        activityData.Actor.GetURI(),
+			ReblogUri:         uri,
+			Url:               "",
+			ReblogOfAccountID: nil, // risky
 		})
 		if err != nil {
 			return nil, err

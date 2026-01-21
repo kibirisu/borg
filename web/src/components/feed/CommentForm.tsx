@@ -11,44 +11,58 @@ import AppContext from "../../lib/state";
 export const action =
   (client: AppClient) =>
   async ({ request, params }: ActionFunctionArgs) => {
-    if (!params.postId) {
+    const fallbackPostId = params.postId ? String(params.postId) : "";
+    const formData = await request.formData();
+    const replyToId = formData.get("replyToId")?.toString() ?? "";
+    const postId = replyToId || fallbackPostId;
+
+    if (!postId) {
       return { form: "No post ID provided" };
     }
 
-    const postId = Number(params.postId);
-    const formData = await request.formData();
     const contentRaw = formData.get("content")?.toString() ?? "";
-    const userIdRaw = formData.get("userId")?.toString() ?? "";
-    const userId = Number(userIdRaw);
+    const userId = formData.get("userId")?.toString() ?? "";
 
     if (!contentRaw.trim()) {
       return { form: "Comment content cannot be empty" };
     }
-    if (!userId || Number.isNaN(userId)) {
+    if (!userId) {
       return { form: "User not authenticated" };
     }
 
-    const body = {
-      postID: postId,
-      userID: userId,
-      content: contentRaw.trim(),
-    };
-
-    const res = await client.fetchClient.POST("/api/posts/{id}/comments", {
-      params: { path: { id: postId } },
-      body,
+    const res = await client.fetchClient.POST("/api/statuses", {
+      body: { status: contentRaw.trim(), in_reply_to_id: postId },
     });
 
     if (res.error) {
       return { form: "Failed to post comment" };
     }
 
-    client.queryClient.invalidateQueries({ queryKey: ["comments", postId] });
-    client.queryClient.invalidateQueries({ queryKey: ["user-posts"] });
+    client.queryClient.invalidateQueries({
+      queryKey: [
+        "get",
+        "/api/statuses/{id}/replies",
+        { params: { path: { id: postId } } },
+      ],
+    });
+    client.queryClient.invalidateQueries({
+      queryKey: [
+        "get",
+        "/api/statuses/{id}",
+        { params: { path: { id: postId } } },
+      ],
+    });
+    client.queryClient.invalidateQueries({
+      queryKey: ["account-statuses"],
+      exact: false,
+    });
+    client.queryClient.invalidateQueries({
+      queryKey: ["get", "/api/timelines/home", {}],
+    });
     return null;
   };
 
-export default function CommentForm() {
+export default function CommentForm({ postId }: { postId?: string }) {
   const appState = useContext(AppContext);
   const errors = useActionData() as { form?: string } | undefined;
   const navigation = useNavigation();
@@ -67,9 +81,10 @@ export default function CommentForm() {
   return (
     <Form
       method="post"
-      className="p-4 border-t border-gray-200 bg-white flex flex-col gap-3"
+      className="fixed bottom-0 left-0 right-0 z-50 w-full border-t border-gray-200 bg-white flex flex-col gap-3 p-4 shadow-[0_-8px_24px_-12px_rgba(0,0,0,0.3)]"
     >
       <input type="hidden" name="userId" value={userId ?? ""} />
+      <input type="hidden" name="replyToId" value={postId ?? ""} />
       {!isAuthenticated && (
         <div className="rounded-lg bg-yellow-50 border border-dashed border-yellow-200 p-3 text-sm text-gray-700">
           Sign in to comment.

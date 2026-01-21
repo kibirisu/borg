@@ -4,18 +4,25 @@ import { useLoaderData, useNavigate } from "react-router";
 import type { components } from "../../lib/api/v1";
 import type { AppClient } from "../../lib/client";
 import ClientContext from "../../lib/client";
+import AppContext from "../../lib/state";
 import PostComposerOverlay from "../common/PostComposerOverlay";
 import { PostItem, type PostPresentable } from "../common/PostItem";
 import Sidebar from "../common/Sidebar";
 
 export const loader = (client: AppClient) => async () => {
-  const opts = client.$api.queryOptions("get", "/api/posts", {});
+  const token = localStorage.getItem("jwt");
+  const cleaned = token ? token.replace(/^Bearer:\s*/i, "") : null;
+  const headers = cleaned ? { Authorization: `Bearer: ${cleaned}` } : undefined;
+  const opts = client.$api.queryOptions("get", "/api/timelines/home", {
+    headers,
+  });
   await client.queryClient.ensureQueryData(opts);
   return { opts };
 };
 
 export default function ExplorePage() {
   const client = useContext(ClientContext);
+  const appState = useContext(AppContext);
   const navigate = useNavigate();
   const { opts } = useLoaderData() as Awaited<
     ReturnType<ReturnType<typeof loader>>
@@ -30,6 +37,7 @@ export default function ExplorePage() {
   const [selectedPost, setSelectedPost] = useState<PostPresentable | null>(
     null,
   );
+  const userId = appState?.userId ?? null;
 
   const lookupMutation = useMutation({
     mutationFn: async (acct: string) => {
@@ -56,9 +64,11 @@ export default function ExplorePage() {
   const handleSearch = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmed = searchTerm.trim();
-    const handlePattern = /^@[A-Za-z0-9._-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
-    if (!handlePattern.test(trimmed)) {
-      setSearchError("Format must be @user@instance.com");
+    const handlePattern = /^@?[a-zA-Z0-9._-]+(@[a-zA-Z0-9.-]+(:\d+)?)?$/;
+    if (!trimmed || trimmed === "@" || !handlePattern.test(trimmed)) {
+      setSearchError(
+        "Format allowed: username, @username, user@instance, user@domain.com:8080",
+      );
       return;
     }
     if (!client) {
@@ -82,9 +92,11 @@ export default function ExplorePage() {
     setIsComposerOpen(true);
   };
   const handleCommentClick = (post: PostPresentable) => {
-    if ("id" in post.data) {
-      navigate(`/post/${post.data.id}`);
+    if (!post.data || !("id" in post.data)) {
+      return;
     }
+    const targetId = post.data.reblog?.id ?? post.data.id;
+    navigate(`/post/${targetId}`);
   };
 
   const openComposerForNewPost = () => {
@@ -95,6 +107,22 @@ export default function ExplorePage() {
   const closeComposer = () => {
     setIsComposerOpen(false);
     setSelectedPost(null);
+  };
+
+  const handleCreatePost = async (content: string) => {
+    if (!client || userId === null) {
+      throw new Error("User not authenticated");
+    }
+    const replyToId = selectedPost?.data?.reblog?.id ?? selectedPost?.data?.id ?? null;
+    await client.fetchClient.POST("/api/statuses", {
+      body: { status: content, in_reply_to_id: replyToId },
+    });
+    await client.queryClient.invalidateQueries({
+      queryKey: ["account-statuses", userId],
+    });
+    await client.queryClient.invalidateQueries({
+      queryKey: ["get", "/api/timelines/home", {}],
+    });
   };
 
   const onSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -143,7 +171,7 @@ export default function ExplorePage() {
               <input
                 id="explore-search"
                 type="search"
-                placeholder="@user@instance.com"
+                placeholder="user or user@domain"
                 className="block w-full rounded-xl border border-gray-200 bg-gray-50 p-3 pl-9 text-sm text-gray-900 placeholder:text-gray-500 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 focus:outline-none"
                 value={searchTerm}
                 onChange={onSearchChange}
@@ -152,11 +180,10 @@ export default function ExplorePage() {
             <button
               type="submit"
               disabled={lookupMutation.isPending}
-              className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white shadow-sm focus:outline-none focus:ring-4 focus:ring-indigo-300 ${
-                lookupMutation.isPending
+              className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white shadow-sm focus:outline-none focus:ring-4 focus:ring-indigo-300 ${lookupMutation.isPending
                   ? "bg-indigo-300 cursor-not-allowed"
                   : "bg-indigo-600 hover:bg-indigo-700"
-              }`}
+                }`}
             >
               <svg
                 className="h-5 w-5"
@@ -176,62 +203,63 @@ export default function ExplorePage() {
             </button>
           </form>
           {searchError && (
-            <p className="text-center text-sm text-red-600">{searchError}</p>
-          )}
-          {searchResult && (
-            <div className="max-w-md mx-auto bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-              <p className="text-sm font-medium text-gray-500">Search result</p>
-              <p className="text-lg font-semibold text-gray-900">
-                {searchResult.displayName || searchResult.username}
-              </p>
-              <p className="text-sm text-gray-500">
-                {searchResult.acct || `@${searchResult.username}`}
-              </p>
-              <a
-                href={searchResult.url}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-3 inline-flex items-center text-sm text-indigo-600 hover:text-indigo-800"
+            <div
+              className="flex items-start sm:items-center p-4 mb-4 text-sm text-fg-warning rounded-base bg-warning-soft text-yellow-800 bg-yellow-50 border border-yellow-200 rounded-lg"
+              role="alert"
+            >
+              <svg
+                className="w-4 h-4 me-2 shrink-0 mt-0.5 sm:mt-0"
+                aria-hidden="true"
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                fill="none"
+                viewBox="0 0 24 24"
               >
-                View profile
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4 ml-1"
-                  fill="none"
-                  viewBox="0 0 24 24"
+                <path
                   stroke="currentColor"
-                  strokeWidth={1.5}
-                  aria-hidden="true"
-                >
-                  <title>Open profile</title>
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M13.5 4.5H20m0 0v6.5m0-6.5L10.5 14"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M18 13.5V20H4v-14h6.5"
-                  />
-                </svg>
-              </a>
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M10 11h2v5m-2 0h4m-2.592-8.5h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+                />
+              </svg>
+              <p>
+                <span className="font-medium me-1">Warning!</span>
+                {searchError === "Error during fetching client."
+                  ? "Sorry, we coudn't find this profile. Are you sure you entered the username and host correctly?"
+                  : searchError}
+              </p>
             </div>
           )}
-          <section className="bg-white rounded-2xl border border-gray-200 p-4 space-y-4 min-h-[400px]">
+          {searchResult && (
+            <div className="max-w-md mx-auto w-full">
+              <FoundUserItem account={searchResult} />
+            </div>
+          )}
+          <section className="rounded-2xl bg-transparent min-h-[400px]">
             {isPending && <p className="text-gray-500 text-center">Loading…</p>}
             {!isPending &&
-              data?.map((post: components["schemas"]["Post"]) => (
-                <PostItem
-                  key={post.id}
-                  post={{ data: post }}
-                  client={client!}
-                  onSelect={handlePostSelect}
-                  onCommentClick={handleCommentClick}
-                />
-              ))}
+              data?.map(
+                (post: components["schemas"]["Status"]) =>
+                  post && (
+                    <div
+                      key={post.id}
+                      className="mb-3 rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden"
+                    >
+                      <PostItem
+                        post={{ data: post }}
+                        client={client!}
+                        onSelect={handlePostSelect}
+                        onCommentClick={handleCommentClick}
+                      />
+                    </div>
+                  ),
+              )}
             {!isPending && !data?.length && (
-              <p className="text-center text-gray-500">Nothing posted yet.</p>
+              <p className="text-center text-gray-500">
+                Start following someone to expore theirs posts!
+              </p>
             )}
           </section>
         </main>
@@ -241,7 +269,37 @@ export default function ExplorePage() {
         isOpen={isComposerOpen}
         onClose={closeComposer}
         replyTo={selectedPost}
+        onSubmit={handleCreatePost}
       />
+    </div>
+  );
+}
+
+function FoundUserItem({
+  account,
+}: {
+  account: components["schemas"]["Account"];
+}) {
+  const display = account.display_name || account.username;
+  const handle = account.acct || `@${account.username}`;
+  const initial = display?.slice(0, 1).toUpperCase() || "?";
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm">
+      <div className="flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 text-indigo-600 font-semibold">
+          {initial}
+        </div>
+        <div className="flex flex-col">
+          <a
+            href={`/profile/${account.id}`}
+            className="text-base font-semibold text-gray-900 hover:text-indigo-600"
+          >
+            {display}
+          </a>
+          <span className="text-sm text-gray-500">{handle}</span>
+        </div>
+      </div>
     </div>
   );
 }

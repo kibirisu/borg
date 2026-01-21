@@ -304,7 +304,7 @@ func (s *appService) UnfollowAccount(ctx context.Context, accountID string) (wor
 		}
 		if !req.Local {
 			actor := ap.NewEmptyActor().WithLink(token.URI)
-			undo.SetObject(ap.Activity[ap.Activity[ap.Actor]]{
+			undo = ap.NewEmptyUndoFollowActivity().WithObject(ap.Activity[ap.Activity[ap.Actor]]{
 				ID:    "doesn't matter",
 				Type:  "Undo",
 				Actor: actor,
@@ -316,7 +316,7 @@ func (s *appService) UnfollowAccount(ctx context.Context, accountID string) (wor
 				}),
 			})
 		}
-		return nil, store.Follows().DeleteByID(ctx, req.ID)
+		return req, store.Follows().DeleteByID(ctx, req.ID)
 	})
 	if err != nil {
 		return nil, err
@@ -389,7 +389,7 @@ func (s *appService) CreateStatus(
 		inReplyToID = &id
 	}
 
-	createdStatus, err := s.store.Statuses().CreateNew(ctx, db.CreateStatusNewParams{
+	createdStatus, err := s.store.Statuses().Create(ctx, db.CreateStatusParams{
 		ID:  statusID,
 		Uri: statusURIs.Status,
 		Url: "not needed rn",
@@ -484,7 +484,7 @@ func (s *appService) FavouriteStatus(ctx context.Context, favouritedID string) (
 		return nil, err
 	}
 
-	favourite, err := s.store.Favourites().CreateNew(ctx, db.CreateFavouriteNewParams{
+	favourite, err := s.store.Favourites().Create(ctx, db.CreateFavouriteParams{
 		ID:         id,
 		AccountID:  accountID,
 		AccountUri: token.URI,
@@ -495,7 +495,7 @@ func (s *appService) FavouriteStatus(ctx context.Context, favouritedID string) (
 		return nil, err
 	}
 
-	if token.ID == favourite.TargetAccountID.String() {
+	if favourite.Local.Bool {
 		return worker.EmptyJob, nil
 	}
 
@@ -591,12 +591,21 @@ func (s *appService) UnfavouriteStatus(ctx context.Context, id string) (worker.J
 
 // UnreblogStatus implements AppService.
 func (s *appService) UnreblogStatus(ctx context.Context, id string) (worker.Job, error) {
+	token, ok := ctx.Value(auth.TokenContextKey).(*auth.TokenData)
+	if !ok {
+		return nil, errors.New("auth failure")
+	}
+
+	accountID, err := xid.FromString(token.ID)
+	if err != nil {
+		return nil, err
+	}
 	statusID, err := xid.FromString(id)
 	if err != nil {
 		return nil, err
 	}
 
-	status, err := s.store.Statuses().DeleteByIDNew(ctx, statusID)
+	status, err := s.store.Statuses().DeleteReblogByStatusID(ctx, &statusID, accountID)
 	if err != nil {
 		return nil, err
 	}
@@ -607,7 +616,7 @@ func (s *appService) UnreblogStatus(ctx context.Context, id string) (worker.Job,
 		Type:  "Undo",
 		Actor: actor,
 		Object: ap.NewEmptyAnnounceActivity().WithObject(ap.Activity[ap.Note]{
-			ID:     id,
+			ID:     status.Uri,
 			Type:   "Announce",
 			Actor:  actor,
 			Object: ap.NewEmptyNote().WithLink(status.ReblogOfUri.String),

@@ -10,7 +10,8 @@ export interface AppState {
   token: [string | null, Dispatch<SetStateAction<string | null>>];
   tokenRef: RefObject<string | null>;
   username: string | null;
-  userId: number | null;
+  setUsername: Dispatch<SetStateAction<string | null>>;
+  userId: string | null;
 }
 
 const AppContext = createContext<AppState | undefined>(undefined);
@@ -22,7 +23,8 @@ interface Props {
   token: [string | null, Dispatch<SetStateAction<string | null>>];
   tokenRef: RefObject<string | null>;
   username: string | null;
-  userId: number | null;
+  setUsername: Dispatch<SetStateAction<string | null>>;
+  userId: string | null;
 }
 
 export const AppStateProvider = ({
@@ -30,10 +32,13 @@ export const AppStateProvider = ({
   token,
   tokenRef,
   username,
+  setUsername,
   userId,
 }: Props) => {
   return (
-    <AppContext.Provider value={{ token, tokenRef, username, userId }}>
+    <AppContext.Provider
+      value={{ token, tokenRef, username, setUsername, userId }}
+    >
       {children}
     </AppContext.Provider>
   );

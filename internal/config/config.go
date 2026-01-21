@@ -17,7 +17,7 @@ type Config struct {
 func GetConfig() *Config {
 	viper.SetDefault("ListenHost", "0.0.0.0")
 	viper.SetDefault("ListenPort", "8080")
-	viper.SetDefault("DatabaseUrl", "postgres://borg:borg@localhost:5432/borg")
+	viper.SetDefault("DatabaseURL", "postgres://borg:borg@localhost:5432/borg")
 	viper.SetDefault("Address", "localhost:8080")
 	viper.SetDefault("JWTSecret", "changeme")
 	viper.RegisterAlias("ListenHost", "listen_host")

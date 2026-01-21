@@ -1,6 +1,6 @@
 export interface DecodedToken {
   username: string | null;
-  userId: number | null;
+  userId: string | null;
   issuer?: string | null;
 }
 
@@ -26,12 +26,16 @@ const decodeToken = (token: string | null): DecodedToken | null => {
     sub?: number | string;
     iss?: string;
   };
+  const sub = payload.sub;
+  const userId =
+    sub === undefined || sub === null
+      ? null
+      : typeof sub === "string"
+        ? sub
+        : String(sub);
   return {
     username: payload.username ?? payload.name ?? null,
-    userId:
-      payload.sub !== undefined && payload.sub !== null
-        ? Number(payload.sub)
-        : null,
+    userId,
     issuer: payload.iss ?? null,
   };
 };
