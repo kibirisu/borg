@@ -93,7 +93,6 @@ func (q *Queries) AddFollowByActorURI(ctx context.Context, arg AddFollowByActorU
 }
 
 const addFollowByRequestURI = `-- name: AddFollowByRequestURI :exec
-
 WITH request AS (
     SELECT id, account_id, target_account_id FROM follow_requests WHERE uri = $1
 ) INSERT INTO follows (
@@ -101,12 +100,6 @@ WITH request AS (
 ) SELECT request.id, $1, request.account_id, request.target_account_id FROM request
 `
 
-// -- name: AddStatusByActorURI :exec
-// INSERT INTO statuses (
-//
-//	id, uri, url, content, account_id, account_uri
-//
-// ) SELECT @id, @uri, ”, @content, a.id, @account_uri FROM accounts a WHERE a.uri = @account_uri;
 func (q *Queries) AddFollowByRequestURI(ctx context.Context, uri string) error {
 	_, err := q.db.ExecContext(ctx, addFollowByRequestURI, uri)
 	return err
@@ -1048,7 +1041,7 @@ SELECT
     reblogged.uri AS reblogged_uri,
     reblogged_author.username AS reblogged_username,
     reblogged_author.display_name AS reblogged_display_name,
-    CONCAT(reblogged_author.username, '@', reblogged_author.domain)::TEXT AS reblogged_acct,
+    CONCAT(reblogged_author.username, '@' || reblogged_author.domain)::TEXT AS reblogged_acct,
     CONCAT(a.username, '@' || a.domain)::TEXT AS acct,
     (SELECT COUNT(*) FROM follows f WHERE f.target_account_id = a.id) AS followers_count,
     (SELECT COUNT(*) FROM follows f WHERE f.target_account_id = reblogged_author.id) AS reblogged_followers_count,
@@ -1458,7 +1451,7 @@ SELECT
     reblogged.uri AS reblogged_uri,
     reblogged_author.username AS reblogged_username,
     reblogged_author.display_name AS reblogged_display_name,
-    CONCAT(reblogged_author.username, '@', reblogged_author.domain)::TEXT AS reblogged_acct,
+    CONCAT(reblogged_author.username, '@' || reblogged_author.domain)::TEXT AS reblogged_acct,
     CONCAT(a.username, '@' || a.domain)::TEXT AS acct,
     (SELECT COUNT(*) FROM follows f WHERE f.target_account_id = a.id) AS followers_count,
     (SELECT COUNT(*) FROM follows f WHERE f.target_account_id = reblogged_author.id) AS reblogged_followers_count,
@@ -1939,7 +1932,7 @@ SELECT
     reblogged.uri AS reblogged_uri,
     reblogged_author.username AS reblogged_username,
     reblogged_author.display_name AS reblogged_display_name,
-    CONCAT(reblogged_author.username, '@', reblogged_author.domain)::TEXT AS reblogged_acct,
+    CONCAT(reblogged_author.username, '@' || reblogged_author.domain)::TEXT AS reblogged_acct,
     CONCAT(a.username, '@' || a.domain)::TEXT AS acct,
     (SELECT COUNT(*) FROM follows f WHERE f.target_account_id = a.id) AS followers_count,
     (SELECT COUNT(*) FROM follows f WHERE f.target_account_id = reblogged_author.id) AS reblogged_followers_count,
