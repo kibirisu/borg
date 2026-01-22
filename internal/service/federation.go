@@ -19,7 +19,7 @@ type FederationService interface {
 	GetActor(context.Context, string) (*domain.Object, error)
 	GetActorFollowers(context.Context, string, *int) (*domain.Object, error)
 	GetActorFollowing(context.Context, string, *int) (*domain.Object, error)
-	GetStatus(context.Context, string) (*domain.Object, error)
+	GetStatus(context.Context, string, string) (*domain.Object, error)
 	GetLike(context.Context, string) (*domain.Object, error)
 	GetFollow(context.Context, string) (*domain.Object, error)
 	ProcessIncoming(context.Context, *domain.ObjectOrLink, string) (worker.Job, error)
@@ -61,13 +61,17 @@ func (s *federationService) GetActor(
 // GetStatus implements FederationService.
 func (s *federationService) GetStatus(
 	ctx context.Context,
-	id string,
+	id, actorID string,
 ) (*domain.Object, error) {
 	statusID, err := xid.FromString(id)
 	if err != nil {
 		return nil, err
 	}
-	status, err := s.store.Statuses().GetLocalByID(ctx, statusID)
+	accountID, err := xid.FromString(actorID)
+	if err != nil {
+		return nil, err
+	}
+	status, err := s.store.Statuses().GetLocalByID(ctx, statusID, accountID)
 	if err != nil {
 		return nil, err
 	}
@@ -296,7 +300,7 @@ func (s *federationService) processUndo(
 			if err != nil {
 				return err
 			}
-			return s.store.Statuses().DeleteByID(ctx, *statusID)
+			return s.store.Statuses().DeleteAnnounceByID(ctx, *statusID)
 		}, nil
 	case "Like":
 		return func(ctx context.Context) error {

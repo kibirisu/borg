@@ -18,10 +18,10 @@ INSERT INTO users (
     $1, $2, $3
 );
 
--- name: AddStatusByActorURI :exec
-INSERT INTO statuses (
-    id, uri, url, content, account_id, account_uri
-) SELECT @id, @uri, '', @content, a.id, @account_uri FROM accounts a WHERE a.uri = @account_uri;
+-- -- name: AddStatusByActorURI :exec
+-- INSERT INTO statuses (
+--     id, uri, url, content, account_id, account_uri
+-- ) SELECT @id, @uri, '', @content, a.id, @account_uri FROM accounts a WHERE a.uri = @account_uri;
 
 -- name: AddFollowByRequestURI :exec
 WITH request AS (
@@ -41,9 +41,9 @@ WITH follower AS (
 
 -- name: AddAccount :one
 INSERT INTO accounts (
-    id, username, uri, domain, inbox_uri, outbox_uri, followers_uri, following_uri, url
+    id, username, uri, display_name, domain, inbox_uri, outbox_uri, followers_uri, following_uri, url
 ) VALUES (
-    @id, @username, @uri, @domain, @inbox_uri, @outbox_uri, @followers_uri, @following_uri, ''
+    @id, @username, @uri, @display_name, @domain, @inbox_uri, @outbox_uri, @followers_uri, @following_uri, ''
 ) RETURNING *;
 
 -- name: GetLocalActorByID :one
@@ -91,7 +91,8 @@ SELECT inbox_uri FROM accounts a JOIN follows f ON a.id = f.account_id WHERE f.t
 SELECT inbox_uri FROM accounts WHERE id = $1;
 
 -- name: GetLocalStatusByID :one
-SELECT * FROM statuses WHERE id = $1 AND local;
+SELECT s.*, a.uri AS account_uri, r.uri AS in_reply_to_uri
+FROM statuses s JOIN accounts a ON s.account_id = a.id LEFT JOIN statuses r ON s.in_reply_to_id = r.id WHERE s.id = @status_id AND a.id = @account_id AND s.local AND a.domain IS NULL;
 
 -- name: GetStatusByID :one
 SELECT 
@@ -100,6 +101,7 @@ SELECT
     reblogged.content AS reblogged_status_content,
     reblogged.in_reply_to_id AS reblogged_reply_to_id,
     reblogged.in_reply_to_account_id AS reblogged_reply_to_account_id,
+    reblogged.uri AS reblogged_uri,
     reblogged_author.username AS reblogged_username,
     reblogged_author.display_name AS reblogged_display_name,
     CONCAT(reblogged_author.username, '@' || a.domain)::TEXT AS reblogged_acct,
@@ -126,6 +128,7 @@ SELECT
     reblogged.content AS reblogged_status_content,
     reblogged.in_reply_to_id AS reblogged_reply_to_id,
     reblogged.in_reply_to_account_id AS reblogged_reply_to_account_id,
+    reblogged.uri AS reblogged_uri,
     reblogged_author.username AS reblogged_username,
     reblogged_author.display_name AS reblogged_display_name,
     CONCAT(reblogged_author.username, '@' || reblogged_author.domain)::TEXT AS reblogged_acct,
@@ -156,6 +159,7 @@ SELECT
     reblogged.content AS reblogged_status_content,
     reblogged.in_reply_to_id AS reblogged_reply_to_id,
     reblogged.in_reply_to_account_id AS reblogged_reply_to_account_id,
+    reblogged.uri AS reblogged_uri,
     reblogged_author.username AS reblogged_username,
     reblogged_author.display_name AS reblogged_display_name,
     CONCAT(reblogged_author.username, '@' || a.domain)::TEXT AS reblogged_acct,
@@ -205,59 +209,66 @@ WITH account AS (
   INSERT INTO follow_requests (
     id, uri, account_id, target_account_id, target_account_uri
   ) SELECT @id, @uri, @account_id, @target_account_id, uri FROM account RETURNING *
-) SELECT r.*, account.local FROM request r, account;
+) SELECT r.*, account.uri AS target_account_uri, account.local FROM request r, account;
 
 -- name: DeleteFollowRequestByAccountID :one
 WITH account AS (
   SELECT a.id, a.uri, (a.domain IS NULL)::BOOLEAN AS local FROM accounts a WHERE a.id = @target_account_id
 ), request AS (
     DELETE FROM follow_requests WHERE account_id = @account_id AND target_account_id = (SELECT id FROM account) RETURNING *
-) SELECT r.*, account.local FROM request r, account;
+) SELECT r.*, account.uri AS target_account_uri, account.local FROM request r, account;
 
 -- name: AddReblog :one
 INSERT INTO statuses (
-    id, uri, url, account_id, account_uri, reblog_of_id, reblog_of_account_id
+    id, uri, url, account_id, reblog_of_id
 ) VALUES (
-    @id, @reblog_uri, '', @account_id, @account_uri, @reblog_of_id, @reblog_of_account_id
+    @id, @reblog_uri, '', @account_id, @reblog_of_id
 ) RETURNING *;
 
 -- name: AddStatus :one
 INSERT INTO statuses (
-    id, url, local, content, account_id, account_uri, in_reply_to_id, reblog_of_id, uri
+    id, uri, url, content, account_id, in_reply_to_id, in_reply_to_account_id
 ) VALUES (
-    $1, '', $2, $3, $4, $5, $6, $7, $8
-)
-RETURNING *;
-
--- name: CreateStatus :one
-WITH parent AS (
-    SELECT uri, account_id FROM statuses WHERE id = @in_reply_to_id
-) INSERT INTO statuses (
-    id, uri, url, local, content, account_id, account_uri, 
-    in_reply_to_id, in_reply_to_uri, in_reply_to_account_id
-) VALUES (
-    @id, @uri, '', true, @content, @account_id, @account_uri, @in_reply_to_id,
-    (SELECT uri FROM parent),
-    (SELECT account_id FROM parent)
+    @id, @uri, '', @content, @account_id, @in_reply_to_id, (SELECT s.account_id FROM statuses s WHERE s.id = @in_reply_to_id)
 ) RETURNING *;
 
--- name: DeleteStatusByID :exec
-DELETE FROM statuses WHERE id = $1;
+-- name: CreateStatus :one
+INSERT INTO statuses (
+    id, uri, url, local, content, account_id
+) VALUES (
+    @id, @uri, '', TRUE, @content, @account_id
+) RETURNING *;
+
+-- name: CreateReply :one
+WITH parent AS (
+    SELECT s.uri, s.account_id FROM statuses s WHERE s.id = @in_reply_to_id
+), status AS (
+    INSERT INTO statuses (
+        id, uri, url, local, content, account_id, in_reply_to_id, in_reply_to_account_id
+    ) SELECT @id, @uri, '', TRUE, @content, @account_id,
+    @in_reply_to_id, p.account_id FROM parent p RETURNING *
+) SELECT sqlc.embed(s), p.uri AS in_reply_to_uri FROM status s, parent p;
+
+-- name: DeleteAnnounceByID :exec
+DELETE FROM statuses WHERE id = $1 and reblog_of_id IS NOT NULL;
 
 -- name: CreateReblog :one
 WITH parent AS (
-    SELECT s.uri, s.account_id FROM statuses s WHERE s.id = @reblog_of_id
-) INSERT INTO statuses (
-    id, uri, url, local, account_id, account_uri, 
-    reblog_of_id, reblog_of_uri, reblog_of_account_id
-) VALUES (
-    @id, @uri, '', TRUE, @account_id, @account_uri, @reblog_of_id,
-    (SELECT uri FROM parent),
-    (SELECT account_id FROM parent)
-) RETURNING *;
+    SELECT s.uri FROM statuses s WHERE s.id = @reblog_of_id
+), reblog AS (
+    INSERT INTO statuses (
+        id, uri, url, local, account_id, reblog_of_id
+    ) VALUES (
+        @id, @uri, '', TRUE, @account_id, @reblog_of_id
+    ) RETURNING *
+) SELECT sqlc.embed(s), p.uri AS reblof_of_uri FROM reblog s, parent p;
 
 -- name: DeleteReblogByStatusID :one
-DELETE FROM statuses WHERE id = (SELECT s.id FROM statuses s WHERE s.account_id = $1 AND s.reblog_of_id = $2) RETURNING *;
+WITH parent AS (
+    SELECT s.id, s.uri FROM statuses s WHERE s.account_id = $1 AND s.reblog_of_id = $2
+), reblog AS (
+    DELETE FROM statuses WHERE id = (SELECT p.id FROM parent p) RETURNING *
+) SELECT sqlc.embed(s), p.uri AS reblog_of_uri FROM reblog s, parent p;
 
 -- name: GetLocalLikeByID :one
 SELECT 
@@ -277,17 +288,15 @@ INSERT INTO favourites (
 
 -- name: CreateFavourite :one
 WITH status AS (
-    SELECT s.local, s.account_id, s.account_uri, s.uri FROM statuses s WHERE s.id = @status_id
+    SELECT s.local, s.account_id, s.uri FROM statuses s WHERE s.id = @status_id
 ), favourite AS (
     INSERT INTO favourites (
-        id, uri, account_id, account_uri, target_account_id, status_id, status_uri
-    ) SELECT 
-        @id, @uri, @account_id, @account_uri, status.account_id,
-        @status_id, status.uri FROM status RETURNING *
+        id, uri, account_id, target_account_id, status_id
+    ) SELECT @id, @uri, @account_id, status.account_id, @status_id FROM status RETURNING *
 ) SELECT f.*, status.local FROM favourite f, status;
 
 -- name: GetFavouriteByURI :one
-SELECT * FROM favourites WHERE uri LIKE '%' || $1::text;
+SELECT * FROM favourites WHERE uri = $1;
 
 -- name: GetLocalFollowByID :one
 SELECT
@@ -321,10 +330,11 @@ SELECT
     reblogged.content AS reblogged_status_content,
     reblogged.in_reply_to_id AS reblogged_reply_to_id,
     reblogged.in_reply_to_account_id AS reblogged_reply_to_account_id,
+    reblogged.uri AS reblogged_uri,
     reblogged_author.username AS reblogged_username,
     reblogged_author.display_name AS reblogged_display_name,
     CONCAT(reblogged_author.username, '@', reblogged_author.domain)::TEXT AS reblogged_acct,
-    CONCAT(a.username, '@', a.domain)::TEXT AS acct,
+    CONCAT(a.username, '@' || a.domain)::TEXT AS acct,
     (SELECT COUNT(*) FROM follows f WHERE f.target_account_id = a.id) AS followers_count,
     (SELECT COUNT(*) FROM follows f WHERE f.target_account_id = reblogged_author.id) AS reblogged_followers_count,
     (SELECT COUNT(*) FROM follows f WHERE f.account_id = a.id) AS following_count,
@@ -349,10 +359,11 @@ SELECT
     reblogged.content AS reblogged_status_content,
     reblogged.in_reply_to_id AS reblogged_reply_to_id,
     reblogged.in_reply_to_account_id AS reblogged_reply_to_account_id,
+    reblogged.uri AS reblogged_uri,
     reblogged_author.username AS reblogged_username,
     reblogged_author.display_name AS reblogged_display_name,
     CONCAT(reblogged_author.username, '@', reblogged_author.domain)::TEXT AS reblogged_acct,
-    CONCAT(a.username, '@', a.domain)::TEXT AS acct,
+    CONCAT(a.username, '@' || a.domain)::TEXT AS acct,
     (SELECT COUNT(*) FROM follows f WHERE f.target_account_id = a.id) AS followers_count,
     (SELECT COUNT(*) FROM follows f WHERE f.target_account_id = reblogged_author.id) AS reblogged_followers_count,
     (SELECT COUNT(*) FROM follows f WHERE f.account_id = a.id) AS following_count,
@@ -377,10 +388,11 @@ SELECT
     reblogged.content AS reblogged_status_content,
     reblogged.in_reply_to_id AS reblogged_reply_to_id,
     reblogged.in_reply_to_account_id AS reblogged_reply_to_account_id,
+    reblogged.uri AS reblogged_uri,
     reblogged_author.username AS reblogged_username,
     reblogged_author.display_name AS reblogged_display_name,
     CONCAT(reblogged_author.username, '@', reblogged_author.domain)::TEXT AS reblogged_acct,
-    CONCAT(a.username, '@', a.domain)::TEXT AS acct,
+    CONCAT(a.username, '@' || a.domain)::TEXT AS acct,
     (SELECT COUNT(*) FROM follows f WHERE f.target_account_id = a.id) AS followers_count,
     (SELECT COUNT(*) FROM follows f WHERE f.target_account_id = reblogged_author.id) AS reblogged_followers_count,
     (SELECT COUNT(*) FROM follows f WHERE f.account_id = a.id) AS following_count,

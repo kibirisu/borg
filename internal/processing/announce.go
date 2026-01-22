@@ -40,12 +40,10 @@ func (p *processor) AnnounceStatus(
 			return nil, err
 		}
 		status, err = p.store.Statuses().AddReblog(ctx, db.AddReblogParams{
-			AccountID:         *actorID,
-			ReblogOfID:        reblogOfID,
-			ID:                xid.New(),
-			AccountUri:        activityData.Actor.GetURI(),
-			ReblogUri:         uri,
-			ReblogOfAccountID: nil, // risky
+			ID:         xid.New(),
+			ReblogUri:  uri,
+			AccountID:  *actorID,
+			ReblogOfID: reblogOfID,
 		})
 		if err != nil {
 			return nil, err

@@ -30,7 +30,7 @@ func ToAPIStatus(status *db.GetStatusByIDRow) *api.Status {
 			inReplyToAccountID = &id
 		}
 
-		res := &api.Status{
+		return &api.Status{
 			Account: api.Account{
 				Acct:           status.Acct,
 				DisplayName:    status.Account.DisplayName.String,
@@ -51,7 +51,6 @@ func ToAPIStatus(status *db.GetStatusByIDRow) *api.Status {
 			RepliesCount:       int(status.RepliesCount),
 			Uri:                status.Status.Uri,
 		}
-		return res
 	}
 
 	if status.RebloggedReplyToID != nil {
@@ -98,7 +97,7 @@ func ToAPIStatus(status *db.GetStatusByIDRow) *api.Status {
 			Reblogged:          &status.Reblogged,
 			ReblogsCount:       int(status.ReblogsCount),
 			RepliesCount:       int(status.RepliesCount),
-			Uri:                status.Status.ReblogOfUri.String,
+			Uri:                status.RebloggedUri.String,
 		},
 		Reblogged:    &status.Reblogged,
 		ReblogsCount: int(status.ReblogsCount),

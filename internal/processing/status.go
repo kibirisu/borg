@@ -41,9 +41,8 @@ func (p *processor) LookupStatus(ctx context.Context, object ap.Noter) (*xid.ID,
 			}
 		}
 		status, err = p.store.Statuses().Add(ctx, db.AddStatusParams{
-			ID:         xid.New(),
-			AccountID:  *accountID,
-			AccountUri: statusData.AttributedTo.GetLink(),
+			ID:        xid.New(),
+			AccountID: *accountID,
 			Content: sql.NullString{
 				String: statusData.Content,
 				Valid:  true,

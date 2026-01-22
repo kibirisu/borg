@@ -16,16 +16,21 @@ type StatusRepository interface {
 		db.GetStatusesByAccountIDParams,
 	) ([]db.GetStatusesByAccountIDRow, error)
 	Create(context.Context, db.CreateStatusParams) (db.Status, error)
-	ReblogStatus(context.Context, db.CreateReblogParams) (db.Status, error)
+	CreateReply(context.Context, db.CreateReplyParams) (db.CreateReplyRow, error)
+	ReblogStatus(context.Context, db.CreateReblogParams) (db.CreateReblogRow, error)
 	Add(context.Context, db.AddStatusParams) (db.Status, error)
 	GetReplies(context.Context, xid.ID, xid.ID) ([]db.GetStatusRepliesRow, error)
 	GetByURI(context.Context, string) (db.Status, error)
-	GetLocalByID(context.Context, xid.ID) (db.Status, error)
+	GetLocalByID(context.Context, xid.ID, xid.ID) (db.GetLocalStatusByIDRow, error)
 	GetHomeTimelineByAccountID(context.Context, xid.ID) ([]db.GetTimelinePostsByAccountIdRow, error)
 	GetFavouriteByAccountID(context.Context, xid.ID) ([]db.GetFavouritePostsByAccountIdRow, error)
 	GetRebloggedByAccountID(context.Context, xid.ID) ([]db.GetRebloggedPostsByAccountIdRow, error)
-	DeleteByID(context.Context, xid.ID) error
-	DeleteReblogByStatusID(context.Context, *xid.ID, xid.ID) (db.Status, error)
+	DeleteAnnounceByID(context.Context, xid.ID) error
+	DeleteReblogByStatusID(
+		context.Context,
+		xid.ID,
+		xid.ID,
+	) (db.DeleteReblogByStatusIDRow, error)
 }
 
 type statusRepository struct {
@@ -50,6 +55,14 @@ func (r *statusRepository) GetByID(
 	return r.q.GetStatusByID(ctx, ids)
 }
 
+// CreateReply implements StatusRepository.
+func (r *statusRepository) CreateReply(
+	ctx context.Context,
+	reply db.CreateReplyParams,
+) (db.CreateReplyRow, error) {
+	return r.q.CreateReply(ctx, reply)
+}
+
 // Create implements StatusRepository.
 func (r *statusRepository) Create(
 	ctx context.Context,
@@ -62,7 +75,7 @@ func (r *statusRepository) Create(
 func (r *statusRepository) ReblogStatus(
 	ctx context.Context,
 	reblog db.CreateReblogParams,
-) (db.Status, error) {
+) (db.CreateReblogRow, error) {
 	return r.q.CreateReblog(ctx, reblog)
 }
 
@@ -101,8 +114,14 @@ func (r *statusRepository) GetByURI(ctx context.Context, uri string) (db.Status,
 }
 
 // GetLocalByID implements StatusRepository.
-func (r *statusRepository) GetLocalByID(ctx context.Context, id xid.ID) (db.Status, error) {
-	return r.q.GetLocalStatusByID(ctx, id)
+func (r *statusRepository) GetLocalByID(
+	ctx context.Context,
+	statusID, accountID xid.ID,
+) (db.GetLocalStatusByIDRow, error) {
+	return r.q.GetLocalStatusByID(ctx, db.GetLocalStatusByIDParams{
+		StatusID:  statusID,
+		AccountID: accountID,
+	})
 }
 
 // GetHomeTimelineByAccountID implements StatusRepository.
@@ -130,18 +149,18 @@ func (r *statusRepository) GetRebloggedByAccountID(
 }
 
 // DeleteByURI implements StatusRepository.
-func (r *statusRepository) DeleteByID(ctx context.Context, id xid.ID) error {
-	return r.q.DeleteStatusByID(ctx, id)
+func (r *statusRepository) DeleteAnnounceByID(ctx context.Context, id xid.ID) error {
+	return r.q.DeleteAnnounceByID(ctx, id)
 }
 
 // DeleteReblogByStatusID implements StatusRepository.
 func (r *statusRepository) DeleteReblogByStatusID(
 	ctx context.Context,
-	statusID *xid.ID,
+	statusID xid.ID,
 	accountID xid.ID,
-) (db.Status, error) {
+) (db.DeleteReblogByStatusIDRow, error) {
 	return r.q.DeleteReblogByStatusID(ctx, db.DeleteReblogByStatusIDParams{
 		AccountID:  accountID,
-		ReblogOfID: statusID,
+		ReblogOfID: &statusID,
 	})
 }

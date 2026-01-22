@@ -40,7 +40,8 @@ func (s *Server) handleGetActor(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleGetStatus(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "statusId")
-	status, err := s.service.Federation.GetStatus(r.Context(), id)
+	actorID := chi.URLParam(r, "id")
+	status, err := s.service.Federation.GetStatus(r.Context(), id, actorID)
 	if err != nil {
 		util.WriteError(w, http.StatusNotFound, err.Error())
 		return

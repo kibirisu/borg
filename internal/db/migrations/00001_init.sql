@@ -23,14 +23,10 @@ CREATE TABLE statuses (
     url TEXT NOT NULL,
     local BOOLEAN DEFAULT FALSE,
     content TEXT,
-    account_id VARCHAR(20) NOT NULL REFERENCES accounts (id),
-    account_uri TEXT NOT NULL,
+    account_id VARCHAR(20) NOT NULL REFERENCES accounts,
     in_reply_to_id VARCHAR(20) REFERENCES statuses,
-    in_reply_to_uri TEXT,
-    in_reply_to_account_id VARCHAR(20) REFERENCES accounts (id),
+    in_reply_to_account_id VARCHAR(20) REFERENCES accounts,
     reblog_of_id VARCHAR(20) REFERENCES statuses,
-    reblog_of_uri TEXT,
-    reblog_of_account_id VARCHAR(20) REFERENCES accounts (id),
     UNIQUE (account_id, reblog_of_id)
 );
 
@@ -52,7 +48,6 @@ CREATE TABLE follow_requests (
     uri TEXT UNIQUE NOT NULL,
     account_id VARCHAR(20) NOT NULL REFERENCES accounts (id),
     target_account_id VARCHAR(20) NOT NULL REFERENCES accounts (id),
-    target_account_uri TEXT NOT NULL,
     UNIQUE (account_id, target_account_id),
     CHECK (account_id != target_account_id)
 );

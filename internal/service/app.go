@@ -304,7 +304,6 @@ func (s *appService) UnfollowAccount(ctx context.Context, accountID string) (wor
 		if !req.Local {
 			actor := ap.NewEmptyActor().WithLink(token.URI)
 			undo = ap.NewEmptyUndoFollowActivity().WithObject(ap.Activity[ap.Activity[ap.Actor]]{
-				ID:    "doesn't matter",
 				Type:  "Undo",
 				Actor: actor,
 				Object: ap.NewEmptyFollowActivity().WithObject(ap.Activity[ap.Actor]{
@@ -379,33 +378,39 @@ func (s *appService) CreateStatus(
 		return nil, err
 	}
 
-	var inReplyToID *xid.ID
+	inReplyTo := ap.NewEmptyNote()
 	if status.InReplyToId != nil {
 		id, err := xid.FromString(*status.InReplyToId)
 		if err != nil {
 			return nil, err
 		}
-		inReplyToID = &id
+		reply, err := s.store.Statuses().CreateReply(ctx, db.CreateReplyParams{
+			InReplyToID: id,
+			ID:          statusID,
+			Uri:         statusURIs.Status,
+			Content: sql.NullString{
+				String: status.Status,
+				Valid:  true,
+			},
+			AccountID: accountID,
+		})
+		if err != nil {
+			return nil, err
+		}
+		inReplyTo.SetLink(reply.InReplyToUri)
 	}
 
-	createdStatus, err := s.store.Statuses().Create(ctx, db.CreateStatusParams{
+	_, err = s.store.Statuses().Create(ctx, db.CreateStatusParams{
 		ID:  statusID,
 		Uri: statusURIs.Status,
 		Content: sql.NullString{
 			String: status.Status,
 			Valid:  true,
 		},
-		AccountID:   accountID,
-		AccountUri:  token.URI,
-		InReplyToID: inReplyToID,
+		AccountID: accountID,
 	})
 	if err != nil {
 		return nil, err
-	}
-
-	inReplyTo := ap.NewEmptyNote()
-	if createdStatus.InReplyToUri.Valid {
-		inReplyTo.SetLink(createdStatus.InReplyToUri.String)
 	}
 
 	actor := ap.NewEmptyActor().WithLink(token.URI)
@@ -483,11 +488,10 @@ func (s *appService) FavouriteStatus(ctx context.Context, favouritedID string) (
 	}
 
 	favourite, err := s.store.Favourites().Create(ctx, db.CreateFavouriteParams{
-		ID:         id,
-		AccountID:  accountID,
-		AccountUri: token.URI,
-		StatusID:   statusID,
-		Uri:        s.builder.LikeRequestURI(token.ID, id.String()),
+		ID:        id,
+		AccountID: accountID,
+		StatusID:  statusID,
+		Uri:       s.builder.LikeRequestURI(token.ID, id.String()),
 	})
 	if err != nil {
 		return nil, err
@@ -526,22 +530,23 @@ func (s *appService) ReblogStatus(ctx context.Context, statusID string) (worker.
 		return nil, err
 	}
 
+	uri := s.builder.AnnounceURI(token.ID, id.String())
+
 	reblog, err := s.store.Statuses().ReblogStatus(ctx, db.CreateReblogParams{
 		ID:         id,
-		Uri:        s.builder.AnnounceURI(token.ID, id.String()),
+		Uri:        uri,
 		AccountID:  accountID,
-		AccountUri: token.URI,
-		ReblogOfID: &reblogOfID,
+		ReblogOfID: reblogOfID,
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	announce := ap.NewEmptyAnnounceActivity().WithObject(ap.Activity[ap.Note]{
-		ID:     reblog.Uri,
+		ID:     uri,
 		Type:   "Announce",
-		Actor:  ap.NewEmptyActor().WithLink(reblog.AccountUri),
-		Object: ap.NewEmptyNote().WithLink(reblog.ReblogOfUri.String),
+		Actor:  ap.NewEmptyActor().WithLink(token.URI),
+		Object: ap.NewEmptyNote().WithLink(reblog.ReblofOfUri),
 	})
 
 	return func(ctx context.Context) error {
@@ -602,26 +607,26 @@ func (s *appService) UnreblogStatus(ctx context.Context, id string) (worker.Job,
 		return nil, err
 	}
 
-	status, err := s.store.Statuses().DeleteReblogByStatusID(ctx, &statusID, accountID)
+	status, err := s.store.Statuses().DeleteReblogByStatusID(ctx, statusID, accountID)
 	if err != nil {
 		return nil, err
 	}
 
-	actor := ap.NewEmptyActor().WithLink(status.AccountUri)
+	actor := ap.NewEmptyActor().WithLink(token.URI)
 	undo := ap.NewEmptyUndoActivity().WithObject(ap.Activity[ap.Activity[ap.Note]]{
 		ID:    "does it matter?",
 		Type:  "Undo",
 		Actor: actor,
 		Object: ap.NewEmptyAnnounceActivity().WithObject(ap.Activity[ap.Note]{
-			ID:     status.Uri,
+			ID:     status.Status.Uri,
 			Type:   "Announce",
 			Actor:  actor,
-			Object: ap.NewEmptyNote().WithLink(status.ReblogOfUri.String),
+			Object: ap.NewEmptyNote().WithLink(status.ReblogOfUri),
 		}),
 	})
 
 	return func(ctx context.Context) error {
-		return s.prcessor.SendObject(ctx, undo.GetRaw().Object, *status.ReblogOfAccountID)
+		return s.prcessor.DistributeObject(ctx, undo.GetRaw().Object, accountID)
 	}, nil
 }
 
