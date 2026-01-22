@@ -194,20 +194,58 @@ func (q *Queries) AddReblog(ctx context.Context, arg AddReblogParams) (Status, e
 	return i, err
 }
 
-const addStatus = `-- name: AddStatus :one
+const addReply = `-- name: AddReply :one
 INSERT INTO statuses (
     id, uri, url, content, account_id, in_reply_to_id, in_reply_to_account_id
-) VALUES (
-    $1, $2, '', $3, $4, $5, (SELECT s.account_id FROM statuses s WHERE s.id = $5)
-) RETURNING id, created_at, updated_at, uri, url, local, content, account_id, in_reply_to_id, in_reply_to_account_id, reblog_of_id
+) SELECT $1, $2, '', $3, $4, s.id, s.account_id FROM statuses s WHERE s.id = $5 RETURNING id, created_at, updated_at, uri, url, local, content, account_id, in_reply_to_id, in_reply_to_account_id, reblog_of_id
 `
 
-type AddStatusParams struct {
+type AddReplyParams struct {
 	ID          xid.ID
 	Uri         string
 	Content     sql.NullString
 	AccountID   xid.ID
-	InReplyToID *xid.ID
+	InReplyToID xid.ID
+}
+
+func (q *Queries) AddReply(ctx context.Context, arg AddReplyParams) (Status, error) {
+	row := q.db.QueryRowContext(ctx, addReply,
+		arg.ID,
+		arg.Uri,
+		arg.Content,
+		arg.AccountID,
+		arg.InReplyToID,
+	)
+	var i Status
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Uri,
+		&i.Url,
+		&i.Local,
+		&i.Content,
+		&i.AccountID,
+		&i.InReplyToID,
+		&i.InReplyToAccountID,
+		&i.ReblogOfID,
+	)
+	return i, err
+}
+
+const addStatus = `-- name: AddStatus :one
+INSERT INTO statuses (
+    id, uri, url, content, account_id
+) VALUES (
+    $1, $2, '', $3, $4
+) RETURNING id, created_at, updated_at, uri, url, local, content, account_id, in_reply_to_id, in_reply_to_account_id, reblog_of_id
+`
+
+type AddStatusParams struct {
+	ID        xid.ID
+	Uri       string
+	Content   sql.NullString
+	AccountID xid.ID
 }
 
 func (q *Queries) AddStatus(ctx context.Context, arg AddStatusParams) (Status, error) {
@@ -216,7 +254,6 @@ func (q *Queries) AddStatus(ctx context.Context, arg AddStatusParams) (Status, e
 		arg.Uri,
 		arg.Content,
 		arg.AccountID,
-		arg.InReplyToID,
 	)
 	var i Status
 	err := row.Scan(
@@ -384,9 +421,11 @@ const createFollowRequest = `-- name: CreateFollowRequest :one
 WITH account AS (
   SELECT a.uri, (a.domain IS NULL)::BOOLEAN AS local FROM accounts a WHERE a.id = $1
 ), request AS (
-  INSERT INTO follow_requests (
-    id, uri, account_id, target_account_id, target_account_uri
-  ) SELECT $2, $3, $4, $1, uri FROM account RETURNING id, created_at, updated_at, uri, account_id, target_account_id
+    INSERT INTO follow_requests (
+        id, uri, account_id, target_account_id
+    ) VALUES (
+        $2, $3, $4, $1
+    ) RETURNING id, created_at, updated_at, uri, account_id, target_account_id
 ) SELECT r.id, r.created_at, r.updated_at, r.uri, r.account_id, r.target_account_id, account.uri AS target_account_uri, account.local FROM request r, account
 `
 

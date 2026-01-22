@@ -45,9 +45,7 @@ func (p *processor) AnnounceStatus(
 			AccountID:  *actorID,
 			ReblogOfID: reblogOfID,
 		})
-		if err != nil {
-			return nil, err
-		}
+		return &status.ID, err
 	}
 	return &status.ID, err
 }

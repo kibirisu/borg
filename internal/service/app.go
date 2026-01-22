@@ -398,19 +398,19 @@ func (s *appService) CreateStatus(
 			return nil, err
 		}
 		inReplyTo.SetLink(reply.InReplyToUri)
-	}
-
-	_, err = s.store.Statuses().Create(ctx, db.CreateStatusParams{
-		ID:  statusID,
-		Uri: statusURIs.Status,
-		Content: sql.NullString{
-			String: status.Status,
-			Valid:  true,
-		},
-		AccountID: accountID,
-	})
-	if err != nil {
-		return nil, err
+	} else {
+		_, err = s.store.Statuses().Create(ctx, db.CreateStatusParams{
+			ID:  statusID,
+			Uri: statusURIs.Status,
+			Content: sql.NullString{
+				String: status.Status,
+				Valid:  true,
+			},
+			AccountID: accountID,
+		})
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	actor := ap.NewEmptyActor().WithLink(token.URI)

@@ -43,9 +43,7 @@ func (p *processor) LikeStatus(
 			TargetAccountID: targetAccountID,
 			StatusUri:       activityData.Object.GetURI(),
 		})
-		if err != nil {
-			return nil, err
-		}
+		return &favourite.ID, err
 	}
-	return &favourite.ID, nil
+	return &favourite.ID, err
 }

@@ -19,6 +19,7 @@ type StatusRepository interface {
 	CreateReply(context.Context, db.CreateReplyParams) (db.CreateReplyRow, error)
 	ReblogStatus(context.Context, db.CreateReblogParams) (db.CreateReblogRow, error)
 	Add(context.Context, db.AddStatusParams) (db.Status, error)
+	AddReply(context.Context, db.AddReplyParams) (db.Status, error)
 	GetReplies(context.Context, xid.ID, xid.ID) ([]db.GetStatusRepliesRow, error)
 	GetByURI(context.Context, string) (db.Status, error)
 	GetLocalByID(context.Context, xid.ID, xid.ID) (db.GetLocalStatusByIDRow, error)
@@ -85,6 +86,14 @@ func (r *statusRepository) Add(
 	status db.AddStatusParams,
 ) (db.Status, error) {
 	return r.q.AddStatus(ctx, status)
+}
+
+// AddReply implements StatusRepository.
+func (r *statusRepository) AddReply(
+	ctx context.Context,
+	reply db.AddReplyParams,
+) (db.Status, error) {
+	return r.q.AddReply(ctx, reply)
 }
 
 // GetReplies implements StatusRepository.

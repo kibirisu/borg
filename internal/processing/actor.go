@@ -44,11 +44,9 @@ func (p *processor) LookupActor(ctx context.Context, object ap.Actorer) (*xid.ID
 			FollowersUri: actorData.Followers,
 			FollowingUri: actorData.Following,
 		})
-		if err != nil {
-			return &id, err
-		}
+		return &account.ID, err
 	}
-	return &account.ID, nil
+	return &account.ID, err
 }
 
 // FetchAndStoreAccount implements Processor.

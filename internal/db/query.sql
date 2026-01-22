@@ -206,9 +206,11 @@ SELECT
 WITH account AS (
   SELECT a.uri, (a.domain IS NULL)::BOOLEAN AS local FROM accounts a WHERE a.id = @target_account_id
 ), request AS (
-  INSERT INTO follow_requests (
-    id, uri, account_id, target_account_id, target_account_uri
-  ) SELECT @id, @uri, @account_id, @target_account_id, uri FROM account RETURNING *
+    INSERT INTO follow_requests (
+        id, uri, account_id, target_account_id
+    ) VALUES (
+        @id, @uri, @account_id, @target_account_id
+    ) RETURNING *
 ) SELECT r.*, account.uri AS target_account_uri, account.local FROM request r, account;
 
 -- name: DeleteFollowRequestByAccountID :one
@@ -227,10 +229,15 @@ INSERT INTO statuses (
 
 -- name: AddStatus :one
 INSERT INTO statuses (
-    id, uri, url, content, account_id, in_reply_to_id, in_reply_to_account_id
+    id, uri, url, content, account_id
 ) VALUES (
-    @id, @uri, '', @content, @account_id, @in_reply_to_id, (SELECT s.account_id FROM statuses s WHERE s.id = @in_reply_to_id)
+    @id, @uri, '', @content, @account_id
 ) RETURNING *;
+
+-- name: AddReply :one
+INSERT INTO statuses (
+    id, uri, url, content, account_id, in_reply_to_id, in_reply_to_account_id
+) SELECT @id, @uri, '', @content, @account_id, s.id, s.account_id FROM statuses s WHERE s.id = @in_reply_to_id RETURNING *;
 
 -- name: CreateStatus :one
 INSERT INTO statuses (

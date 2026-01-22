@@ -33,25 +33,34 @@ func (p *processor) LookupStatus(ctx context.Context, object ap.Noter) (*xid.ID,
 		if err != nil {
 			return nil, err
 		}
-		var inReplyToID *xid.ID
+
 		if statusData.InReplyTo.GetRaw() != nil {
-			inReplyToID, err = p.LookupStatus(ctx, statusData.InReplyTo)
+			inReplyToID, err := p.LookupStatus(ctx, statusData.InReplyTo)
 			if err != nil {
 				return nil, err
 			}
-		}
-		status, err = p.store.Statuses().Add(ctx, db.AddStatusParams{
-			ID:        xid.New(),
-			AccountID: *accountID,
-			Content: sql.NullString{
-				String: statusData.Content,
-				Valid:  true,
-			},
-			InReplyToID: inReplyToID,
-			Uri:         uri,
-		})
-		if err != nil {
-			return nil, err
+			status, err = p.store.Statuses().AddReply(ctx, db.AddReplyParams{
+				ID:  xid.New(),
+				Uri: uri,
+				Content: sql.NullString{
+					String: statusData.Content,
+					Valid:  true,
+				},
+				AccountID:   *accountID,
+				InReplyToID: *inReplyToID,
+			})
+			return &status.ID, err
+		} else {
+			status, err = p.store.Statuses().Add(ctx, db.AddStatusParams{
+				ID:  xid.New(),
+				Uri: uri,
+				Content: sql.NullString{
+					String: statusData.Content,
+					Valid:  true,
+				},
+				AccountID: *accountID,
+			})
+			return &status.ID, err
 		}
 	}
 	return &status.ID, err
