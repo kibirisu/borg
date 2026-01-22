@@ -14,7 +14,7 @@ type FavouriteRepository interface {
 	AddLike(context.Context, db.AddLikeParams) (db.Favourite, error)
 	GetByURI(context.Context, string) (db.Favourite, error)
 	DeleteByID(context.Context, xid.ID) error
-	DeleteByStatusID(context.Context, xid.ID, xid.ID) (db.Favourite, error)
+	DeleteByStatusID(context.Context, xid.ID, xid.ID) (db.DeleteFavouriteByStatusIDRow, error)
 }
 
 type favouriteRepository struct {
@@ -59,12 +59,11 @@ func (r *favouriteRepository) DeleteByID(ctx context.Context, id xid.ID) error {
 
 func (r *favouriteRepository) DeleteByStatusID(
 	ctx context.Context,
-	accountID xid.ID,
 	statusID xid.ID,
-) (db.Favourite, error) {
-	params := db.DeleteFavouriteByStatusIDParams{
+	accountID xid.ID,
+) (db.DeleteFavouriteByStatusIDRow, error) {
+	return r.q.DeleteFavouriteByStatusID(ctx, db.DeleteFavouriteByStatusIDParams{
 		AccountID: accountID,
 		StatusID:  statusID,
-	}
-	return r.q.DeleteFavouriteByStatusID(ctx, params)
+	})
 }

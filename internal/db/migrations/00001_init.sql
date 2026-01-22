@@ -35,8 +35,8 @@ CREATE TABLE follows (
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     uri TEXT UNIQUE NOT NULL,
-    account_id VARCHAR(20) NOT NULL REFERENCES accounts (id),
-    target_account_id VARCHAR(20) NOT NULL REFERENCES accounts (id),
+    account_id VARCHAR(20) NOT NULL REFERENCES accounts,
+    target_account_id VARCHAR(20) NOT NULL REFERENCES accounts,
     UNIQUE (account_id, target_account_id),
     CHECK (account_id != target_account_id)
 );
@@ -46,8 +46,8 @@ CREATE TABLE follow_requests (
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     uri TEXT UNIQUE NOT NULL,
-    account_id VARCHAR(20) NOT NULL REFERENCES accounts (id),
-    target_account_id VARCHAR(20) NOT NULL REFERENCES accounts (id),
+    account_id VARCHAR(20) NOT NULL REFERENCES accounts,
+    target_account_id VARCHAR(20) NOT NULL REFERENCES accounts,
     UNIQUE (account_id, target_account_id),
     CHECK (account_id != target_account_id)
 );
@@ -57,17 +57,15 @@ CREATE TABLE favourites (
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     uri TEXT UNIQUE NOT NULL,
-    account_id VARCHAR(20) NOT NULL REFERENCES accounts (id),
-    account_uri TEXT NOT NULL,
-    target_account_id VARCHAR(20) NOT NULL REFERENCES accounts (id),
-    status_id VARCHAR(20) NOT NULL REFERENCES statuses (id),
-    status_uri TEXT NOT NULL,
+    account_id VARCHAR(20) NOT NULL REFERENCES accounts,
+    target_account_id VARCHAR(20) NOT NULL REFERENCES accounts,
+    status_id VARCHAR(20) NOT NULL REFERENCES statuses,
     UNIQUE (account_id, status_id)
 );
 
 CREATE TABLE users (
     id VARCHAR(20) PRIMARY KEY,
-    account_id VARCHAR(20) NOT NULL UNIQUE REFERENCES accounts (id),
+    account_id VARCHAR(20) NOT NULL UNIQUE REFERENCES accounts,
     password_hash TEXT NOT NULL
 );
 

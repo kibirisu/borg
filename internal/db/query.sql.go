@@ -114,20 +114,18 @@ func (q *Queries) AddFollowByRequestURI(ctx context.Context, uri string) error {
 
 const addLike = `-- name: AddLike :one
 INSERT INTO favourites (
-    id, uri, account_id, account_uri, target_account_id, status_id, status_uri
+    id, uri, account_id, target_account_id, status_id
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7
-) RETURNING id, created_at, updated_at, uri, account_id, account_uri, target_account_id, status_id, status_uri
+    $1, $2, $3, $4, $5
+) RETURNING id, created_at, updated_at, uri, account_id, target_account_id, status_id
 `
 
 type AddLikeParams struct {
 	ID              xid.ID
 	Uri             string
 	AccountID       xid.ID
-	AccountUri      string
 	TargetAccountID xid.ID
 	StatusID        xid.ID
-	StatusUri       string
 }
 
 func (q *Queries) AddLike(ctx context.Context, arg AddLikeParams) (Favourite, error) {
@@ -135,10 +133,8 @@ func (q *Queries) AddLike(ctx context.Context, arg AddLikeParams) (Favourite, er
 		arg.ID,
 		arg.Uri,
 		arg.AccountID,
-		arg.AccountUri,
 		arg.TargetAccountID,
 		arg.StatusID,
-		arg.StatusUri,
 	)
 	var i Favourite
 	err := row.Scan(
@@ -147,10 +143,8 @@ func (q *Queries) AddLike(ctx context.Context, arg AddLikeParams) (Favourite, er
 		&i.UpdatedAt,
 		&i.Uri,
 		&i.AccountID,
-		&i.AccountUri,
 		&i.TargetAccountID,
 		&i.StatusID,
-		&i.StatusUri,
 	)
 	return i, err
 }
@@ -341,12 +335,12 @@ func (q *Queries) CreateActor(ctx context.Context, arg CreateActorParams) (Accou
 
 const createFavourite = `-- name: CreateFavourite :one
 WITH status AS (
-    SELECT s.local, s.account_id, s.uri FROM statuses s WHERE s.id = $1
+    SELECT s.uri AS status_uri, s.local, s.account_id, s.uri FROM statuses s WHERE s.id = $1
 ), favourite AS (
     INSERT INTO favourites (
         id, uri, account_id, target_account_id, status_id
-    ) SELECT $2, $3, $4, status.account_id, $1 FROM status RETURNING id, created_at, updated_at, uri, account_id, account_uri, target_account_id, status_id, status_uri
-) SELECT f.id, f.created_at, f.updated_at, f.uri, f.account_id, f.account_uri, f.target_account_id, f.status_id, f.status_uri, status.local FROM favourite f, status
+    ) SELECT $2, $3, $4, status.account_id, $1 FROM status RETURNING id, created_at, updated_at, uri, account_id, target_account_id, status_id
+) SELECT f.id, f.created_at, f.updated_at, f.uri, f.account_id, f.target_account_id, f.status_id, status.status_uri, status.local FROM favourite f, status
 `
 
 type CreateFavouriteParams struct {
@@ -362,7 +356,6 @@ type CreateFavouriteRow struct {
 	UpdatedAt       time.Time
 	Uri             string
 	AccountID       xid.ID
-	AccountUri      string
 	TargetAccountID xid.ID
 	StatusID        xid.ID
 	StatusUri       string
@@ -383,7 +376,6 @@ func (q *Queries) CreateFavourite(ctx context.Context, arg CreateFavouriteParams
 		&i.UpdatedAt,
 		&i.Uri,
 		&i.AccountID,
-		&i.AccountUri,
 		&i.TargetAccountID,
 		&i.StatusID,
 		&i.StatusUri,
@@ -644,7 +636,11 @@ func (q *Queries) DeleteFavouriteByID(ctx context.Context, id xid.ID) error {
 }
 
 const deleteFavouriteByStatusID = `-- name: DeleteFavouriteByStatusID :one
-DELETE FROM favourites WHERE account_id = $1 AND status_id = $2 RETURNING id, created_at, updated_at, uri, account_id, account_uri, target_account_id, status_id, status_uri
+WITH favourite AS (
+    DELETE FROM favourites f WHERE f.account_id = $1 AND f.status_id = $2 RETURNING id, created_at, updated_at, uri, account_id, target_account_id, status_id
+), status AS (
+    SELECT s.uri, s.local FROM statuses s WHERE s.id = $2
+) SELECT f.id, f.created_at, f.updated_at, f.uri, f.account_id, f.target_account_id, f.status_id, status.uri AS status_uri, status.local FROM favourite f, status
 `
 
 type DeleteFavouriteByStatusIDParams struct {
@@ -652,19 +648,31 @@ type DeleteFavouriteByStatusIDParams struct {
 	StatusID  xid.ID
 }
 
-func (q *Queries) DeleteFavouriteByStatusID(ctx context.Context, arg DeleteFavouriteByStatusIDParams) (Favourite, error) {
+type DeleteFavouriteByStatusIDRow struct {
+	ID              xid.ID
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+	Uri             string
+	AccountID       xid.ID
+	TargetAccountID xid.ID
+	StatusID        xid.ID
+	StatusUri       string
+	Local           sql.NullBool
+}
+
+func (q *Queries) DeleteFavouriteByStatusID(ctx context.Context, arg DeleteFavouriteByStatusIDParams) (DeleteFavouriteByStatusIDRow, error) {
 	row := q.db.QueryRowContext(ctx, deleteFavouriteByStatusID, arg.AccountID, arg.StatusID)
-	var i Favourite
+	var i DeleteFavouriteByStatusIDRow
 	err := row.Scan(
 		&i.ID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Uri,
 		&i.AccountID,
-		&i.AccountUri,
 		&i.TargetAccountID,
 		&i.StatusID,
 		&i.StatusUri,
+		&i.Local,
 	)
 	return i, err
 }
@@ -1012,7 +1020,7 @@ func (q *Queries) GetActorByURI(ctx context.Context, uri string) (Account, error
 }
 
 const getFavouriteByURI = `-- name: GetFavouriteByURI :one
-SELECT id, created_at, updated_at, uri, account_id, account_uri, target_account_id, status_id, status_uri FROM favourites WHERE uri = $1
+SELECT id, created_at, updated_at, uri, account_id, target_account_id, status_id FROM favourites WHERE uri = $1
 `
 
 func (q *Queries) GetFavouriteByURI(ctx context.Context, uri string) (Favourite, error) {
@@ -1024,10 +1032,8 @@ func (q *Queries) GetFavouriteByURI(ctx context.Context, uri string) (Favourite,
 		&i.UpdatedAt,
 		&i.Uri,
 		&i.AccountID,
-		&i.AccountUri,
 		&i.TargetAccountID,
 		&i.StatusID,
-		&i.StatusUri,
 	)
 	return i, err
 }
@@ -1343,7 +1349,7 @@ func (q *Queries) GetLocalFollowByID(ctx context.Context, id xid.ID) (GetLocalFo
 
 const getLocalLikeByID = `-- name: GetLocalLikeByID :one
 SELECT 
-    f.id, f.created_at, f.updated_at, f.uri, f.account_id, f.account_uri, f.target_account_id, f.status_id, f.status_uri,
+    f.id, f.created_at, f.updated_at, f.uri, f.account_id, f.target_account_id, f.status_id,
     a.id, a.created_at, a.updated_at, a.username, a.uri, a.display_name, a.domain, a.inbox_uri, a.outbox_uri, a.followers_uri, a.following_uri, a.url,
     s.id, s.created_at, s.updated_at, s.uri, s.url, s.local, s.content, s.account_id, s.in_reply_to_id, s.in_reply_to_account_id, s.reblog_of_id
 FROM favourites f JOIN accounts a ON f.account_id = a.id
@@ -1366,10 +1372,8 @@ func (q *Queries) GetLocalLikeByID(ctx context.Context, id xid.ID) (GetLocalLike
 		&i.Favourite.UpdatedAt,
 		&i.Favourite.Uri,
 		&i.Favourite.AccountID,
-		&i.Favourite.AccountUri,
 		&i.Favourite.TargetAccountID,
 		&i.Favourite.StatusID,
-		&i.Favourite.StatusUri,
 		&i.Account.ID,
 		&i.Account.CreatedAt,
 		&i.Account.UpdatedAt,

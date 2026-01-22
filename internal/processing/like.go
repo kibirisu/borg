@@ -38,10 +38,8 @@ func (p *processor) LikeStatus(
 			ID:              xid.New(),
 			Uri:             uri,
 			AccountID:       *accountID,
-			AccountUri:      activityData.Actor.GetURI(),
-			StatusID:        *statusID,
 			TargetAccountID: targetAccountID,
-			StatusUri:       activityData.Object.GetURI(),
+			StatusID:        *statusID,
 		})
 		return &favourite.ID, err
 	}

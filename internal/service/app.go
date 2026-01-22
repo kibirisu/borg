@@ -568,12 +568,16 @@ func (s *appService) UnfavouriteStatus(ctx context.Context, id string) (worker.J
 	if err != nil {
 		return nil, err
 	}
-	fav, err := s.store.Favourites().DeleteByStatusID(ctx, loggedInID, statusID)
+	fav, err := s.store.Favourites().DeleteByStatusID(ctx, statusID, loggedInID)
 	if err != nil {
 		return nil, err
 	}
 
-	actor := ap.NewEmptyActor().WithLink(fav.AccountUri)
+	if fav.Local.Bool {
+		return worker.EmptyJob, nil
+	}
+
+	actor := ap.NewEmptyActor().WithLink(token.URI)
 	undo := ap.NewEmptyUndoActivity().WithObject(ap.Activity[ap.Activity[ap.Note]]{
 		ID:    "nope",
 		Type:  "Undo",

@@ -32,10 +32,8 @@ type Favourite struct {
 	UpdatedAt       time.Time
 	Uri             string
 	AccountID       xid.ID
-	AccountUri      string
 	TargetAccountID xid.ID
 	StatusID        xid.ID
-	StatusUri       string
 }
 
 type Follow struct {

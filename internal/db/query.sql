@@ -18,11 +18,6 @@ INSERT INTO users (
     $1, $2, $3
 );
 
--- -- name: AddStatusByActorURI :exec
--- INSERT INTO statuses (
---     id, uri, url, content, account_id, account_uri
--- ) SELECT @id, @uri, '', @content, a.id, @account_uri FROM accounts a WHERE a.uri = @account_uri;
-
 -- name: AddFollowByRequestURI :exec
 WITH request AS (
     SELECT id, account_id, target_account_id FROM follow_requests WHERE uri = @uri
@@ -288,19 +283,19 @@ WHERE f.id = $1 AND a.domain IS NULL;
 
 -- name: AddLike :one
 INSERT INTO favourites (
-    id, uri, account_id, account_uri, target_account_id, status_id, status_uri
+    id, uri, account_id, target_account_id, status_id
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7
+    $1, $2, $3, $4, $5
 ) RETURNING *;
 
 -- name: CreateFavourite :one
 WITH status AS (
-    SELECT s.local, s.account_id, s.uri FROM statuses s WHERE s.id = @status_id
+    SELECT s.uri AS status_uri, s.local, s.account_id, s.uri FROM statuses s WHERE s.id = @status_id
 ), favourite AS (
     INSERT INTO favourites (
         id, uri, account_id, target_account_id, status_id
     ) SELECT @id, @uri, @account_id, status.account_id, @status_id FROM status RETURNING *
-) SELECT f.*, status.local FROM favourite f, status;
+) SELECT f.*, status.status_uri, status.local FROM favourite f, status;
 
 -- name: GetFavouriteByURI :one
 SELECT * FROM favourites WHERE uri = $1;
@@ -318,7 +313,11 @@ WHERE f.id = $1 AND a1.domain IS NULL;
 DELETE FROM favourites WHERE id = $1;
 
 -- name: DeleteFavouriteByStatusID :one
-DELETE FROM favourites WHERE account_id = $1 AND status_id = $2 RETURNING *;
+WITH favourite AS (
+    DELETE FROM favourites f WHERE f.account_id = $1 AND f.status_id = $2 RETURNING *
+), status AS (
+    SELECT s.uri, s.local FROM statuses s WHERE s.id = $2
+) SELECT f.*, status.uri AS status_uri, status.local FROM favourite f, status;
 
 -- name: GetAccountFollowers :many
 SELECT a.* FROM accounts a
