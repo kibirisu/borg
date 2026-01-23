@@ -113,7 +113,8 @@ export default function ExplorePage() {
     if (!client || userId === null) {
       throw new Error("User not authenticated");
     }
-    const replyToId = selectedPost?.data?.reblog?.id ?? selectedPost?.data?.id ?? null;
+    const replyToId =
+      selectedPost?.data?.reblog?.id ?? selectedPost?.data?.id ?? null;
     await client.fetchClient.POST("/api/statuses", {
       body: { status: content, in_reply_to_id: replyToId },
     });

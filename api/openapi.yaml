@@ -85,6 +85,8 @@ paths:
           required: true
           schema:
             type: string
+      security:
+        - BearerAuth: []
       responses:
         "200":
           description: OK

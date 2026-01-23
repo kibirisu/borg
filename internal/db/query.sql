@@ -288,6 +288,9 @@ INSERT INTO favourites (
     $1, $2, $3, $4, $5
 ) RETURNING *;
 
+-- name: DeleteStatusByID :exec
+DELETE FROM statuses WHERE id = $1;
+
 -- name: CreateFavourite :one
 WITH status AS (
     SELECT s.uri AS status_uri, s.local, s.account_id, s.uri FROM statuses s WHERE s.id = @status_id

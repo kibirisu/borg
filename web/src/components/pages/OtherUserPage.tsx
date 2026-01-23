@@ -12,10 +12,10 @@ import Sidebar from "../common/Sidebar";
 
 export const loader =
   (client: AppClient) =>
-  async ({ params }: LoaderFunctionArgs) => {
-    // Pass handle for routing; data is loaded via queries.
-    return { handle: params.id };
-  };
+    async ({ params }: LoaderFunctionArgs) => {
+      // Pass handle for routing; data is loaded via queries.
+      return { handle: params.id };
+    };
 
 export default function OtherUserPage() {
   const { handle } = useLoaderData() as Awaited<
@@ -244,9 +244,8 @@ export default function OtherUserPage() {
                 type="button"
                 onClick={handleFollow}
                 disabled={followPending}
-                className={`btn rounded-[12px] ${
-                  isFollowed ? "btn-outline btn-secondary" : "btn-primary"
-                }`}
+                className={`btn rounded-[12px] ${isFollowed ? "btn-outline btn-secondary" : "btn-primary"
+                  }`}
               >
                 {isFollowed
                   ? "Unfollow"

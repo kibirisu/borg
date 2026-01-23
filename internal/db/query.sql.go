@@ -766,6 +766,15 @@ func (q *Queries) DeleteReblogByStatusID(ctx context.Context, arg DeleteReblogBy
 	return i, err
 }
 
+const deleteStatusByID = `-- name: DeleteStatusByID :exec
+DELETE FROM statuses WHERE id = $1
+`
+
+func (q *Queries) DeleteStatusByID(ctx context.Context, id xid.ID) error {
+	_, err := q.db.ExecContext(ctx, deleteStatusByID, id)
+	return err
+}
+
 const getAccountByID = `-- name: GetAccountByID :one
 SELECT 
     a.id, a.created_at, a.updated_at, a.username, a.uri, a.display_name, a.domain, a.inbox_uri, a.outbox_uri, a.followers_uri, a.following_uri, a.url,

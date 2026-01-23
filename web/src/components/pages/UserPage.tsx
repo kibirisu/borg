@@ -2,7 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 import { useContext, useMemo, useState } from "react";
 import {
   type LoaderFunctionArgs,
-  Outlet,
   useLoaderData,
   useNavigate,
 } from "react-router";
@@ -17,10 +16,10 @@ import Sidebar from "../common/Sidebar";
 
 export const loader =
   (client: AppClient) =>
-  async ({ params }: LoaderFunctionArgs) => {
-    // Pass handle for routing; data is loaded via queries.
-    return { handle: params.id };
-  };
+    async ({ params }: LoaderFunctionArgs) => {
+      // Pass handle for routing; data is loaded via queries.
+      return { handle: params.id };
+    };
 
 export default function UserPage() {
   const { handle } = useLoaderData() as Awaited<
@@ -253,7 +252,6 @@ export default function UserPage() {
                 )}
               </div>
             )}
-            <Outlet />
           </section>
         </main>
         <Sidebar onPostClick={openComposer} />

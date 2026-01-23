@@ -57,6 +57,7 @@ func (r *favouriteRepository) DeleteByID(ctx context.Context, id xid.ID) error {
 	return r.q.DeleteFavouriteByID(ctx, id)
 }
 
+// DeleteByStatusID implements FavouriteRepository.
 func (r *favouriteRepository) DeleteByStatusID(
 	ctx context.Context,
 	statusID xid.ID,
