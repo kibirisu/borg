@@ -12,6 +12,7 @@ type FollowRepository interface {
 	Create(context.Context, db.CreateFollowParams) error
 	AddByRequestURI(context.Context, string) error
 	AddByActorURI(context.Context, db.AddFollowByActorURIParams) (string, error)
+	AddWithActor(context.Context, db.AddFollowWithActorParams) error
 	GetLocalFollowByID(context.Context, xid.ID) (db.GetLocalFollowByIDRow, error)
 	GetFollowerCollection(context.Context, string) (db.GetFollowerCollectionRow, error)
 	GetFollowingCollection(context.Context, string) (db.GetFollowingCollectionRow, error)
@@ -25,6 +26,11 @@ type followRepository struct {
 
 var _ FollowRepository = (*followRepository)(nil)
 
+// AddByRequestURI implements FollowRepository.
+func (r *followRepository) AddByRequestURI(ctx context.Context, uri string) error {
+	return r.q.AddFollowByRequestURI(ctx, uri)
+}
+
 // AddByActorURI implements FollowRepository.
 func (r *followRepository) AddByActorURI(
 	ctx context.Context,
@@ -33,9 +39,12 @@ func (r *followRepository) AddByActorURI(
 	return r.q.AddFollowByActorURI(ctx, follow)
 }
 
-// AddByRequestURI implements FollowRepository.
-func (r *followRepository) AddByRequestURI(ctx context.Context, uri string) error {
-	return r.q.AddFollowByRequestURI(ctx, uri)
+// AddWithActor implements FollowRepository.
+func (r *followRepository) AddWithActor(
+	ctx context.Context,
+	follow db.AddFollowWithActorParams,
+) error {
+	return r.q.AddFollowWithActor(ctx, follow)
 }
 
 // GetLocalFollowByID implements FollowRepository.

@@ -44,6 +44,9 @@ func (c *client) Get(ctx context.Context, uri string) (*domain.ObjectOrLink, err
 	defer func() {
 		_ = resp.Body.Close()
 	}()
+	if resp.StatusCode != http.StatusOK {
+		return nil, errors.New("getting activity data returned code other than 200")
+	}
 	return &object, json.UnmarshalRead(resp.Body, &object)
 }
 

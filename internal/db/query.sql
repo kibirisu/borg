@@ -41,6 +41,19 @@ INSERT INTO accounts (
     @id, @username, @uri, @display_name, @domain, @inbox_uri, @outbox_uri, @followers_uri, @following_uri, ''
 ) RETURNING *;
 
+-- name: AddFollowWithActor :exec
+WITH follow AS (
+    INSERT INTO follows (
+        id, uri, account_id, target_account_id
+    ) VALUES (
+        @follow_id, @follow_uri, @account_id, @target_account_id
+    )
+) INSERT INTO accounts (
+    id, username, uri, display_name, domain, inbox_uri, outbox_uri, followers_uri, following_uri, url
+) VALUES (
+    @account_id, @username, @account_uri, @display_name, @domain, @inbox, @outbox, @followers, @following, ''
+);
+
 -- name: GetLocalActorByID :one
 SELECT * FROM accounts WHERE id = $1 AND domain IS NULL;
 

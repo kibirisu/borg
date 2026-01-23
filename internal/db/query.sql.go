@@ -105,6 +105,53 @@ func (q *Queries) AddFollowByRequestURI(ctx context.Context, uri string) error {
 	return err
 }
 
+const addFollowWithActor = `-- name: AddFollowWithActor :exec
+WITH follow AS (
+    INSERT INTO follows (
+        id, uri, account_id, target_account_id
+    ) VALUES (
+        $10, $11, $1, $12
+    )
+) INSERT INTO accounts (
+    id, username, uri, display_name, domain, inbox_uri, outbox_uri, followers_uri, following_uri, url
+) VALUES (
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, ''
+)
+`
+
+type AddFollowWithActorParams struct {
+	AccountID       xid.ID
+	Username        string
+	AccountUri      string
+	DisplayName     sql.NullString
+	Domain          sql.NullString
+	Inbox           string
+	Outbox          string
+	Followers       string
+	Following       string
+	FollowID        xid.ID
+	FollowUri       string
+	TargetAccountID xid.ID
+}
+
+func (q *Queries) AddFollowWithActor(ctx context.Context, arg AddFollowWithActorParams) error {
+	_, err := q.db.ExecContext(ctx, addFollowWithActor,
+		arg.AccountID,
+		arg.Username,
+		arg.AccountUri,
+		arg.DisplayName,
+		arg.Domain,
+		arg.Inbox,
+		arg.Outbox,
+		arg.Followers,
+		arg.Following,
+		arg.FollowID,
+		arg.FollowUri,
+		arg.TargetAccountID,
+	)
+	return err
+}
+
 const addLike = `-- name: AddLike :one
 INSERT INTO favourites (
     id, uri, account_id, target_account_id, status_id
