@@ -181,10 +181,11 @@ export default function ExplorePage() {
             <button
               type="submit"
               disabled={lookupMutation.isPending}
-              className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white shadow-sm focus:outline-none focus:ring-4 focus:ring-indigo-300 ${lookupMutation.isPending
+              className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white shadow-sm focus:outline-none focus:ring-4 focus:ring-indigo-300 ${
+                lookupMutation.isPending
                   ? "bg-indigo-300 cursor-not-allowed"
                   : "bg-indigo-600 hover:bg-indigo-700"
-                }`}
+              }`}
             >
               <svg
                 className="h-5 w-5"

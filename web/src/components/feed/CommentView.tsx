@@ -12,52 +12,52 @@ import CommentForm from "./CommentForm";
 
 export const loader =
   (client: AppClient) =>
-    async ({ params }: LoaderFunctionArgs) => {
-      if (!params.postId) {
-        return { postOpts: undefined, commentOpts: undefined, postId: undefined };
-      }
-      const routePostId = String(params.postId);
-      const routeParams = { params: { path: { id: routePostId } } };
-      const routePostOpts = client.$api.queryOptions(
-        "get",
-        "/api/statuses/{id}",
-        routeParams,
-      );
-      const postData = await client.queryClient.ensureQueryData(routePostOpts);
-      const canonicalPostId = postData?.reblog?.id ?? routePostId;
-      const canonicalParams = { params: { path: { id: canonicalPostId } } };
-      const postOpts = client.$api.queryOptions(
-        "get",
-        "/api/statuses/{id}",
-        canonicalParams,
-      );
-      const commentOpts = client.$api.queryOptions(
-        "get",
-        "/api/statuses/{id}/replies",
-        canonicalParams,
-      );
-      client.queryClient.prefetchQuery(commentOpts);
-      if (canonicalPostId !== routePostId) {
-        await client.queryClient.ensureQueryData(postOpts);
-      }
-      return { postOpts, commentOpts, postId: canonicalPostId };
-    };
+  async ({ params }: LoaderFunctionArgs) => {
+    if (!params.postId) {
+      return { postOpts: undefined, commentOpts: undefined, postId: undefined };
+    }
+    const routePostId = String(params.postId);
+    const routeParams = { params: { path: { id: routePostId } } };
+    const routePostOpts = client.$api.queryOptions(
+      "get",
+      "/api/statuses/{id}",
+      routeParams,
+    );
+    const postData = await client.queryClient.ensureQueryData(routePostOpts);
+    const canonicalPostId = postData?.reblog?.id ?? routePostId;
+    const canonicalParams = { params: { path: { id: canonicalPostId } } };
+    const postOpts = client.$api.queryOptions(
+      "get",
+      "/api/statuses/{id}",
+      canonicalParams,
+    );
+    const commentOpts = client.$api.queryOptions(
+      "get",
+      "/api/statuses/{id}/replies",
+      canonicalParams,
+    );
+    client.queryClient.prefetchQuery(commentOpts);
+    if (canonicalPostId !== routePostId) {
+      await client.queryClient.ensureQueryData(postOpts);
+    }
+    return { postOpts, commentOpts, postId: canonicalPostId };
+  };
 export const commentsLoader =
   (client: AppClient) =>
-    async ({ params }: LoaderFunctionArgs) => {
-      if (!params.postId) {
-        return { opts: undefined };
-      }
-      const postId = String(params.postId);
-      const queryParams = { params: { path: { id: postId } } };
-      const commentOpts = client.$api.queryOptions(
-        "get",
-        "/api/statuses/{id}/replies",
-        queryParams,
-      );
-      await client.queryClient.ensureQueryData(commentOpts);
-      return { opts: commentOpts };
-    };
+  async ({ params }: LoaderFunctionArgs) => {
+    if (!params.postId) {
+      return { opts: undefined };
+    }
+    const postId = String(params.postId);
+    const queryParams = { params: { path: { id: postId } } };
+    const commentOpts = client.$api.queryOptions(
+      "get",
+      "/api/statuses/{id}/replies",
+      queryParams,
+    );
+    await client.queryClient.ensureQueryData(commentOpts);
+    return { opts: commentOpts };
+  };
 
 /**
  * View a single post (enlarged) and display its comments below.
@@ -119,13 +119,13 @@ export function CommentsFeed({
   postId: _postId,
 }: {
   opts?:
-  | UseQueryOptions<
-    components["schemas"]["Status"][],
-    any,
-    components["schemas"]["Status"][],
-    any
-  >
-  | any;
+    | UseQueryOptions<
+        components["schemas"]["Status"][],
+        any,
+        components["schemas"]["Status"][],
+        any
+      >
+    | any;
   postId?: string;
 }) {
   const client = useContext(ClientContext);

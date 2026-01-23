@@ -1,7 +1,7 @@
 import { Heart, MessageCircle, Repeat, Share2 } from "lucide-react";
 import { useContext } from "react";
 import ReactMarkdown from "react-markdown";
-import { Link, useNavigate } from "react-router";
+import { Link } from "react-router";
 import type { components } from "../../lib/api/v1";
 import type { AppClient } from "../../lib/client";
 import AppContext from "../../lib/state";
@@ -41,17 +41,7 @@ export const PostItem = ({
     renderData.account?.username ||
     data.account?.display_name ||
     data.account?.username;
-  const authorHandleRaw =
-    renderData.account?.acct ||
-    renderData.account?.username ||
-    data.account?.acct ||
-    data.account?.username;
   const profileId = renderData.account?.id ?? data.account?.id ?? null;
-  const authorHandle = authorHandleRaw
-    ? authorHandleRaw.startsWith("@")
-      ? authorHandleRaw.slice(1)
-      : authorHandleRaw
-    : "";
   const content = renderData.content;
   const commentCount = renderData.replies_count;
   const shareCount = renderData.reblogs_count;
@@ -205,10 +195,11 @@ export const PostItem = ({
             {shareCount !== undefined && (
               <button
                 type="button"
-                className={`flex items-center space-x-1 transition ${isReblogged
+                className={`flex items-center space-x-1 transition ${
+                  isReblogged
                     ? "text-green-600"
                     : "text-gray-500 hover:text-green-500"
-                  }`}
+                }`}
                 onClick={(event) => {
                   event.stopPropagation();
                   void shareAction();
@@ -220,10 +211,11 @@ export const PostItem = ({
             {likeCount !== undefined && (
               <button
                 type="button"
-                className={`flex items-center space-x-1 transition ${isFavourited
+                className={`flex items-center space-x-1 transition ${
+                  isFavourited
                     ? "text-pink-600"
                     : "text-gray-500 hover:text-pink-500"
-                  }`}
+                }`}
                 onClick={(event) => {
                   event.stopPropagation();
                   void likeAction();
