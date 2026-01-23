@@ -7,10 +7,12 @@ package db
 import (
 	"database/sql"
 	"time"
+
+	"github.com/rs/xid"
 )
 
 type Account struct {
-	ID           int32
+	ID           xid.ID
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 	Username     string
@@ -25,47 +27,49 @@ type Account struct {
 }
 
 type Favourite struct {
-	ID        int32
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	Uri       string
-	AccountID int32
-	StatusID  int32
+	ID              xid.ID
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+	Uri             string
+	AccountID       xid.ID
+	TargetAccountID xid.ID
+	StatusID        xid.ID
 }
 
 type Follow struct {
-	ID              int32
+	ID              xid.ID
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
 	Uri             string
-	AccountID       int32
-	TargetAccountID int32
+	AccountID       xid.ID
+	TargetAccountID xid.ID
 }
 
 type FollowRequest struct {
-	ID              int32
+	ID              xid.ID
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
 	Uri             string
-	AccountID       int32
-	TargetAccountID int32
+	AccountID       xid.ID
+	TargetAccountID xid.ID
 }
 
 type Status struct {
-	ID          int32
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
-	Uri         string
-	Url         string
-	Local       sql.NullBool
-	Content     string
-	AccountID   int32
-	InReplyToID sql.NullInt32
-	ReblogOfID  sql.NullInt32
+	ID                 xid.ID
+	CreatedAt          time.Time
+	UpdatedAt          time.Time
+	Uri                string
+	Url                string
+	Local              sql.NullBool
+	Content            sql.NullString
+	AccountID          xid.ID
+	InReplyToID        *xid.ID
+	InReplyToAccountID *xid.ID
+	ReblogOfID         *xid.ID
 }
 
 type User struct {
-	ID           int32
-	AccountID    int32
+	ID           xid.ID
+	AccountID    xid.ID
 	PasswordHash string
 }

@@ -16,6 +16,10 @@ func NewCreateActivity(from *domain.ObjectOrLink) CreateActivitier {
 	return &createActivity{activity{object{from}}}
 }
 
+func NewEmptyCreateActivity() CreateActivitier {
+	return &createActivity{activity{object{}}}
+}
+
 // GetObject implements CreateActivitier.
 // Subtle: this method shadows the method (activity).GetObject of createActivity.activity.
 func (c *createActivity) GetObject() Activity[Note] {
@@ -38,4 +42,18 @@ func (c *createActivity) SetObject(activity Activity[Note]) {
 			ActivityObject: activity.Object.GetRaw(),
 		},
 	}
+}
+
+// WithLink implements CreateActivitier.
+// Subtle: this method shadows the method (activity).WithLink of createActivity.activity.
+func (c *createActivity) WithLink(link string) Objecter[Activity[Note]] {
+	c.SetLink(link)
+	return c
+}
+
+// WithObject implements CreateActivitier.
+// Subtle: this method shadows the method (activity).WithObject of createActivity.activity.
+func (c *createActivity) WithObject(activity Activity[Note]) Objecter[Activity[Note]] {
+	c.SetObject(activity)
+	return c
 }

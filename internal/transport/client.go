@@ -4,15 +4,18 @@ import (
 	"bytes"
 	"context"
 	"encoding/json/v2"
+	"errors"
 	"net/http"
 	"time"
 
+	"github.com/kibirisu/borg/internal/api"
 	"github.com/kibirisu/borg/internal/domain"
 )
 
 type Client interface {
 	Get(context.Context, string) (*domain.ObjectOrLink, error)
 	Post(context.Context, string, *domain.Object) error
+	Webfinger(context.Context, string) (*api.Webfinger, error)
 }
 
 type client struct {
@@ -41,10 +44,7 @@ func (c *client) Get(ctx context.Context, uri string) (*domain.ObjectOrLink, err
 	defer func() {
 		_ = resp.Body.Close()
 	}()
-	if err = json.UnmarshalRead(resp.Body, &object); err != nil {
-		return nil, err
-	}
-	return &object, nil
+	return &object, json.UnmarshalRead(resp.Body, &object)
 }
 
 // Post implements Client.
@@ -65,4 +65,24 @@ func (c *client) Post(ctx context.Context, uri string, object *domain.Object) er
 		_ = resp.Body.Close()
 	}()
 	return nil
+}
+
+// Webfinger implements Client.
+func (c *client) Webfinger(ctx context.Context, url string) (*api.Webfinger, error) {
+	var webfinger api.Webfinger
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		_ = resp.Body.Close()
+	}()
+	if resp.StatusCode != http.StatusOK {
+		return nil, errors.New("webfinger returned code other than 200")
+	}
+	return &webfinger, json.UnmarshalRead(resp.Body, &webfinger)
 }

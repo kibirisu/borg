@@ -4,6 +4,8 @@ import "github.com/kibirisu/borg/internal/domain"
 
 type Objecter[T any] interface {
 	ObjectOrLink[T]
+	WithObject(T) Objecter[T]
+	WithLink(string) Objecter[T]
 }
 
 type Object struct {
@@ -91,4 +93,16 @@ func (o *object) SetLink(link string) {
 	o.raw = &domain.ObjectOrLink{
 		Link: &link,
 	}
+}
+
+// WithObject implements Objecter..
+func (o *object) WithObject(object any) Objecter[any] {
+	o.SetObject(object)
+	return o
+}
+
+// WithLink implements Objecter..
+func (o *object) WithLink(link string) Objecter[any] {
+	o.SetLink(link)
+	return o
 }

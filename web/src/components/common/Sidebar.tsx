@@ -62,28 +62,6 @@ const items: SidebarItem[] = [
     ),
   },
   {
-    label: "Notifications",
-    to: "/notifications",
-    icon: (
-      <svg
-        role="img"
-        aria-label="Notifications"
-        className="w-5 h-5"
-        fill="none"
-        viewBox="0 0 24 24"
-      >
-        <title>Notifications</title>
-        <path
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5"
-        />
-      </svg>
-    ),
-  },
-  {
     label: "Likes",
     to: "/likes",
     icon: (
@@ -195,7 +173,6 @@ export default function Sidebar({ onPostClick }: SidebarProps) {
   const profileTarget = userId ? `/profile/${userId}` : "/signin";
 
   const handlePostClick = () => {
-    console.log("[sidebar] post click", { userId, isAuthenticated });
     onPostClick?.();
   };
 

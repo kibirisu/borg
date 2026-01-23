@@ -4,62 +4,64 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"log"
+
+	"github.com/rs/xid"
 
 	"github.com/kibirisu/borg/internal/ap"
 	"github.com/kibirisu/borg/internal/db"
 )
 
-func (p *processor) LookupStatus(ctx context.Context, object ap.Noter) (db.Status, error) {
+func (p *processor) LookupStatus(ctx context.Context, object ap.Noter) (*xid.ID, error) {
 	uri := object.GetURI()
+	log.Printf("[Processing] [Status] processing Object with ID=%s", uri)
 	if uri == "" {
-		return db.Status{}, errors.New("invalid object")
+		return nil, errors.New("invalid object")
 	}
 	status, err := p.store.Statuses().GetByURI(ctx, uri)
 	if err != nil {
 		object, err := p.client.Get(ctx, uri)
 		if err != nil {
-			return status, err
+			return nil, err
 		}
-		fetchedStatus := ap.NewNote(object)
-		statusData := fetchedStatus.GetObject()
-		account, err := p.LookupActor(ctx, statusData.AttributedTo)
+		statusData := ap.NewNote(object).GetObject()
+		log.Printf(
+			"[Processing] [Status] processing Actor with ID=%s",
+			statusData.AttributedTo.GetURI(),
+		)
+		accountID, err := p.LookupActor(ctx, statusData.AttributedTo)
 		if err != nil {
-			return status, err
+			return nil, err
 		}
-		inReplyToID := sql.NullInt32{}
-		if statusData.InReplyTo.GetRaw() != nil {
-			parentStatus, err := p.LookupStatus(ctx, statusData.InReplyTo)
-			if err != nil {
-				return status, err
-			}
-			inReplyToID = sql.NullInt32{
-				Int32: parentStatus.ID,
-				Valid: true,
-			}
-		}
-		status, err = p.store.Statuses().Create(ctx, db.CreateStatusParams{
-			Url:         "nope",
-			Local:       sql.NullBool{},
-			Content:     statusData.Content,
-			AccountID:   account.ID,
-			InReplyToID: inReplyToID,
-		})
-		if err != nil {
-			return status, err
-		}
-	}
-	return status, nil
-}
 
-func (p *processor) PropagateStatus(ctx context.Context, status ap.Noter) error {
-	createdStatus, err := p.LookupStatus(ctx, status)
-	if err != nil {
-		return err
+		if statusData.InReplyTo.GetRaw() != nil {
+			inReplyToID, err := p.LookupStatus(ctx, statusData.InReplyTo)
+			if err != nil {
+				return nil, err
+			}
+			status, err = p.store.Statuses().AddReply(ctx, db.AddReplyParams{
+				ID:  xid.New(),
+				Uri: uri,
+				Content: sql.NullString{
+					String: statusData.Content,
+					Valid:  true,
+				},
+				AccountID:   *accountID,
+				InReplyToID: *inReplyToID,
+			})
+			return &status.ID, err
+		} else {
+			status, err = p.store.Statuses().Add(ctx, db.AddStatusParams{
+				ID:  xid.New(),
+				Uri: uri,
+				Content: sql.NullString{
+					String: statusData.Content,
+					Valid:  true,
+				},
+				AccountID: *accountID,
+			})
+			return &status.ID, err
+		}
 	}
-	actor, err := p.store.Accounts().GetByID(ctx, int(createdStatus.AccountID))
-	if err != nil {
-		return err
-	}
-	_ = actor
-	panic("")
+	return &status.ID, err
 }

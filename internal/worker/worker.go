@@ -7,6 +7,8 @@ import (
 
 type Job func(context.Context) error
 
+var EmptyJob = Job(func(context.Context) error { return nil })
+
 type Worker interface {
 	Enqueue(Job)
 	Cancel()
@@ -20,7 +22,7 @@ var _ Worker = (*worker)(nil)
 
 func New(ctx context.Context) Worker {
 	w := &worker{make(chan Job)}
-	for range 5 {
+	for range 3 {
 		go w.spawn(ctx)
 	}
 	return w

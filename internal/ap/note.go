@@ -29,8 +29,11 @@ type note struct {
 var _ Noter = (*note)(nil)
 
 func NewNote(from *domain.ObjectOrLink) Noter {
-	note := note{object{from}}
-	return &note
+	return &note{object{from}}
+}
+
+func NewEmptyNote() Noter {
+	return &note{object{}}
 }
 
 // GetObject implements Noter.
@@ -70,4 +73,18 @@ func (n *note) SetObject(note Note) {
 			},
 		},
 	}
+}
+
+// WithLink implements Noter.
+// Subtle: this method shadows the method (object).WithLink of note.object.
+func (n *note) WithLink(link string) Objecter[Note] {
+	n.SetLink(link)
+	return n
+}
+
+// WithObject implements Noter.
+// Subtle: this method shadows the method (object).WithObject of note.object.
+func (n *note) WithObject(note Note) Objecter[Note] {
+	n.SetObject(note)
+	return n
 }

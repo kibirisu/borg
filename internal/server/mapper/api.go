@@ -5,89 +5,103 @@ import (
 	"github.com/kibirisu/borg/internal/db"
 )
 
-func AccountToAPI(account *db.Account) *api.Account {
+func ToAPIAccount(account *db.GetAccountByIDRow) *api.Account {
 	return &api.Account{
-		Acct:        "", // TODO
-		DisplayName: account.DisplayName.String,
-		Id:          int(account.ID),
-		Url:         account.Url,
-		Username:    account.Username,
+		Acct:           account.Acct,
+		DisplayName:    account.Account.DisplayName.String,
+		FollowersCount: int(account.FollowersCount),
+		FollowingCount: int(account.FollowingCount),
+		Id:             account.Account.ID.String(),
+		Url:            account.Account.Url,
+		Username:       account.Account.Username,
 	}
 }
 
-func PostToAPI(post *db.Status) *api.Post {
-	return &api.Post{
-		CommentCount: -1,
-		Content:      post.Content,
-		CreatedAt:    post.CreatedAt,
-		Id:           int(post.ID),
-		LikeCount:    -1,
-		ShareCount:   -1,
-		UpdatedAt:    post.UpdatedAt,
-		UserID:       int(post.AccountID),
-		Username:     nil,
-	}
-}
+func ToAPIStatus(status *db.GetStatusByIDRow) *api.Status {
+	var inReplyToID, inReplyToAccountID *string
 
-func PostToAPIWithMetadata(
-	post *db.Status,
-	acc *db.Account,
-	likeCount int,
-	shareCount int,
-	commentCount int,
-) *api.Post {
-	return &api.Post{
-		CommentCount: commentCount,
-		Content:      post.Content,
-		CreatedAt:    post.CreatedAt,
-		Id:           int(post.ID),
-		LikeCount:    likeCount,
-		ShareCount:   shareCount,
-		UpdatedAt:    post.UpdatedAt,
-		UserID:       int(post.AccountID),
-		Username:     &acc.Username,
-	}
-}
+	if status.Status.ReblogOfID == nil {
+		if status.Status.InReplyToID != nil {
+			id := status.Status.InReplyToID.String()
+			inReplyToID = &id
+		}
+		if status.Status.InReplyToAccountID != nil {
+			id := status.Status.InReplyToAccountID.String()
+			inReplyToAccountID = &id
+		}
 
-func LikeToAPI(like *db.Favourite) *api.Like {
-	return &api.Like{
-		CreatedAt: like.CreatedAt,
-		Id:        int(like.ID),
-		PostID:    int(like.StatusID),
-		UserID:    int(like.AccountID),
+		return &api.Status{
+			Account: api.Account{
+				Acct:           status.Acct,
+				DisplayName:    status.Account.DisplayName.String,
+				FollowersCount: int(status.FollowersCount),
+				FollowingCount: int(status.FollowingCount),
+				Id:             status.Account.ID.String(),
+				Url:            status.Account.Url,
+				Username:       status.Account.Username,
+			},
+			Content:            status.Status.Content.String,
+			Favourited:         &status.Favourited,
+			FavouritesCount:    int(status.FavouritesCount),
+			Id:                 status.Status.ID.String(),
+			InReplyToAccountId: inReplyToAccountID,
+			InReplyToId:        inReplyToID,
+			Reblogged:          &status.Reblogged,
+			ReblogsCount:       int(status.ReblogsCount),
+			RepliesCount:       int(status.RepliesCount),
+			Uri:                status.Status.Uri,
+		}
 	}
-}
 
-func AccountToUserAPI(account *db.Account, followersCount int, followingCount int) *api.User {
-	origin := "local"
-	if account.Domain.Valid && account.Domain.String != "" {
-		origin = account.Domain.String
+	if status.RebloggedReplyToID != nil {
+		id := status.RebloggedReplyToID.String()
+		inReplyToID = &id
 	}
-	return &api.User{
-		Id:             int(account.ID),
-		Username:       account.Username,
-		Bio:            account.DisplayName.String,
-		Origin:         origin,
-		IsAdmin:        false, // TODO: add admin flag to accounts table if needed
-		FollowersCount: followersCount,
-		FollowingCount: followingCount,
-		CreatedAt:      account.CreatedAt,
-		UpdatedAt:      account.UpdatedAt,
+	if status.RebloggedReplyToAccountID != nil {
+		id := status.RebloggedReplyToAccountID.String()
+		inReplyToAccountID = &id
 	}
-}
 
-func StatusToComment(status *db.GetCommentsByPostIdRow) *api.Comment {
-	postID := 0
-	if status.InReplyToID.Valid {
-		postID = int(status.InReplyToID.Int32)
-	}
-	return &api.Comment{
-		Id:        int(status.ID),
-		PostID:    postID,
-		UserID:    int(status.AccountID),
-		Content:   status.Content,
-		ParentID:  postID, // Comments have parentID same as postID
-		CreatedAt: status.CreatedAt,
-		UpdatedAt: status.UpdatedAt,
+	return &api.Status{
+		Account: api.Account{
+			Acct:           status.Acct,
+			DisplayName:    status.Account.DisplayName.String,
+			FollowersCount: int(status.FollowersCount),
+			FollowingCount: int(status.FollowingCount),
+			Id:             status.Account.ID.String(),
+			Url:            status.Account.Url,
+			Username:       status.Account.Username,
+		},
+		Content:            status.Status.Content.String,
+		Favourited:         &status.Favourited,
+		FavouritesCount:    int(status.FavouritesCount),
+		Id:                 status.Status.ID.String(),
+		InReplyToAccountId: inReplyToAccountID,
+		InReplyToId:        inReplyToID,
+		Reblog: &api.Status{
+			Account: api.Account{
+				Acct:           status.RebloggedAcct,
+				DisplayName:    status.RebloggedDisplayName.String,
+				FollowersCount: int(status.RebloggedFollowersCount),
+				FollowingCount: int(status.RebloggedFollowingCount),
+				Id:             status.Status.ReblogOfID.String(),
+				Url:            ":3",
+				Username:       status.RebloggedUsername.String,
+			},
+			Content:            status.RebloggedStatusContent.String,
+			Favourited:         &status.Favourited,
+			FavouritesCount:    int(status.FavouritesCount),
+			Id:                 status.Status.ReblogOfID.String(),
+			InReplyToAccountId: inReplyToAccountID,
+			InReplyToId:        inReplyToID,
+			Reblogged:          &status.Reblogged,
+			ReblogsCount:       int(status.ReblogsCount),
+			RepliesCount:       int(status.RepliesCount),
+			Uri:                status.RebloggedUri.String,
+		},
+		Reblogged:    &status.Reblogged,
+		ReblogsCount: int(status.ReblogsCount),
+		RepliesCount: int(status.RepliesCount),
+		Uri:          status.Status.Uri,
 	}
 }

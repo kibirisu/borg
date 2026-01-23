@@ -3,15 +3,18 @@ package repository
 import (
 	"context"
 
+	"github.com/rs/xid"
+
 	"github.com/kibirisu/borg/internal/db"
 )
 
 type FavouriteRepository interface {
-	Create(context.Context, db.CreateFavouriteParams) (db.Favourite, error)
+	GetLocalLikeByID(context.Context, xid.ID) (db.GetLocalLikeByIDRow, error)
+	Create(context.Context, db.CreateFavouriteParams) (db.CreateFavouriteRow, error)
+	AddLike(context.Context, db.AddLikeParams) (db.Favourite, error)
 	GetByURI(context.Context, string) (db.Favourite, error)
-	GetByPost(context.Context, int) ([]db.Favourite, error)
-	DeleteByID(context.Context, int32) error
-	GetLikedPostsByAccountID(context.Context, int) ([]db.GetLikedPostsByAccountIdRow, error)
+	DeleteByID(context.Context, xid.ID) error
+	DeleteByStatusID(context.Context, xid.ID, xid.ID) (db.DeleteFavouriteByStatusIDRow, error)
 }
 
 type favouriteRepository struct {
@@ -20,24 +23,28 @@ type favouriteRepository struct {
 
 var _ FavouriteRepository = (*favouriteRepository)(nil)
 
-func NewFavouriteRepository(q *db.Queries) FavouriteRepository {
-	return &favouriteRepository{q: q}
+// GetLocalLikeByID implements FavouriteRepository.
+func (r *favouriteRepository) GetLocalLikeByID(
+	ctx context.Context,
+	id xid.ID,
+) (db.GetLocalLikeByIDRow, error) {
+	return r.q.GetLocalLikeByID(ctx, id)
 }
 
 // Create implements FavouriteRepository.
 func (r *favouriteRepository) Create(
 	ctx context.Context,
-	params db.CreateFavouriteParams,
-) (db.Favourite, error) {
-	return r.q.CreateFavourite(ctx, params)
+	favourite db.CreateFavouriteParams,
+) (db.CreateFavouriteRow, error) {
+	return r.q.CreateFavourite(ctx, favourite)
 }
 
-// GetByPost implements FavouriteRepository.
-func (r *favouriteRepository) GetByPost(
+// AddLike implements FavouriteRepository.
+func (r *favouriteRepository) AddLike(
 	ctx context.Context,
-	id int,
-) ([]db.Favourite, error) {
-	return r.q.GetStatusFavourites(ctx, int32(id))
+	like db.AddLikeParams,
+) (db.Favourite, error) {
+	return r.q.AddLike(ctx, like)
 }
 
 // GetByURI implements FavouriteRepository.
@@ -46,14 +53,18 @@ func (r *favouriteRepository) GetByURI(ctx context.Context, uri string) (db.Favo
 }
 
 // DeleteByID implements FavouriteRepository.
-func (r *favouriteRepository) DeleteByID(ctx context.Context, id int32) error {
+func (r *favouriteRepository) DeleteByID(ctx context.Context, id xid.ID) error {
 	return r.q.DeleteFavouriteByID(ctx, id)
 }
 
-// GetLikedPostsByAccountId implements FavouriteRepository.
-func (r *favouriteRepository) GetLikedPostsByAccountID(
+// DeleteByStatusID implements FavouriteRepository.
+func (r *favouriteRepository) DeleteByStatusID(
 	ctx context.Context,
-	accountID int,
-) ([]db.GetLikedPostsByAccountIdRow, error) {
-	return r.q.GetLikedPostsByAccountId(ctx, int32(accountID))
+	statusID xid.ID,
+	accountID xid.ID,
+) (db.DeleteFavouriteByStatusIDRow, error) {
+	return r.q.DeleteFavouriteByStatusID(ctx, db.DeleteFavouriteByStatusIDParams{
+		AccountID: accountID,
+		StatusID:  statusID,
+	})
 }

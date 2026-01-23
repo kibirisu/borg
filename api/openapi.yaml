@@ -6,249 +6,238 @@ info:
   contact: {}
 
 paths:
-  /api/users:
+  /.well-known/webfinger:
+    get:
+      summary: Webfinger lookuped account.
+      parameters:
+        - name: resource
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/jrd+json:
+              schema:
+                $ref: "#/components/schemas/Webfinger"
+  /api/accounts/{id}:
+    get:
+      summary: View information about a profile.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Account"
+  /api/accounts/{id}/statuses:
+    get:
+      summary: Statuses posted to the given account.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Status"
+      security:
+        - BearerAuth: []
+  /api/accounts/{id}/followers:
+    get:
+      summary: Accounts which follow the given account.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Account"
+  /api/accounts/{id}/following:
+    get:
+      summary: Accounts which the given account is following.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Account"
+  /api/accounts/{id}/follow:
     post:
-      summary: Create a user
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/NewUser"
-      responses:
-        "201":
-          description: Created user
-  /api/users/{id}:
-    get:
-      summary: Get a user by ID
+      summary: Follow the given account.
       parameters:
         - name: id
           in: path
           required: true
           schema:
-            type: integer
+            type: string
       responses:
         "200":
           description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/User"
-
-    delete:
-      summary: Delete a user by ID
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      responses:
-        "204":
-          description: Deleted successfully
-
-    put:
-      summary: Update a user
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/UpdateUser"
       security:
         - BearerAuth: []
-      responses:
-        "200":
-          description: Updated user
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/User"
-  /api/users/{id}/posts:
-    get:
-      summary: Get posts of user with ID
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Post"
-  /api/users/{id}/followers:
-    get:
-      summary: Get followers of the user with ID
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/User"
-  /api/users/{id}/following:
-    get:
-      summary: Get followed of the user with ID
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/User"
-  /api/users/{id}/favourites:
-    get:
-      summary: Get liked posts of user with ID
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Post"
-  /api/users/{id}/reblogged:
-    get:
-      summary: Get shared posts of user with ID
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Post"
-  /api/users/{id}/timeline:
-    get:
-      summary: Get timeline posts of the user with ID (posts from followed users)
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Post"
-  /api/posts:
-    get:
-      summary: Get all posts
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Post"
+  /api/accounts/{id}/unfollow:
     post:
-      summary: Create a post
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/NewPost"
-      security:
-        - BearerAuth: []
-  /api/posts/{id}:
-    get:
-      summary: Get a post by ID
+      summary: Unfollow the given account.
       parameters:
         - name: id
           in: path
           required: true
           schema:
-            type: integer
+            type: string
+      responses:
+        "200":
+          description: OK
+      security:
+        - BearerAuth: []
+  /api/accounts/lookup:
+    get:
+      summary: Lookup a username to see if it is available.
+      parameters:
+        - name: acct
+          in: query
+          required: true
+          schema:
+            type: string
       responses:
         "200":
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Post"
-    delete:
-      summary: Delete a post by ID
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      security:
-        - BearerAuth: []
-      responses:
-        "204":
-          description: Deleted successfully
-    put:
-      summary: Update a post
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
+                $ref: "#/components/schemas/Account"
+  /api/statuses:
+    post:
+      summary: Publish a status with the given parameters.
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UpdatePost"
-      security:
-        - BearerAuth: []
+              type: object
+              required:
+                - status
+                - in_reply_to_id
+              properties:
+                status:
+                  type: string
+                in_reply_to_id:
+                  type: string
+                  nullable: true
       responses:
         "200":
-          description: Updated user
-  /api/posts/{id}/comments:
+          description: OK
+      security:
+        - BearerAuth: []
+  /api/statuses/{id}:
+    get:
+      summary: Obtain information about a status.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: "Status"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Status"
+      security:
+        - BearerAuth: []
+  /api/statuses/{id}/favourite:
+    post:
+      summary: Add a status to your favourites list.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Status favourited.
+      security:
+        - BearerAuth: []
+  /api/statuses/{id}/unfavourite:
+    post:
+      summary: Remove a status from your favourites list.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Status unfavourited.
+      security:
+        - BearerAuth: []
+  /api/statuses/{id}/reblog:
+    post:
+      summary: Reshare a status on your own profile.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Status has been reblogged
+      security:
+        - BearerAuth: []
+  /api/statuses/{id}/unreblog:
+    post:
+      summary: Undo a reshare of a status.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Status unboosted
+      security:
+        - BearerAuth: []
+  /api/statuses/{id}/replies:
     get:
       summary: Get a post's comments by ID
       parameters:
@@ -256,7 +245,7 @@ paths:
           in: path
           required: true
           schema:
-            type: integer
+            type: string
       responses:
         "200":
           description: OK
@@ -265,32 +254,12 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/Comment"
-    post:
-      summary: Create a post comment
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/NewComment"
+                  $ref: "#/components/schemas/Status"
       security:
         - BearerAuth: []
-  /api/posts/{id}/likes:
+  /api/timelines/home:
     get:
-      summary: Get post's likes
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
+      summary: View statuses from followed users.
       responses:
         "200":
           description: OK
@@ -299,32 +268,12 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/Like"
-    post:
-      summary: Create a post like
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/NewLike"
+                  $ref: "#/components/schemas/Status"
       security:
         - BearerAuth: []
-  /api/posts/{id}/shares:
+  /api/timelines/favourite:
     get:
-      summary: Get post's shares
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
+      summary: View statuses liked by logged in user.
       responses:
         "200":
           description: OK
@@ -333,21 +282,21 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/Share"
-    post:
-      summary: Create a post share
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/NewShare"
+                  $ref: "#/components/schemas/Status"
+      security:
+        - BearerAuth: []
+  /api/timelines/reblogged:
+    get:
+      summary: View statuses reblogged by logged in user.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Status"
       security:
         - BearerAuth: []
   /auth/login:
@@ -374,52 +323,6 @@ paths:
       responses:
         "200":
           description: Successfully signed up
-  /.well-known/webfinger:
-    get:
-      summary: Get WebFinger
-      parameters:
-        - name: resource
-          in: query
-          required: true
-          schema:
-            type: string
-      responses:
-        "200":
-          description: OK
-          content:
-            application/jrd+json:
-              schema:
-                $ref: "#/components/schemas/WebFingerResponse"
-  /api/accounts/lookup:
-    get:
-      summary: Look up a user
-      parameters:
-        - name: acct
-          in: query
-          required: true
-          schema:
-            type: string
-      responses:
-        "200":
-          description: Found the user
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Account"
-  /api/accounts/{id}/follow:
-    post:
-      summary: Follow a user
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      responses:
-        "200":
-          description: Followed successfully
-      security:
-        - BearerAuth: []
 
 components:
   securitySchemes:
@@ -428,36 +331,7 @@ components:
       scheme: Bearer
       bearerFormat: JWT
   schemas:
-    AuthForm:
-      type: object
-      required:
-        - username
-        - password
-      properties:
-        username:
-          type: string
-        password:
-          type: string
-    Account:
-      type: object
-      required:
-        - id
-        - username
-        - acct
-        - displayName
-        - url
-      properties:
-        id:
-          type: integer
-        username:
-          type: string
-        acct:
-          type: string
-        displayName:
-          type: string
-        url:
-          type: string
-    WebFingerResponse:
+    Webfinger:
       type: object
       required:
         - subject
@@ -468,8 +342,8 @@ components:
         links:
           type: array
           items:
-            $ref: "#/components/schemas/WebFingerLink"
-    WebFingerLink:
+            $ref: "#/components/schemas/WebfingerLinks"
+    WebfingerLinks:
       type: object
       required:
         - rel
@@ -482,41 +356,73 @@ components:
           type: string
         href:
           type: string
-    User:
+    Account:
       type: object
       required:
         - id
         - username
-        - bio
-        - origin
-        - isAdmin
-        - followersCount
-        - followingCount
-        - createdAt
-        - updatedAt
+        - acct
+        - display_name
+        - url
+        - followers_count
+        - following_count
       properties:
         id:
-          type: integer
+          type: string
         username:
           type: string
-        bio:
+        acct:
           type: string
-        origin:
+        display_name:
           type: string
-        isAdmin:
+        url:
+          type: string
+        followers_count:
+          type: integer
+        following_count:
+          type: integer
+    Status:
+      type: object
+      nullable: true
+      required:
+        - id
+        - uri
+        - content
+        - reblogs_count
+        - favourites_count
+        - replies_count
+        - in_reply_to_id
+        - in_reply_to_account_id
+        - reblog
+        - account
+      properties:
+        id:
+          type: string
+        uri:
+          type: string
+        content:
+          type: string
+        reblogs_count:
+          type: integer
+        favourites_count:
+          type: integer
+        replies_count:
+          type: integer
+        in_reply_to_id:
+          type: string
+          nullable: true
+        in_reply_to_account_id:
+          type: string
+          nullable: true
+        reblog:
+          $ref: "#/components/schemas/Status"
+        account:
+          $ref: "#/components/schemas/Account"
+        favourited:
           type: boolean
-        followersCount:
-          type: integer
-        followingCount:
-          type: integer
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
-
-    NewUser:
+        reblogged:
+          type: boolean
+    AuthForm:
       type: object
       required:
         - username
@@ -525,154 +431,4 @@ components:
         username:
           type: string
         password:
-          type: string
-
-    UpdateUser:
-      type: object
-      properties:
-        bio:
-          type: string
-        isAdmin:
-          type: boolean
-
-    Share:
-      type: object
-      required:
-        - id
-        - postID
-        - userID
-        - createdAt
-      properties:
-        id:
-          type: integer
-        postID:
-          type: integer
-        userID:
-          type: integer
-        createdAt:
-          type: string
-          format: date-time
-    NewShare:
-      type: object
-      required:
-        - postID
-        - userID
-      properties:
-        postID:
-          type: integer
-        userID:
-          type: integer
-    Comment:
-      type: object
-      required:
-        - id
-        - postID
-        - userID
-        - content
-        - parentID
-        - createdAt
-        - UpdatedAt
-      properties:
-        id:
-          type: integer
-        postID:
-          type: integer
-        userID:
-          type: integer
-        content:
-          type: string
-        parentID:
-          type: integer
-        createdAt:
-          type: string
-          format: date-time
-        UpdatedAt:
-          type: string
-          format: date-time
-    NewComment:
-      type: object
-      required:
-        - postID
-        - userID
-        - content
-      properties:
-        postID:
-          type: integer
-        userID:
-          type: integer
-        content:
-          type: string
-    Like:
-      type: object
-      required:
-        - id
-        - postID
-        - userID
-        - createdAt
-      properties:
-        id:
-          type: integer
-        postID:
-          type: integer
-        userID:
-          type: integer
-        createdAt:
-          type: string
-          format: date-time
-    NewLike:
-      type: object
-      required:
-        - postID
-        - userID
-      properties:
-        postID:
-          type: integer
-        userID:
-          type: integer
-    Post:
-      type: object
-      required:
-        - id
-        - userID
-        - content
-        - likeCount
-        - shareCount
-        - commentCount
-        - createdAt
-        - updatedAt
-      properties:
-        id:
-          type: integer
-        userID:
-          type: integer
-        content:
-          type: string
-        likeCount:
-          type: integer
-        shareCount:
-          type: integer
-        commentCount:
-          type: integer
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
-        username:
-          type: string
-    NewPost:
-      type: object
-      required:
-        - userID
-        - content
-      properties:
-        userID:
-          type: integer
-        content:
-          type: string
-    UpdatePost:
-      type: object
-      properties:
-        content:
           type: string

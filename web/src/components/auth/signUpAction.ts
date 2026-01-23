@@ -1,6 +1,8 @@
 import { type ActionFunctionArgs, redirect } from "react-router";
 import type { AppClient } from "../../lib/client";
 
+const USERNAME_REGEX = /^[a-zA-Z0-9_]+$/;
+
 export function signUpAction(client: AppClient) {
   return async ({ request }: ActionFunctionArgs) => {
     const formData = await request.formData();
@@ -13,13 +15,16 @@ export function signUpAction(client: AppClient) {
 
     if (!username) {
       errors.username = "Field is mandatory";
-    } else if (username.length < 6) {
-      errors.username = "Username should be at least 6 characters";
+    } else if (!USERNAME_REGEX.test(username)) {
+      errors.username =
+        "Username can only contain letters, numbers and underscores.";
+    } else if (username.length > 30) {
+      errors.username = "Username is too long (max 30 chars).";
     }
 
     if (!password) {
       errors.password = "Field is mandatory";
-    } else if (password.length < 6) {
+    } else if (password.length < 1) {
       errors.password = "Password should be at least 6 characters";
     }
 
@@ -43,7 +48,6 @@ export function signUpAction(client: AppClient) {
     const safePassword = password;
 
     const mutation = async () => {
-      console.log("[signup] sending request", { username: safeUsername });
       return client.fetchClient.POST("/auth/register", {
         body: { username: safeUsername, password: safePassword },
       });
@@ -55,9 +59,6 @@ export function signUpAction(client: AppClient) {
         console.error("[signup] api error");
         return { form: "Registration failed" };
       }
-      console.log("[signup] registration succeeded", {
-        username: safeUsername,
-      });
     } catch (err) {
       console.error("[signup] network/client error", err);
       return { form: "Registration failed" };

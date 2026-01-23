@@ -7,7 +7,11 @@ import (
 )
 
 type FollowRequestRepository interface {
-	Create(context.Context, db.CreateFollowRequestParams) error
+	Create(context.Context, db.CreateFollowRequestParams) (db.CreateFollowRequestRow, error)
+	DeleteByTargetAccountID(
+		context.Context,
+		db.DeleteFollowRequestByAccountIDParams,
+	) (db.DeleteFollowRequestByAccountIDRow, error)
 }
 
 type followRequestRepository struct {
@@ -20,6 +24,14 @@ var _ FollowRequestRepository = (*followRequestRepository)(nil)
 func (r *followRequestRepository) Create(
 	ctx context.Context,
 	request db.CreateFollowRequestParams,
-) error {
+) (db.CreateFollowRequestRow, error) {
 	return r.q.CreateFollowRequest(ctx, request)
+}
+
+// DeleteByTargetAccountID implements FollowRequestRepository.
+func (r *followRequestRepository) DeleteByTargetAccountID(
+	ctx context.Context,
+	ids db.DeleteFollowRequestByAccountIDParams,
+) (db.DeleteFollowRequestByAccountIDRow, error) {
+	return r.q.DeleteFollowRequestByAccountID(ctx, ids)
 }

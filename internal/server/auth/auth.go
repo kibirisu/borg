@@ -1,10 +1,9 @@
-package server
+package auth
 
 import (
 	"context"
 	"errors"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/getkin/kin-openapi/openapi3filter"
@@ -16,9 +15,9 @@ import (
 
 type ContextKey string
 
-type tokenContainer struct {
-	id       *int
-	username *string
+type TokenData struct {
+	ID  string
+	URI string
 }
 
 var (
@@ -26,13 +25,13 @@ var (
 	signingKey      string
 )
 
-func (s *Server) createAuthMiddleware() func(http.Handler) http.Handler {
+func CreateAuthMiddleware(key string) func(http.Handler) http.Handler {
 	spec, err := api.GetSwagger()
 	if err != nil {
 		panic(err)
 	}
 	spec.Servers = nil
-	signingKey = s.conf.JWTSecret
+	signingKey = key
 	return middleware.OapiRequestValidatorWithOptions(spec, &middleware.Options{
 		Options: openapi3filter.Options{
 			AuthenticationFunc: authFunc,
@@ -40,11 +39,9 @@ func (s *Server) createAuthMiddleware() func(http.Handler) http.Handler {
 	})
 }
 
-// most likely there is no need to create such a simple middleware
-// chi provides similar already
-func preAuthMiddleware(next http.Handler) http.Handler {
+func PreAuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := context.WithValue(r.Context(), TokenContextKey, &tokenContainer{})
+		ctx := context.WithValue(r.Context(), TokenContextKey, &TokenData{})
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -60,31 +57,25 @@ func authFunc(ctx context.Context, ai *openapi3filter.AuthenticationInput) error
 		return errors.New("header value should start with \"Bearer: \"")
 	}
 
-	var container *tokenContainer
-	if val := ctx.Value(TokenContextKey); val != nil {
-		container = val.(*tokenContainer)
+	tokenData, ok := ctx.Value(TokenContextKey).(*TokenData)
+	if !ok {
+		return errors.New("auth middleware not configured")
 	}
 
 	var claims struct {
 		jwt.RegisteredClaims
-		Name string `json:"name"`
+		URI string `json:"uri"`
 	}
 
-	_, err := jwt.ParseWithClaims(token, &claims, func(t *jwt.Token) (any, error) {
+	_, err := jwt.ParseWithClaims(token, &claims, func(*jwt.Token) (any, error) {
 		return []byte(signingKey), nil
 	})
 	if err != nil {
 		return err
 	}
-	id, err := strconv.Atoi(claims.Subject)
-	if err != nil {
-		return err
-	}
 
-	if container != nil {
-		container.id = &id
-		container.username = &claims.Name
-	}
+	tokenData.ID = claims.Subject
+	tokenData.URI = claims.URI
 
 	return nil
 }

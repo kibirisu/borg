@@ -1,19 +1,16 @@
 import { Heart, MessageCircle, Repeat, Share2 } from "lucide-react";
 import { useContext } from "react";
 import ReactMarkdown from "react-markdown";
-import { Link, useNavigate } from "react-router";
+import { Link } from "react-router";
 import type { components } from "../../lib/api/v1";
 import type { AppClient } from "../../lib/client";
 import AppContext from "../../lib/state";
 
-interface PostData {
-  data: components["schemas"]["Post"];
-}
-interface CommentData {
-  data: components["schemas"]["Comment"];
-}
+type Status = components["schemas"]["Status"];
 
-export type PostPresentable = PostData | CommentData;
+export type PostPresentable = {
+  data: Status;
+};
 
 interface PostProps {
   post: PostPresentable;
@@ -32,24 +29,43 @@ export const PostItem = ({
 }: PostProps) => {
   const appState = useContext(AppContext);
   const currentUserId = appState?.userId ?? null;
-  const navigate = useNavigate();
+  const data = post.data;
+  if (!data) {
+    return null;
+  }
+  const renderData = data.reblog ?? data;
+  const resharedBy = data.reblog ? data.account : null;
+  const authorId = renderData.account?.id ?? data.account?.id;
+  const authorName =
+    renderData.account?.display_name ||
+    renderData.account?.username ||
+    data.account?.display_name ||
+    data.account?.username;
+  const profileId = renderData.account?.id ?? data.account?.id ?? null;
+  const content = renderData.content;
+  const commentCount = renderData.replies_count;
+  const shareCount = renderData.reblogs_count;
+  const likeCount = renderData.favourites_count;
+  const isFavourited = Boolean(renderData.favourited);
+  const isReblogged = Boolean(renderData.reblogged);
 
   const likeAction = async () => {
-    if (!("id" in post.data)) return;
     if (!currentUserId) {
       console.warn("User not authenticated, cannot like");
       return;
     }
     try {
-      await client.fetchClient.POST("/api/posts/{id}/likes", {
-        params: { path: { id: Number(post.data.id) } },
-        body: { postID: Number(post.data.id), userID: currentUserId },
+      const endpoint = renderData.favourited
+        ? "/api/statuses/{id}/unfavourite"
+        : "/api/statuses/{id}/favourite";
+      await client.fetchClient.POST(endpoint, {
+        params: { path: { id: String(renderData.id) } },
       });
       client.queryClient.invalidateQueries({
-        queryKey: ["get", "/api/posts", {}],
+        queryKey: ["account-statuses", authorId],
       });
       client.queryClient.invalidateQueries({
-        queryKey: ["user-posts", currentUserId],
+        queryKey: ["get", "/api/accounts/{id}/statuses"],
       });
     } catch (err) {
       console.error("Failed to like post", err);
@@ -57,21 +73,23 @@ export const PostItem = ({
   };
 
   const shareAction = async () => {
-    if (!("id" in post.data)) return;
     if (!currentUserId) {
       console.warn("User not authenticated, cannot share");
       return;
     }
     try {
-      await client.fetchClient.POST("/api/posts/{id}/shares", {
-        params: { path: { id: Number(post.data.id) } },
-        body: { postID: Number(post.data.id), userID: currentUserId },
+      const endpoint = renderData.reblogged
+        ? "/api/statuses/{id}/unreblog"
+        : "/api/statuses/{id}/reblog";
+      const targetId = renderData.id;
+      await client.fetchClient.POST(endpoint, {
+        params: { path: { id: String(targetId) } },
       });
       client.queryClient.invalidateQueries({
-        queryKey: ["get", "/api/posts", {}],
+        queryKey: ["account-statuses", authorId],
       });
       client.queryClient.invalidateQueries({
-        queryKey: ["user-posts", currentUserId],
+        queryKey: ["get", "/api/accounts/{id}/statuses"],
       });
     } catch (err) {
       console.error("Failed to share post", err);
@@ -99,16 +117,34 @@ export const PostItem = ({
     >
       <div className="flex space-x-3">
         <div className="flex-1">
+          {resharedBy && (
+            <div className="mb-2 text-xs">
+              <span className="text-green-600">Reshared by </span>
+              <span className="font-medium text-green-700">
+                @
+                {String(resharedBy.acct || resharedBy.username).replace(
+                  /^@+|@+$/g,
+                  "",
+                )}
+              </span>
+            </div>
+          )}
           <div className="flex items-start justify-between mb-2">
-            {"username" in post.data && (
+            {authorName && (
               <div className="flex items-center space-x-1">
-                <Link
-                  to={`/profile/${post.data.userID}`}
-                  className="hover:underline font-semibold text-gray-900"
-                  onClick={(event) => event.stopPropagation()}
-                >
-                  {post.data.username}
-                </Link>
+                {profileId ? (
+                  <Link
+                    to={`/profile/${profileId}`}
+                    className="hover:underline font-semibold text-gray-900"
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    {authorName}
+                  </Link>
+                ) : (
+                  <span className="font-semibold text-gray-900">
+                    {authorName}
+                  </span>
+                )}
               </div>
             )}
             {showActions && (
@@ -138,58 +174,61 @@ export const PostItem = ({
           </div>
           <div className="flex items-center space-x-1"></div>
           <div className="prose max-w-none text-gray-800">
-            <ReactMarkdown>{post.data.content}</ReactMarkdown>
+            <ReactMarkdown>{content}</ReactMarkdown>
           </div>
 
           <div className="flex justify-between mt-3 text-gray-500 text-sm max-w-md">
-            {"commentCount" in post.data && (
+            {commentCount !== undefined && (
               <button
                 type="button"
-                className="flex items-center space-x-1 hover:text-blue-500 transition"
+                className="flex items-center space-x-1 hover:text-blue-500 transition cursor-pointer"
                 onClick={(event) => {
                   event.stopPropagation();
                   if (onCommentClick) {
                     onCommentClick(post);
-                    return;
-                  }
-                  if ("id" in post.data) {
-                    navigate(`/post/${post.data.id}`);
                   }
                 }}
               >
-                <MessageCircle size={16} />{" "}
-                <span>{post.data.commentCount}</span>
+                <MessageCircle size={16} /> <span>{commentCount}</span>
               </button>
             )}
-            {"shareCount" in post.data && (
+            {shareCount !== undefined && (
               <button
                 type="button"
-                className="flex items-center space-x-1 hover:text-green-500 transition"
+                className={`flex items-center space-x-1 transition ${
+                  isReblogged
+                    ? "text-green-600"
+                    : "text-gray-500 hover:text-green-500"
+                }`}
                 onClick={(event) => {
                   event.stopPropagation();
                   void shareAction();
                 }}
               >
-                <Repeat size={16} /> <span>{post.data.shareCount}</span>
+                <Repeat size={16} /> <span>{shareCount}</span>
               </button>
             )}
-            {"likeCount" in post.data && (
+            {likeCount !== undefined && (
               <button
                 type="button"
-                className="flex items-center space-x-1 hover:text-pink-500 transition"
+                className={`flex items-center space-x-1 transition ${
+                  isFavourited
+                    ? "text-pink-600"
+                    : "text-gray-500 hover:text-pink-500"
+                }`}
                 onClick={(event) => {
                   event.stopPropagation();
                   void likeAction();
                 }}
               >
                 <Heart size={16} />
-                <span>{post.data.likeCount}</span>
+                <span>{likeCount}</span>
               </button>
             )}
-            {"shareCount" in post.data && (
+            {shareCount !== undefined && (
               <button
                 type="button"
-                className="flex items-center space-x-1 hover:text-gray-700 transition"
+                className="flex items-center space-x-1 hover:text-gray-700 transition cursor-pointer"
                 onClick={(event) => event.stopPropagation()}
               >
                 <Share2 size={16} />

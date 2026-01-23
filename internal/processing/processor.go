@@ -3,29 +3,35 @@ package processing
 import (
 	"context"
 
+	"github.com/rs/xid"
+
 	"github.com/kibirisu/borg/internal/ap"
+	conf "github.com/kibirisu/borg/internal/config"
 	"github.com/kibirisu/borg/internal/db"
+	"github.com/kibirisu/borg/internal/domain"
 	repo "github.com/kibirisu/borg/internal/repository"
 	"github.com/kibirisu/borg/internal/transport"
 )
 
 type Processor interface {
-	LookupActor(context.Context, ap.Actorer) (db.Account, error)
-	LookupStatus(context.Context, ap.Noter) (db.Status, error)
-	AnnounceStatus(context.Context, ap.AnnounceActivitier) (db.Status, error)
-	AcceptFollow(context.Context, ap.FollowActivitier) error
-	LikeStatus(context.Context, ap.LikeActivitier) (db.Favourite, error)
-	PropagateStatus(context.Context, ap.Noter) error
-	FollowStatus(context.Context, ap.FollowActivitier) (db.Follow, error)
+	LookupActor(context.Context, ap.Actorer) (*xid.ID, error)
+	LookupStatus(context.Context, ap.Noter) (*xid.ID, error)
+	AnnounceStatus(context.Context, ap.AnnounceActivitier) (*xid.ID, error)
+	AcceptFollow(context.Context, ap.FollowActivitier, xid.ID) error
+	LikeStatus(context.Context, ap.LikeActivitier, xid.ID) (*xid.ID, error)
+	DistributeObject(context.Context, *domain.Object, xid.ID) error
+	SendObject(context.Context, *domain.Object, xid.ID) error
+	FetchAndStoreAccount(context.Context, string, string) (db.Account, error)
 }
 
 type processor struct {
 	store  repo.Store
 	client transport.Client
+	conf   *conf.Config
 }
 
 var _ Processor = (*processor)(nil)
 
-func New(store repo.Store, client transport.Client) Processor {
-	return &processor{store, client}
+func New(store repo.Store, client transport.Client, conf *conf.Config) Processor {
+	return &processor{store, client, conf}
 }

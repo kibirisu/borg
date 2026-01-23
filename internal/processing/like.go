@@ -3,6 +3,9 @@ package processing
 import (
 	"context"
 	"errors"
+	"log"
+
+	"github.com/rs/xid"
 
 	"github.com/kibirisu/borg/internal/ap"
 	"github.com/kibirisu/borg/internal/db"
@@ -11,26 +14,34 @@ import (
 func (p *processor) LikeStatus(
 	ctx context.Context,
 	activity ap.LikeActivitier,
-) (db.Favourite, error) {
+	targetAccountID xid.ID,
+) (*xid.ID, error) {
 	uri := activity.GetURI()
+	log.Printf("[Processing] [Like] processing Activity with ID=%s", uri)
 	if uri == "" {
-		return db.Favourite{}, errors.New("invalid object")
+		return nil, errors.New("invalid object")
 	}
 	favourite, err := p.store.Favourites().GetByURI(ctx, uri)
 	if err != nil {
 		activityData := activity.GetObject()
-		likerAccount, err := p.LookupActor(ctx, activityData.Actor)
+		log.Printf("[Processing] [Like] processing Actor with ID=%s", activityData.Actor.GetURI())
+		accountID, err := p.LookupActor(ctx, activityData.Actor)
 		if err != nil {
-			return favourite, err
+			return nil, err
 		}
-		likedPost, err := p.LookupStatus(ctx, activityData.Object)
+		log.Printf("[Processing] [Like] processing Status with ID=%s", activityData.Object.GetURI())
+		statusID, err := p.LookupStatus(ctx, activityData.Object)
 		if err != nil {
-			return favourite, err
+			return nil, err
 		}
-		return p.store.Favourites().Create(ctx, db.CreateFavouriteParams{
-			AccountID: likerAccount.ID,
-			StatusID:  likedPost.ID,
+		favourite, err = p.store.Favourites().AddLike(ctx, db.AddLikeParams{
+			ID:              xid.New(),
+			Uri:             uri,
+			AccountID:       *accountID,
+			TargetAccountID: targetAccountID,
+			StatusID:        *statusID,
 		})
+		return &favourite.ID, err
 	}
-	return favourite, nil
+	return &favourite.ID, err
 }

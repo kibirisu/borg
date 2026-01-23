@@ -2,21 +2,29 @@ package repository
 
 import (
 	"context"
-	"database/sql"
+
+	"github.com/rs/xid"
 
 	"github.com/kibirisu/borg/internal/db"
 )
 
 type AccountRepository interface {
-	Get(context.Context, db.GetAccountParams) (db.Account, error)
+	Add(context.Context, db.AddAccountParams) (db.Account, error)
 	GetByURI(context.Context, string) (db.Account, error)
-	GetByID(context.Context, int) (db.Account, error)
-	GetLocalByUsername(context.Context, string) (db.Account, error)
+	GetWebfinger(context.Context, string) (db.GetAccountWebfingerRow, error)
+	GetByUsernameAndDomain(
+		context.Context,
+		db.GetAccountByUsernameAndDomainParams,
+	) (db.GetAccountByUsernameAndDomainRow, error)
+	GetByID(context.Context, xid.ID) (db.GetAccountByIDRow, error)
+	GetFollowersByAccountID(context.Context, xid.ID) ([]db.GetFollowersByAccountIDRow, error)
+	GetFollowingByAccountID(context.Context, xid.ID) ([]db.GetFollowingByAccountIDRow, error)
+	GetLocalActorByID(context.Context, xid.ID) (db.Account, error)
 	Create(context.Context, db.CreateActorParams) (db.Account, error)
-	GetFollowers(context.Context, int) ([]db.Account, error)
-	GetFollowing(context.Context, int) ([]db.Account, error)
-	GetPosts(context.Context, int) ([]db.GetStatusesByAccountIdRow, error)
-	Update(context.Context, int, *string) (db.Account, error)
+	GetFollowers(context.Context, xid.ID) ([]db.Account, error)
+	GetFollowing(context.Context, xid.ID) ([]db.Account, error)
+	GetAccountRemoteFollowerInboxes(context.Context, xid.ID) ([]string, error)
+	GetAccountInbox(context.Context, xid.ID) (string, error)
 }
 
 type accountRepository struct {
@@ -25,17 +33,33 @@ type accountRepository struct {
 
 var _ AccountRepository = (*accountRepository)(nil)
 
+// Add implements AccountRepository.
+func (r *accountRepository) Add(
+	ctx context.Context,
+	account db.AddAccountParams,
+) (db.Account, error) {
+	return r.q.AddAccount(ctx, account)
+}
+
 // GetByURI implements AccountRepository.
 func (r *accountRepository) GetByURI(ctx context.Context, uri string) (db.Account, error) {
 	return r.q.GetActorByURI(ctx, uri)
 }
 
-// GetLocalByUsername implements AccountRepository.
-func (r *accountRepository) GetLocalByUsername(
+// GetWebfinger implements AccountRepository.
+func (r *accountRepository) GetWebfinger(
 	ctx context.Context,
 	username string,
-) (db.Account, error) {
-	return r.q.GetActor(ctx, username)
+) (db.GetAccountWebfingerRow, error) {
+	return r.q.GetAccountWebfinger(ctx, username)
+}
+
+// GetByUsernameAndDomain implements AccountRepository.
+func (r *accountRepository) GetByUsernameAndDomain(
+	ctx context.Context,
+	qureyData db.GetAccountByUsernameAndDomainParams,
+) (db.GetAccountByUsernameAndDomainRow, error) {
+	return r.q.GetAccountByUsernameAndDomain(ctx, qureyData)
 }
 
 // Create implements AccountRepository.
@@ -46,58 +70,57 @@ func (r *accountRepository) Create(
 	return r.q.CreateActor(ctx, account)
 }
 
-// Get implements AccountRepository.
-func (r *accountRepository) Get(
-	ctx context.Context,
-	account db.GetAccountParams,
-) (db.Account, error) {
-	return r.q.GetAccount(ctx, account)
-}
-
 // GetById implements AccountRepository.
 func (r *accountRepository) GetByID(
-	ctx context.Context, id int,
-) (db.Account, error) {
-	return r.q.GetAccountById(ctx, int32(id))
+	ctx context.Context, id xid.ID,
+) (db.GetAccountByIDRow, error) {
+	return r.q.GetAccountByID(ctx, id)
+}
+
+// GetFollowersByAccountID implements AccountRepository.
+func (r *accountRepository) GetFollowersByAccountID(
+	ctx context.Context,
+	id xid.ID,
+) ([]db.GetFollowersByAccountIDRow, error) {
+	return r.q.GetFollowersByAccountID(ctx, id)
+}
+
+// GetFollowingByAccountID implements AccountRepository.
+func (r *accountRepository) GetFollowingByAccountID(
+	ctx context.Context,
+	id xid.ID,
+) ([]db.GetFollowingByAccountIDRow, error) {
+	return r.q.GetFollowingByAccountID(ctx, id)
+}
+
+// GetLocalActorByID implements AccountRepository.
+func (r *accountRepository) GetLocalActorByID(ctx context.Context, id xid.ID) (db.Account, error) {
+	return r.q.GetLocalActorByID(ctx, id)
 }
 
 // GetFollowers implements AccountRepository.
 func (r *accountRepository) GetFollowers(
-	ctx context.Context, accountID int,
+	ctx context.Context, accountID xid.ID,
 ) ([]db.Account, error) {
-	return r.q.GetAccountFollowers(ctx, int32(accountID))
+	return r.q.GetAccountFollowers(ctx, accountID)
 }
 
 // GetFollowing implements AccountRepository.
 func (r *accountRepository) GetFollowing(
-	ctx context.Context, accountID int,
+	ctx context.Context, accountID xid.ID,
 ) ([]db.Account, error) {
-	return r.q.GetAccountFollowing(ctx, int32(accountID))
+	return r.q.GetAccountFollowing(ctx, accountID)
 }
 
-// GetPosts implements AccountRepository.
-func (r *accountRepository) GetPosts(
+// GetAccountRemoteFollowerInboxes implements AccountRepository.
+func (r *accountRepository) GetAccountRemoteFollowerInboxes(
 	ctx context.Context,
-	id int,
-) ([]db.GetStatusesByAccountIdRow, error) {
-	return r.q.GetStatusesByAccountId(ctx, int32(id))
+	id xid.ID,
+) ([]string, error) {
+	return r.q.GetAccountRemoteFollowersInboxes(ctx, id)
 }
 
-// Update implements AccountRepository.
-func (r *accountRepository) Update(
-	ctx context.Context,
-	id int,
-	bio *string,
-) (db.Account, error) {
-	var displayName sql.NullString
-	if bio != nil {
-		displayName = sql.NullString{
-			String: *bio,
-			Valid:  true,
-		}
-	}
-	return r.q.UpdateAccountById(ctx, db.UpdateAccountByIdParams{
-		ID:          int32(id),
-		DisplayName: displayName,
-	})
+// GetAccountInbox implements AccountRepository.
+func (r *accountRepository) GetAccountInbox(ctx context.Context, id xid.ID) (string, error) {
+	return r.q.GetAccountInbox(ctx, id)
 }

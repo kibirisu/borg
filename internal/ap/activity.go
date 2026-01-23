@@ -23,6 +23,10 @@ func NewActivity(from *domain.ObjectOrLink) Activiter[any] {
 	return &activity{object{from}}
 }
 
+func NewEmptyActivity() Activiter[any] {
+	return &activity{object{}}
+}
+
 // GetObject implements Activiter.
 // Subtle: this method shadows the method (object).GetObject of activity.object.
 func (a *activity) GetObject() Activity[any] {
@@ -45,4 +49,20 @@ func (a *activity) SetObject(activity Activity[any]) {
 			ActivityObject: activity.Object.GetRaw(),
 		},
 	}
+}
+
+// WithLink implements Activiter.
+// Subtle: this method shadows the method (activity).WithLink of activity.object.
+func (a *activity) WithLink(link string) Objecter[Activity[any]] {
+	a.SetLink(link)
+	return a
+}
+
+// WithObject implements Activiter.
+// Subtle: this method shadows the method (activity).WithObject of activity.object.
+func (a *activity) WithObject(
+	activity Activity[any],
+) Objecter[Activity[any]] {
+	a.SetObject(activity)
+	return a
 }

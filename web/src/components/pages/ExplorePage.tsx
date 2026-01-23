@@ -9,37 +9,13 @@ import PostComposerOverlay from "../common/PostComposerOverlay";
 import { PostItem, type PostPresentable } from "../common/PostItem";
 import Sidebar from "../common/Sidebar";
 
-function FoundUserItem({
-  account,
-}: {
-  account: components["schemas"]["Account"];
-}) {
-  const display = account.displayName || account.username;
-  const handle = account.acct || `@${account.username}`;
-  const initial = display?.slice(0, 1).toUpperCase() || "?";
-
-  return (
-    <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm">
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 text-indigo-600 font-semibold">
-          {initial}
-        </div>
-        <div className="flex flex-col">
-          <a
-            href={`/profile/${account.id}`}
-            className="text-base font-semibold text-gray-900 hover:text-indigo-600"
-          >
-            {display}
-          </a>
-          <span className="text-sm text-gray-500">{handle}</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export const loader = (client: AppClient) => async () => {
-  const opts = client.$api.queryOptions("get", "/api/posts", {});
+  const token = localStorage.getItem("jwt");
+  const cleaned = token ? token.replace(/^Bearer:\s*/i, "") : null;
+  const headers = cleaned ? { Authorization: `Bearer: ${cleaned}` } : undefined;
+  const opts = client.$api.queryOptions("get", "/api/timelines/home", {
+    headers,
+  });
   await client.queryClient.ensureQueryData(opts);
   return { opts };
 };
@@ -61,6 +37,7 @@ export default function ExplorePage() {
   const [selectedPost, setSelectedPost] = useState<PostPresentable | null>(
     null,
   );
+  const userId = appState?.userId ?? null;
 
   const lookupMutation = useMutation({
     mutationFn: async (acct: string) => {
@@ -87,9 +64,11 @@ export default function ExplorePage() {
   const handleSearch = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmed = searchTerm.trim();
-    const handlePattern = /^@[A-Za-z0-9._-]+@[A-Za-z0-9.-]+(?::\d{2,5})?$/;
-    if (!handlePattern.test(trimmed)) {
-      setSearchError("Format must be @user@host or @user@host:port");
+    const handlePattern = /^@?[a-zA-Z0-9._-]+(@[a-zA-Z0-9.-]+(:\d+)?)?$/;
+    if (!trimmed || trimmed === "@" || !handlePattern.test(trimmed)) {
+      setSearchError(
+        "Format allowed: username, @username, user@instance, user@domain.com:8080",
+      );
       return;
     }
     if (!client) {
@@ -113,9 +92,11 @@ export default function ExplorePage() {
     setIsComposerOpen(true);
   };
   const handleCommentClick = (post: PostPresentable) => {
-    if ("id" in post.data) {
-      navigate(`/post/${post.data.id}`);
+    if (!post.data || !("id" in post.data)) {
+      return;
     }
+    const targetId = post.data.reblog?.id ?? post.data.id;
+    navigate(`/post/${targetId}`);
   };
 
   const openComposerForNewPost = () => {
@@ -129,18 +110,19 @@ export default function ExplorePage() {
   };
 
   const handleCreatePost = async (content: string) => {
-    const userId = appState?.userId ?? null;
     if (!client || userId === null) {
       throw new Error("User not authenticated");
     }
-    await client.fetchClient.POST("/api/posts", {
-      body: { userID: userId, content },
+    const replyToId =
+      selectedPost?.data?.reblog?.id ?? selectedPost?.data?.id ?? null;
+    await client.fetchClient.POST("/api/statuses", {
+      body: { status: content, in_reply_to_id: replyToId },
     });
     await client.queryClient.invalidateQueries({
-      queryKey: ["user-posts", userId],
+      queryKey: ["account-statuses", userId],
     });
     await client.queryClient.invalidateQueries({
-      queryKey: ["get", "/api/posts", {}],
+      queryKey: ["get", "/api/timelines/home", {}],
     });
   };
 
@@ -190,7 +172,7 @@ export default function ExplorePage() {
               <input
                 id="explore-search"
                 type="search"
-                placeholder="@user@host:port"
+                placeholder="user or user@domain"
                 className="block w-full rounded-xl border border-gray-200 bg-gray-50 p-3 pl-9 text-sm text-gray-900 placeholder:text-gray-500 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 focus:outline-none"
                 value={searchTerm}
                 onChange={onSearchChange}
@@ -253,27 +235,33 @@ export default function ExplorePage() {
             </div>
           )}
           {searchResult && (
-            <div className="max-w-4xl mx-auto">
-              <p className="text-sm font-medium text-gray-500 mb-2">
-                Search result
-              </p>
+            <div className="max-w-md mx-auto w-full">
               <FoundUserItem account={searchResult} />
             </div>
           )}
-          <section className="bg-white rounded-2xl border border-gray-200 p-4 space-y-4 min-h-[400px]">
+          <section className="rounded-2xl bg-transparent min-h-[400px]">
             {isPending && <p className="text-gray-500 text-center">Loading…</p>}
             {!isPending &&
-              data?.map((post: components["schemas"]["Post"]) => (
-                <PostItem
-                  key={post.id}
-                  post={{ data: post }}
-                  client={client!}
-                  onSelect={handlePostSelect}
-                  onCommentClick={handleCommentClick}
-                />
-              ))}
+              data?.map(
+                (post: components["schemas"]["Status"]) =>
+                  post && (
+                    <div
+                      key={post.id}
+                      className="mb-3 rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden"
+                    >
+                      <PostItem
+                        post={{ data: post }}
+                        client={client!}
+                        onSelect={handlePostSelect}
+                        onCommentClick={handleCommentClick}
+                      />
+                    </div>
+                  ),
+              )}
             {!isPending && !data?.length && (
-              <p className="text-center text-gray-500">Nothing posted yet.</p>
+              <p className="text-center text-gray-500">
+                Start following someone to expore theirs posts!
+              </p>
             )}
           </section>
         </main>
@@ -285,6 +273,35 @@ export default function ExplorePage() {
         replyTo={selectedPost}
         onSubmit={handleCreatePost}
       />
+    </div>
+  );
+}
+
+function FoundUserItem({
+  account,
+}: {
+  account: components["schemas"]["Account"];
+}) {
+  const display = account.display_name || account.username;
+  const handle = account.acct || `@${account.username}`;
+  const initial = display?.slice(0, 1).toUpperCase() || "?";
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm">
+      <div className="flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 text-indigo-600 font-semibold">
+          {initial}
+        </div>
+        <div className="flex flex-col">
+          <a
+            href={`/profile/${account.id}`}
+            className="text-base font-semibold text-gray-900 hover:text-indigo-600"
+          >
+            {display}
+          </a>
+          <span className="text-sm text-gray-500">{handle}</span>
+        </div>
+      </div>
     </div>
   );
 }

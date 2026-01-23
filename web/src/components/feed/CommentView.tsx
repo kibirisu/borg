@@ -16,21 +16,31 @@ export const loader =
     if (!params.postId) {
       return { postOpts: undefined, commentOpts: undefined, postId: undefined };
     }
-    const postId = Number(params.postId);
-    const queryParams = { params: { path: { id: postId } } };
+    const routePostId = String(params.postId);
+    const routeParams = { params: { path: { id: routePostId } } };
+    const routePostOpts = client.$api.queryOptions(
+      "get",
+      "/api/statuses/{id}",
+      routeParams,
+    );
+    const postData = await client.queryClient.ensureQueryData(routePostOpts);
+    const canonicalPostId = postData?.reblog?.id ?? routePostId;
+    const canonicalParams = { params: { path: { id: canonicalPostId } } };
     const postOpts = client.$api.queryOptions(
       "get",
-      "/api/posts/{id}",
-      queryParams,
+      "/api/statuses/{id}",
+      canonicalParams,
     );
     const commentOpts = client.$api.queryOptions(
       "get",
-      "/api/posts/{id}/comments",
-      queryParams,
+      "/api/statuses/{id}/replies",
+      canonicalParams,
     );
     client.queryClient.prefetchQuery(commentOpts);
-    await client.queryClient.ensureQueryData(postOpts);
-    return { postOpts, commentOpts, postId };
+    if (canonicalPostId !== routePostId) {
+      await client.queryClient.ensureQueryData(postOpts);
+    }
+    return { postOpts, commentOpts, postId: canonicalPostId };
   };
 export const commentsLoader =
   (client: AppClient) =>
@@ -38,11 +48,11 @@ export const commentsLoader =
     if (!params.postId) {
       return { opts: undefined };
     }
-    const postId = Number(params.postId);
+    const postId = String(params.postId);
     const queryParams = { params: { path: { id: postId } } };
     const commentOpts = client.$api.queryOptions(
       "get",
-      "/api/posts/{id}/comments",
+      "/api/statuses/{id}/replies",
       queryParams,
     );
     await client.queryClient.ensureQueryData(commentOpts);
@@ -73,23 +83,33 @@ export default function CommentView() {
     return null;
   }
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <div className="w-full bg-white border border-gray-200 shadow-sm">
-        {postData && postData.data ? (
-          <PostItem
-            post={{ data: postData.data as components["schemas"]["Post"] }}
-            client={client}
-          />
-        ) : (
-          <div className="p-6 text-center text-gray-600">Post not found.</div>
-        )}
+    <div className="min-h-screen bg-gray-50 pb-28">
+      <div className="px-6 pt-6">
+        <button
+          type="button"
+          onClick={() => window.history.back()}
+          aria-label="Go back"
+          className="inline-flex items-center justify-center border border-black text-black rounded-[7px] text-sm p-2.5"
+        >
+          <i className="bi bi-arrow-left" />
+        </button>
       </div>
-      <div className="flex-1 overflow-y-auto bg-white border-x border-b border-gray-200">
-        <CommentsFeed opts={commentOpts} postId={postId} />
+      <div className="mt-4 w-full bg-white border border-gray-200 overflow-hidden divide-y divide-gray-200 shadow-sm">
+        <div className="bg-white">
+          {postData && postData.data ? (
+            <PostItem
+              post={{ data: postData.data as components["schemas"]["Status"] }}
+              client={client}
+            />
+          ) : (
+            <div className="p-6 text-center text-gray-600">Post not found.</div>
+          )}
+        </div>
+        <div className="bg-gray-100">
+          <CommentsFeed opts={commentOpts} postId={postId} />
+        </div>
       </div>
-      <div className="sticky bottom-0 bg-white border-x border-b border-gray-200">
-        <CommentForm />
-      </div>
+      <CommentForm postId={postId} />
     </div>
   );
 }
@@ -100,13 +120,13 @@ export function CommentsFeed({
 }: {
   opts?:
     | UseQueryOptions<
-        components["schemas"]["Comment"][],
+        components["schemas"]["Status"][],
         any,
-        components["schemas"]["Comment"][],
+        components["schemas"]["Status"][],
         any
       >
     | any;
-  postId?: number;
+  postId?: string;
 }) {
   const client = useContext(ClientContext);
 
@@ -114,11 +134,11 @@ export function CommentsFeed({
     opts ??
     ({
       queryKey: ["comments-feed-disabled", _postId],
-      queryFn: async () => [] as components["schemas"]["Comment"][],
+      queryFn: async () => [] as components["schemas"]["Status"][],
       enabled: false,
     } satisfies Parameters<typeof useQuery>[0]);
 
-  const { data, isPending } = useQuery<components["schemas"]["Comment"][]>(
+  const { data, isPending } = useQuery<components["schemas"]["Status"][]>(
     queryOptions as any,
   );
 
@@ -136,15 +156,21 @@ export function CommentsFeed({
     );
   }
   return (
-    <div className="divide-y divide-gray-200">
+    <div className="p-4">
       {data && data.length > 0 ? (
-        data.map((comment: components["schemas"]["Comment"]) => (
-          <PostItem
-            key={comment.id}
-            post={{ data: comment }}
-            client={client!}
-          />
-        ))
+        <div className="space-y-3">
+          {data.map(
+            (comment: components["schemas"]["Status"]) =>
+              comment && (
+                <div
+                  key={comment.id}
+                  className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden"
+                >
+                  <PostItem post={{ data: comment }} client={client!} />
+                </div>
+              ),
+          )}
+        </div>
       ) : (
         <div className="p-6 text-center text-gray-600">No comments yet.</div>
       )}

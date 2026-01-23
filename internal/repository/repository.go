@@ -11,9 +11,13 @@ type Store interface {
 	Accounts() AccountRepository
 	Users() UserRepository
 	Follows() FollowRepository
+	FollowRequests() FollowRequestRepository
 	Statuses() StatusRepository
 	Favourites() FavouriteRepository
+	WithTX(context.Context, Tx) (any, error)
 }
+
+type Tx func(context.Context, Store) (any, error)
 
 var _ Store = (*store)(nil)
 
@@ -41,6 +45,10 @@ func (s *store) Follows() FollowRepository {
 	return &followRepository{s.q}
 }
 
+func (s *store) FollowRequests() FollowRequestRepository {
+	return &followRequestRepository{s.q}
+}
+
 // Statuses implements Store.
 func (s *store) Statuses() StatusRepository {
 	return &statusRepository{s.q}
@@ -49,4 +57,24 @@ func (s *store) Statuses() StatusRepository {
 // Favourites implements Store.
 func (s *store) Favourites() FavouriteRepository {
 	return &favouriteRepository{s.q}
+}
+
+// WithTX implements Store.
+func (s *store) WithTX(ctx context.Context, fn Tx) (any, error) {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		_ = tx.Rollback()
+	}()
+
+	qtx := s.q.WithTx(tx)
+	store := store{q: qtx}
+
+	res, err := fn(ctx, &store)
+	if err != nil {
+		return nil, err
+	}
+	return res, tx.Commit()
 }

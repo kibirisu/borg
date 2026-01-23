@@ -2,32 +2,27 @@ package service
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
-	"net/http"
-	"strings"
-	"time"
+
+	"github.com/rs/xid"
 
 	"github.com/kibirisu/borg/internal/ap"
-	"github.com/kibirisu/borg/internal/api"
 	"github.com/kibirisu/borg/internal/domain"
 	proc "github.com/kibirisu/borg/internal/processing"
 	repo "github.com/kibirisu/borg/internal/repository"
-	"github.com/kibirisu/borg/internal/util"
 	"github.com/kibirisu/borg/internal/worker"
 )
 
 type FederationService interface {
-	LookupRemoteActor(context.Context, *util.HandleInfo) (*domain.Actor, error)
-	GetLocalActor(context.Context, string) (*domain.Object, error)
+	GetActor(context.Context, string) (*domain.Object, error)
 	GetActorFollowers(context.Context, string, *int) (*domain.Object, error)
 	GetActorFollowing(context.Context, string, *int) (*domain.Object, error)
-	GetStatus(context.Context, string) (*domain.Object, error)
+	GetStatus(context.Context, string, string) (*domain.Object, error)
 	GetLike(context.Context, string) (*domain.Object, error)
 	GetFollow(context.Context, string) (*domain.Object, error)
-	ProcessIncoming(context.Context, *domain.ObjectOrLink) (worker.Job, error)
+	ProcessIncoming(context.Context, *domain.ObjectOrLink, string) (worker.Job, error)
 }
 
 type federationService struct {
@@ -37,20 +32,24 @@ type federationService struct {
 
 var _ FederationService = (*federationService)(nil)
 
-// GetLocalActor implements FederationService.
-func (s *federationService) GetLocalActor(
+// GetActor implements FederationService.
+func (s *federationService) GetActor(
 	ctx context.Context,
-	username string,
+	id string,
 ) (*domain.Object, error) {
-	account, err := s.store.Accounts().GetLocalByUsername(ctx, username)
+	actorID, err := xid.FromString(id)
 	if err != nil {
 		return nil, err
 	}
-	actor := ap.NewActor(nil)
-	actor.SetObject(ap.Actor{
+	account, err := s.store.Accounts().GetLocalActorByID(ctx, actorID)
+	if err != nil {
+		return nil, err
+	}
+	actor := ap.NewEmptyActor().WithObject(ap.Actor{
 		ID:                account.Uri,
 		Type:              "Person",
 		PreferredUsername: account.Username,
+		Name:              account.DisplayName.String,
 		Inbox:             account.InboxUri,
 		Outbox:            account.OutboxUri,
 		Following:         account.FollowingUri,
@@ -62,110 +61,77 @@ func (s *federationService) GetLocalActor(
 // GetStatus implements FederationService.
 func (s *federationService) GetStatus(
 	ctx context.Context,
-	uri string,
+	id, actorID string,
 ) (*domain.Object, error) {
-	statusDB, err := s.store.Statuses().GetByURI(ctx, uri)
+	statusID, err := xid.FromString(id)
 	if err != nil {
 		return nil, err
 	}
-	reply := ap.NewNote(nil)
-	if statusDB.InReplyToID.Valid {
-		inreply, err := s.store.Statuses().GetByID(ctx, int(statusDB.InReplyToID.Int32))
-		if err != nil {
-			return nil, err
-		}
-
-		reply.SetLink(inreply.Uri)
-	}
-	accountDB, err := s.store.Accounts().GetByID(ctx, int(statusDB.AccountID))
+	accountID, err := xid.FromString(actorID)
 	if err != nil {
 		return nil, err
 	}
-	actor := ap.NewActor(nil)
-	actor.SetLink(accountDB.Uri)
-
-	note := ap.NewNote(nil)
-	collection := ap.NewNoteCollection(nil)
-	note.SetObject(ap.Note{
-		ID:           statusDB.Uri,
+	status, err := s.store.Statuses().GetLocalByID(ctx, statusID, accountID)
+	if err != nil {
+		return nil, err
+	}
+	reply := ap.NewEmptyNote()
+	if status.InReplyToUri.Valid {
+		reply.SetLink(status.InReplyToUri.String)
+	}
+	note := ap.NewEmptyNote().WithObject(ap.Note{
+		ID:           status.Uri,
 		Type:         "Note",
-		Content:      statusDB.Content,
+		Content:      status.Content.String,
 		InReplyTo:    reply,
-		Published:    statusDB.CreatedAt,
-		AttributedTo: actor,
-		To:           []string{},
-		CC:           []string{accountDB.FollowersUri},
-		Replies:      collection,
+		Published:    status.CreatedAt,
+		AttributedTo: ap.NewEmptyActor().WithLink(status.AccountUri),
+		Replies:      ap.NewEmptyNoteCollection().WithLink("work in progress"),
 	})
-
 	return note.GetRaw().Object, nil
 }
 
 // GetLike implements FederationService.
 func (s *federationService) GetLike(
 	ctx context.Context,
-	uri string,
+	id string,
 ) (*domain.Object, error) {
-	likeDB, err := s.store.Favourites().GetByURI(ctx, uri)
+	likeID, err := xid.FromString(id)
 	if err != nil {
 		return nil, err
 	}
-	accountDB, err := s.store.Accounts().GetByID(ctx, int(likeDB.AccountID))
+	fav, err := s.store.Favourites().GetLocalLikeByID(ctx, likeID)
 	if err != nil {
 		return nil, err
 	}
-	postDB, err := s.store.Statuses().GetByID(ctx, int(likeDB.StatusID))
-	if err != nil {
-		return nil, err
-	}
-	actor := ap.NewActor(nil)
-	actor.SetLink(accountDB.Uri)
-
-	note := ap.NewNote(nil)
-	note.SetLink(postDB.Uri)
-
-	like := ap.NewLikeActivity(nil)
-	like.SetObject(ap.Activity[ap.Note]{
-		ID:     likeDB.Uri,
+	like := ap.NewEmptyLikeActivity().WithObject(ap.Activity[ap.Note]{
+		ID:     fav.Favourite.Uri,
 		Type:   "Like",
-		Actor:  actor,
-		Object: note,
+		Actor:  ap.NewEmptyActor().WithLink(fav.Account.Uri),
+		Object: ap.NewEmptyNote().WithLink(fav.Status.Uri),
 	})
-
 	return like.GetRaw().Object, nil
 }
 
 // GetFollow implements FederationService.
 func (s *federationService) GetFollow(
 	ctx context.Context,
-	uri string,
+	id string,
 ) (*domain.Object, error) {
-	followDB, err := s.store.Follows().GetByURI(ctx, uri)
+	followID, err := xid.FromString(id)
 	if err != nil {
 		return nil, err
 	}
-	followerDB, err := s.store.Accounts().GetByID(ctx, int(followDB.AccountID))
+	followActivity, err := s.store.Follows().GetLocalFollowByID(ctx, followID)
 	if err != nil {
 		return nil, err
 	}
-	followeeDB, err := s.store.Accounts().GetByID(ctx, int(followDB.TargetAccountID))
-	if err != nil {
-		return nil, err
-	}
-	actorFollowed := ap.NewActor(nil)
-	actorFollowed.SetLink(followeeDB.Uri)
-
-	actorFollowing := ap.NewActor(nil)
-	actorFollowing.SetLink(followerDB.Uri)
-
-	follow := ap.NewFollowActivity(nil)
-	follow.SetObject(ap.Activity[ap.Actor]{
-		ID:     followDB.Uri,
+	follow := ap.NewEmptyFollowActivity().WithObject(ap.Activity[ap.Actor]{
+		ID:     followActivity.FollowUri,
 		Type:   "Follow",
-		Actor:  actorFollowed,
-		Object: actorFollowing,
+		Actor:  ap.NewEmptyActor().WithLink(followActivity.FollowingUri),
+		Object: ap.NewEmptyActor().WithLink(followActivity.FollowedUri),
 	})
-
 	return follow.GetRaw().Object, nil
 }
 
@@ -179,12 +145,12 @@ func (s *federationService) GetActorFollowers(
 	if err != nil {
 		return nil, err
 	}
-	local, err := s.store.Accounts().GetLocalByUsername(ctx, username)
+	local, err := s.store.Accounts().GetLocalActorByID(ctx, xid.NilID()) // fixme
 	if err != nil {
 		return nil, err
 	}
 	if pageSelection != nil {
-		followers, _ := s.store.Accounts().GetFollowers(ctx, int(local.ID))
+		followers, _ := s.store.Accounts().GetFollowers(ctx, local.ID)
 		links := make([]ap.Objecter[ap.Actor], 0, len(followers))
 		for _, acc := range followers {
 			actor := ap.NewActor(nil)
@@ -224,12 +190,12 @@ func (s *federationService) GetActorFollowing(
 	if err != nil {
 		return nil, err
 	}
-	local, err := s.store.Accounts().GetLocalByUsername(ctx, username)
+	local, err := s.store.Accounts().GetLocalActorByID(ctx, xid.NilID()) // fixme
 	if err != nil {
 		return nil, err
 	}
 	if pageSelection != nil {
-		following, err := s.store.Accounts().GetFollowing(ctx, int(local.ID))
+		following, err := s.store.Accounts().GetFollowing(ctx, local.ID)
 		if err != nil {
 			return nil, err
 		}
@@ -266,19 +232,26 @@ func (s *federationService) GetActorFollowing(
 func (s *federationService) ProcessIncoming(
 	ctx context.Context,
 	object *domain.ObjectOrLink,
+	id string,
 ) (worker.Job, error) {
+	actorID, err := xid.FromString(id)
+	if err != nil {
+		return nil, err
+	}
 	if object.GetType() != domain.ObjectType {
 		return nil, errors.New("expected JSON object")
 	}
-	switch object.Object.Type {
+	obj := object.Object
+	log.Printf("[Service] [Federation] received Activity: %s", obj.Type)
+	switch obj.Type {
 	case "Create":
 		return func(ctx context.Context) error {
-			_, err := s.processor.LookupStatus(ctx, ap.NewNote(object.Object.ActivityObject))
+			_, err := s.processor.LookupStatus(ctx, ap.NewNote(obj.ActivityObject))
 			return err
 		}, nil
 	case "Follow":
 		return func(ctx context.Context) error {
-			return s.processor.AcceptFollow(ctx, ap.NewFollowActivity(object))
+			return s.processor.AcceptFollow(ctx, ap.NewFollowActivity(object), actorID)
 		}, nil
 	case "Announce":
 		return func(ctx context.Context) error {
@@ -287,160 +260,61 @@ func (s *federationService) ProcessIncoming(
 		}, nil
 	case "Like":
 		return func(ctx context.Context) error {
-			_, err := s.processor.LikeStatus(ctx, ap.NewLikeActivity(object))
+			_, err := s.processor.LikeStatus(ctx, ap.NewLikeActivity(object), actorID)
 			return err
 		}, nil
-	case "Accept":
-		return nil, errors.New("unsupported Activity type")
 	case "Undo":
-		return s.processUndo(object)
+		return s.processUndo(obj.ActivityObject, actorID)
+	case "Accept":
+		return func(ctx context.Context) error {
+			return s.store.Follows().
+				AddByRequestURI(ctx, ap.NewFollowActivity(object.Object.ActivityObject).GetURI())
+		}, nil
 	case "Delete":
-		return s.processDelete(object)
+		fallthrough
 	default:
 		return nil, errors.New("unsupported Activity type")
 	}
 }
 
-func (s *federationService) processUndo(object *domain.ObjectOrLink) (worker.Job, error) {
-	switch object.Object.Type {
+func (s *federationService) processUndo(
+	object *domain.ObjectOrLink,
+	actorID xid.ID,
+) (worker.Job, error) {
+	if object.GetType() != domain.ObjectType {
+		return nil, errors.New("expected JSON object")
+	}
+	obj := object.Object
+	uri := obj.ID
+	switch obj.Type {
+	case "Follow":
+		return func(ctx context.Context) error {
+			return s.store.Follows().DeleteByURI(ctx, uri)
+		}, nil
 	case "Announce":
 		return func(ctx context.Context) error {
-			status, err := s.processor.AnnounceStatus(
+			statusID, err := s.processor.AnnounceStatus(
 				ctx,
-				ap.NewAnnounceActivity(object.Object.ActivityObject),
+				ap.NewAnnounceActivity(object),
 			)
 			if err != nil {
 				return err
 			}
-			return s.store.Statuses().DeleteByID(ctx, status.ID)
+			return s.store.Statuses().DeleteAnnounceByID(ctx, *statusID)
 		}, nil
 	case "Like":
 		return func(ctx context.Context) error {
-			favourite, err := s.processor.LikeStatus(
+			favouriteID, err := s.processor.LikeStatus(
 				ctx,
-				ap.NewLikeActivity(object.Object.ActivityObject),
+				ap.NewLikeActivity(object),
+				actorID,
 			)
 			if err != nil {
 				return err
 			}
-			return s.store.Favourites().DeleteByID(ctx, favourite.ID)
-		}, nil
-	case "Follow":
-		return func(ctx context.Context) error {
-			favourite, err := s.processor.FollowStatus(
-				ctx,
-				ap.NewFollowActivity(object.Object.ActivityObject),
-			)
-			if err != nil {
-				return err
-			}
-			return s.store.Follows().DeleteByID(ctx, favourite.ID)
+			return s.store.Favourites().DeleteByID(ctx, *favouriteID)
 		}, nil
 	default:
-		return nil, errors.New("unsupported Activity type")
+		return nil, errors.New("unsupported Activity Object type")
 	}
-}
-
-func (s *federationService) processDelete(object *domain.ObjectOrLink) (worker.Job, error) {
-	switch object.Object.Type {
-	case "Note":
-		return func(ctx context.Context) error {
-			status, err := s.processor.LookupStatus(
-				ctx,
-				ap.NewNote(object.Object.ActivityObject),
-			)
-			if err != nil {
-				return err
-			}
-			return s.store.Statuses().DeleteByID(ctx, status.ID)
-		}, nil
-	default:
-		return nil, errors.New("unsupported Activity type")
-	}
-}
-
-func (s *federationService) LookupRemoteActor(
-	ctx context.Context,
-	handle *util.HandleInfo,
-) (*domain.Actor, error) {
-	if handle == nil {
-		return nil, errors.New("handle is required")
-	}
-	if handle.Domain == "" {
-		return nil, errors.New("handle domain is required")
-	}
-	account := fmt.Sprintf("%s@%s", handle.Username, handle.Domain)
-	resource := fmt.Sprintf("acct:%s", account)
-
-	client := http.Client{Timeout: 5 * time.Second}
-	webfingerURL := fmt.Sprintf("http://%s/.well-known/webfinger", handle.Domain)
-	log.Printf("lookup_remote: requesting WebFinger for %s at %s", account, webfingerURL)
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, webfingerURL, nil)
-	if err != nil {
-		return nil, err
-	}
-	q := req.URL.Query()
-	q.Set("resource", resource)
-	req.URL.RawQuery = q.Encode()
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	if resp.StatusCode != http.StatusOK {
-		_ = resp.Body.Close()
-		log.Printf("lookup_remote: WebFinger request failed status=%s", resp.Status)
-		return nil, fmt.Errorf("webfinger lookup failed: %s", resp.Status)
-	}
-	var webfinger api.WebFingerResponse
-	if err := json.NewDecoder(resp.Body).Decode(&webfinger); err != nil {
-		_ = resp.Body.Close()
-		return nil, err
-	}
-	_ = resp.Body.Close()
-
-	actorURL, err := selectActorLink(webfinger.Links)
-	if err != nil {
-		return nil, err
-	}
-
-	log.Printf("lookup_remote: fetching actor document from %s", actorURL)
-	req, err = http.NewRequestWithContext(ctx, http.MethodGet, actorURL, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err = client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	if resp.StatusCode != http.StatusOK {
-		_ = resp.Body.Close()
-		log.Printf("lookup_remote: actor request failed status=%s", resp.Status)
-		return nil, fmt.Errorf("actor lookup failed: %s", resp.Status)
-	}
-
-	var actor domain.Actor
-	if err := json.NewDecoder(resp.Body).Decode(&actor); err != nil {
-		_ = resp.Body.Close()
-		return nil, err
-	}
-	_ = resp.Body.Close()
-	return &actor, nil
-}
-
-func selectActorLink(links []api.WebFingerLink) (string, error) {
-	for _, link := range links {
-		if link.Rel == "self" && link.Href != "" {
-			if link.Type == "" || strings.Contains(link.Type, "activity+json") {
-				return link.Href, nil
-			}
-		}
-	}
-	for _, link := range links {
-		if link.Href != "" {
-			return link.Href, nil
-		}
-	}
-	return "", errors.New("webfinger response missing actor link")
 }

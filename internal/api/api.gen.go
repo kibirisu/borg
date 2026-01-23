@@ -13,7 +13,6 @@ import (
 	"net/url"
 	"path"
 	"strings"
-	"time"
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-chi/chi/v5"
@@ -26,11 +25,13 @@ const (
 
 // Account defines model for Account.
 type Account struct {
-	Acct        string `json:"acct"`
-	DisplayName string `json:"displayName"`
-	Id          int    `json:"id"`
-	Url         string `json:"url"`
-	Username    string `json:"username"`
+	Acct           string `json:"acct"`
+	DisplayName    string `json:"display_name"`
+	FollowersCount int    `json:"followers_count"`
+	FollowingCount int    `json:"following_count"`
+	Id             string `json:"id"`
+	Url            string `json:"url"`
+	Username       string `json:"username"`
 }
 
 // AuthForm defines model for AuthForm.
@@ -39,112 +40,33 @@ type AuthForm struct {
 	Username string `json:"username"`
 }
 
-// Comment defines model for Comment.
-type Comment struct {
-	UpdatedAt time.Time `json:"UpdatedAt"`
-	Content   string    `json:"content"`
-	CreatedAt time.Time `json:"createdAt"`
-	Id        int       `json:"id"`
-	ParentID  int       `json:"parentID"`
-	PostID    int       `json:"postID"`
-	UserID    int       `json:"userID"`
+// Status defines model for Status.
+type Status struct {
+	Account            Account `json:"account"`
+	Content            string  `json:"content"`
+	Favourited         *bool   `json:"favourited,omitempty"`
+	FavouritesCount    int     `json:"favourites_count"`
+	Id                 string  `json:"id"`
+	InReplyToAccountId *string `json:"in_reply_to_account_id"`
+	InReplyToId        *string `json:"in_reply_to_id"`
+	Reblog             *Status `json:"reblog"`
+	Reblogged          *bool   `json:"reblogged,omitempty"`
+	ReblogsCount       int     `json:"reblogs_count"`
+	RepliesCount       int     `json:"replies_count"`
+	Uri                string  `json:"uri"`
 }
 
-// Like defines model for Like.
-type Like struct {
-	CreatedAt time.Time `json:"createdAt"`
-	Id        int       `json:"id"`
-	PostID    int       `json:"postID"`
-	UserID    int       `json:"userID"`
+// Webfinger defines model for Webfinger.
+type Webfinger struct {
+	Links   []WebfingerLinks `json:"links"`
+	Subject string           `json:"subject"`
 }
 
-// NewComment defines model for NewComment.
-type NewComment struct {
-	Content string `json:"content"`
-	PostID  int    `json:"postID"`
-	UserID  int    `json:"userID"`
-}
-
-// NewLike defines model for NewLike.
-type NewLike struct {
-	PostID int `json:"postID"`
-	UserID int `json:"userID"`
-}
-
-// NewPost defines model for NewPost.
-type NewPost struct {
-	Content string `json:"content"`
-	UserID  int    `json:"userID"`
-}
-
-// NewShare defines model for NewShare.
-type NewShare struct {
-	PostID int `json:"postID"`
-	UserID int `json:"userID"`
-}
-
-// NewUser defines model for NewUser.
-type NewUser struct {
-	Password string `json:"password"`
-	Username string `json:"username"`
-}
-
-// Post defines model for Post.
-type Post struct {
-	CommentCount int       `json:"commentCount"`
-	Content      string    `json:"content"`
-	CreatedAt    time.Time `json:"createdAt"`
-	Id           int       `json:"id"`
-	LikeCount    int       `json:"likeCount"`
-	ShareCount   int       `json:"shareCount"`
-	UpdatedAt    time.Time `json:"updatedAt"`
-	UserID       int       `json:"userID"`
-	Username     *string   `json:"username,omitempty"`
-}
-
-// Share defines model for Share.
-type Share struct {
-	CreatedAt time.Time `json:"createdAt"`
-	Id        int       `json:"id"`
-	PostID    int       `json:"postID"`
-	UserID    int       `json:"userID"`
-}
-
-// UpdatePost defines model for UpdatePost.
-type UpdatePost struct {
-	Content *string `json:"content,omitempty"`
-}
-
-// UpdateUser defines model for UpdateUser.
-type UpdateUser struct {
-	Bio     *string `json:"bio,omitempty"`
-	IsAdmin *bool   `json:"isAdmin,omitempty"`
-}
-
-// User defines model for User.
-type User struct {
-	Bio            string    `json:"bio"`
-	CreatedAt      time.Time `json:"createdAt"`
-	FollowersCount int       `json:"followersCount"`
-	FollowingCount int       `json:"followingCount"`
-	Id             int       `json:"id"`
-	IsAdmin        bool      `json:"isAdmin"`
-	Origin         string    `json:"origin"`
-	UpdatedAt      time.Time `json:"updatedAt"`
-	Username       string    `json:"username"`
-}
-
-// WebFingerLink defines model for WebFingerLink.
-type WebFingerLink struct {
+// WebfingerLinks defines model for WebfingerLinks.
+type WebfingerLinks struct {
 	Href string `json:"href"`
 	Rel  string `json:"rel"`
 	Type string `json:"type"`
-}
-
-// WebFingerResponse defines model for WebFingerResponse.
-type WebFingerResponse struct {
-	Links   []WebFingerLink `json:"links"`
-	Subject string          `json:"subject"`
 }
 
 // GetWellKnownWebfingerParams defines parameters for GetWellKnownWebfinger.
@@ -157,26 +79,14 @@ type GetApiAccountsLookupParams struct {
 	Acct string `form:"acct" json:"acct"`
 }
 
-// PostApiPostsJSONRequestBody defines body for PostApiPosts for application/json ContentType.
-type PostApiPostsJSONRequestBody = NewPost
+// PostApiStatusesJSONBody defines parameters for PostApiStatuses.
+type PostApiStatusesJSONBody struct {
+	InReplyToId *string `json:"in_reply_to_id"`
+	Status      string  `json:"status"`
+}
 
-// PutApiPostsIdJSONRequestBody defines body for PutApiPostsId for application/json ContentType.
-type PutApiPostsIdJSONRequestBody = UpdatePost
-
-// PostApiPostsIdCommentsJSONRequestBody defines body for PostApiPostsIdComments for application/json ContentType.
-type PostApiPostsIdCommentsJSONRequestBody = NewComment
-
-// PostApiPostsIdLikesJSONRequestBody defines body for PostApiPostsIdLikes for application/json ContentType.
-type PostApiPostsIdLikesJSONRequestBody = NewLike
-
-// PostApiPostsIdSharesJSONRequestBody defines body for PostApiPostsIdShares for application/json ContentType.
-type PostApiPostsIdSharesJSONRequestBody = NewShare
-
-// PostApiUsersJSONRequestBody defines body for PostApiUsers for application/json ContentType.
-type PostApiUsersJSONRequestBody = NewUser
-
-// PutApiUsersIdJSONRequestBody defines body for PutApiUsersId for application/json ContentType.
-type PutApiUsersIdJSONRequestBody = UpdateUser
+// PostApiStatusesJSONRequestBody defines body for PostApiStatuses for application/json ContentType.
+type PostApiStatusesJSONRequestBody PostApiStatusesJSONBody
 
 // PostAuthLoginJSONRequestBody defines body for PostAuthLogin for application/json ContentType.
 type PostAuthLoginJSONRequestBody = AuthForm
@@ -186,78 +96,60 @@ type PostAuthRegisterJSONRequestBody = AuthForm
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
-	// Get WebFinger
+	// Webfinger lookuped account.
 	// (GET /.well-known/webfinger)
 	GetWellKnownWebfinger(w http.ResponseWriter, r *http.Request, params GetWellKnownWebfingerParams)
-	// Look up a user
+	// Lookup a username to see if it is available.
 	// (GET /api/accounts/lookup)
 	GetApiAccountsLookup(w http.ResponseWriter, r *http.Request, params GetApiAccountsLookupParams)
-	// Follow a user
+	// View information about a profile.
+	// (GET /api/accounts/{id})
+	GetApiAccountsId(w http.ResponseWriter, r *http.Request, id string)
+	// Follow the given account.
 	// (POST /api/accounts/{id}/follow)
-	PostApiAccountsIdFollow(w http.ResponseWriter, r *http.Request, id int)
-	// Get all posts
-	// (GET /api/posts)
-	GetApiPosts(w http.ResponseWriter, r *http.Request)
-	// Create a post
-	// (POST /api/posts)
-	PostApiPosts(w http.ResponseWriter, r *http.Request)
-	// Delete a post by ID
-	// (DELETE /api/posts/{id})
-	DeleteApiPostsId(w http.ResponseWriter, r *http.Request, id int)
-	// Get a post by ID
-	// (GET /api/posts/{id})
-	GetApiPostsId(w http.ResponseWriter, r *http.Request, id int)
-	// Update a post
-	// (PUT /api/posts/{id})
-	PutApiPostsId(w http.ResponseWriter, r *http.Request, id int)
+	PostApiAccountsIdFollow(w http.ResponseWriter, r *http.Request, id string)
+	// Accounts which follow the given account.
+	// (GET /api/accounts/{id}/followers)
+	GetApiAccountsIdFollowers(w http.ResponseWriter, r *http.Request, id string)
+	// Accounts which the given account is following.
+	// (GET /api/accounts/{id}/following)
+	GetApiAccountsIdFollowing(w http.ResponseWriter, r *http.Request, id string)
+	// Statuses posted to the given account.
+	// (GET /api/accounts/{id}/statuses)
+	GetApiAccountsIdStatuses(w http.ResponseWriter, r *http.Request, id string)
+	// Unfollow the given account.
+	// (POST /api/accounts/{id}/unfollow)
+	PostApiAccountsIdUnfollow(w http.ResponseWriter, r *http.Request, id string)
+	// Publish a status with the given parameters.
+	// (POST /api/statuses)
+	PostApiStatuses(w http.ResponseWriter, r *http.Request)
+	// Obtain information about a status.
+	// (GET /api/statuses/{id})
+	GetApiStatusesId(w http.ResponseWriter, r *http.Request, id string)
+	// Add a status to your favourites list.
+	// (POST /api/statuses/{id}/favourite)
+	PostApiStatusesIdFavourite(w http.ResponseWriter, r *http.Request, id string)
+	// Reshare a status on your own profile.
+	// (POST /api/statuses/{id}/reblog)
+	PostApiStatusesIdReblog(w http.ResponseWriter, r *http.Request, id string)
 	// Get a post's comments by ID
-	// (GET /api/posts/{id}/comments)
-	GetApiPostsIdComments(w http.ResponseWriter, r *http.Request, id int)
-	// Create a post comment
-	// (POST /api/posts/{id}/comments)
-	PostApiPostsIdComments(w http.ResponseWriter, r *http.Request, id int)
-	// Get post's likes
-	// (GET /api/posts/{id}/likes)
-	GetApiPostsIdLikes(w http.ResponseWriter, r *http.Request, id int)
-	// Create a post like
-	// (POST /api/posts/{id}/likes)
-	PostApiPostsIdLikes(w http.ResponseWriter, r *http.Request, id int)
-	// Get post's shares
-	// (GET /api/posts/{id}/shares)
-	GetApiPostsIdShares(w http.ResponseWriter, r *http.Request, id int)
-	// Create a post share
-	// (POST /api/posts/{id}/shares)
-	PostApiPostsIdShares(w http.ResponseWriter, r *http.Request, id int)
-	// Create a user
-	// (POST /api/users)
-	PostApiUsers(w http.ResponseWriter, r *http.Request)
-	// Delete a user by ID
-	// (DELETE /api/users/{id})
-	DeleteApiUsersId(w http.ResponseWriter, r *http.Request, id int)
-	// Get a user by ID
-	// (GET /api/users/{id})
-	GetApiUsersId(w http.ResponseWriter, r *http.Request, id int)
-	// Update a user
-	// (PUT /api/users/{id})
-	PutApiUsersId(w http.ResponseWriter, r *http.Request, id int)
-	// Get liked posts of user with ID
-	// (GET /api/users/{id}/favourites)
-	GetApiUsersIdFavourites(w http.ResponseWriter, r *http.Request, id int)
-	// Get followers of the user with ID
-	// (GET /api/users/{id}/followers)
-	GetApiUsersIdFollowers(w http.ResponseWriter, r *http.Request, id int)
-	// Get followed of the user with ID
-	// (GET /api/users/{id}/following)
-	GetApiUsersIdFollowing(w http.ResponseWriter, r *http.Request, id int)
-	// Get posts of user with ID
-	// (GET /api/users/{id}/posts)
-	GetApiUsersIdPosts(w http.ResponseWriter, r *http.Request, id int)
-	// Get shared posts of user with ID
-	// (GET /api/users/{id}/reblogged)
-	GetApiUsersIdReblogged(w http.ResponseWriter, r *http.Request, id int)
-	// Get timeline posts of the user with ID (posts from followed users)
-	// (GET /api/users/{id}/timeline)
-	GetApiUsersIdTimeline(w http.ResponseWriter, r *http.Request, id int)
+	// (GET /api/statuses/{id}/replies)
+	GetApiStatusesIdReplies(w http.ResponseWriter, r *http.Request, id string)
+	// Remove a status from your favourites list.
+	// (POST /api/statuses/{id}/unfavourite)
+	PostApiStatusesIdUnfavourite(w http.ResponseWriter, r *http.Request, id string)
+	// Undo a reshare of a status.
+	// (POST /api/statuses/{id}/unreblog)
+	PostApiStatusesIdUnreblog(w http.ResponseWriter, r *http.Request, id string)
+	// View statuses liked by logged in user.
+	// (GET /api/timelines/favourite)
+	GetApiTimelinesFavourite(w http.ResponseWriter, r *http.Request)
+	// View statuses from followed users.
+	// (GET /api/timelines/home)
+	GetApiTimelinesHome(w http.ResponseWriter, r *http.Request)
+	// View statuses reblogged by logged in user.
+	// (GET /api/timelines/reblogged)
+	GetApiTimelinesReblogged(w http.ResponseWriter, r *http.Request)
 	// Login the user
 	// (POST /auth/login)
 	PostAuthLogin(w http.ResponseWriter, r *http.Request)
@@ -270,147 +162,111 @@ type ServerInterface interface {
 
 type Unimplemented struct{}
 
-// Get WebFinger
+// Webfinger lookuped account.
 // (GET /.well-known/webfinger)
 func (_ Unimplemented) GetWellKnownWebfinger(w http.ResponseWriter, r *http.Request, params GetWellKnownWebfingerParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Look up a user
+// Lookup a username to see if it is available.
 // (GET /api/accounts/lookup)
 func (_ Unimplemented) GetApiAccountsLookup(w http.ResponseWriter, r *http.Request, params GetApiAccountsLookupParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Follow a user
+// View information about a profile.
+// (GET /api/accounts/{id})
+func (_ Unimplemented) GetApiAccountsId(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Follow the given account.
 // (POST /api/accounts/{id}/follow)
-func (_ Unimplemented) PostApiAccountsIdFollow(w http.ResponseWriter, r *http.Request, id int) {
+func (_ Unimplemented) PostApiAccountsIdFollow(w http.ResponseWriter, r *http.Request, id string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Get all posts
-// (GET /api/posts)
-func (_ Unimplemented) GetApiPosts(w http.ResponseWriter, r *http.Request) {
+// Accounts which follow the given account.
+// (GET /api/accounts/{id}/followers)
+func (_ Unimplemented) GetApiAccountsIdFollowers(w http.ResponseWriter, r *http.Request, id string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Create a post
-// (POST /api/posts)
-func (_ Unimplemented) PostApiPosts(w http.ResponseWriter, r *http.Request) {
+// Accounts which the given account is following.
+// (GET /api/accounts/{id}/following)
+func (_ Unimplemented) GetApiAccountsIdFollowing(w http.ResponseWriter, r *http.Request, id string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Delete a post by ID
-// (DELETE /api/posts/{id})
-func (_ Unimplemented) DeleteApiPostsId(w http.ResponseWriter, r *http.Request, id int) {
+// Statuses posted to the given account.
+// (GET /api/accounts/{id}/statuses)
+func (_ Unimplemented) GetApiAccountsIdStatuses(w http.ResponseWriter, r *http.Request, id string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Get a post by ID
-// (GET /api/posts/{id})
-func (_ Unimplemented) GetApiPostsId(w http.ResponseWriter, r *http.Request, id int) {
+// Unfollow the given account.
+// (POST /api/accounts/{id}/unfollow)
+func (_ Unimplemented) PostApiAccountsIdUnfollow(w http.ResponseWriter, r *http.Request, id string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Update a post
-// (PUT /api/posts/{id})
-func (_ Unimplemented) PutApiPostsId(w http.ResponseWriter, r *http.Request, id int) {
+// Publish a status with the given parameters.
+// (POST /api/statuses)
+func (_ Unimplemented) PostApiStatuses(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Obtain information about a status.
+// (GET /api/statuses/{id})
+func (_ Unimplemented) GetApiStatusesId(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Add a status to your favourites list.
+// (POST /api/statuses/{id}/favourite)
+func (_ Unimplemented) PostApiStatusesIdFavourite(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Reshare a status on your own profile.
+// (POST /api/statuses/{id}/reblog)
+func (_ Unimplemented) PostApiStatusesIdReblog(w http.ResponseWriter, r *http.Request, id string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Get a post's comments by ID
-// (GET /api/posts/{id}/comments)
-func (_ Unimplemented) GetApiPostsIdComments(w http.ResponseWriter, r *http.Request, id int) {
+// (GET /api/statuses/{id}/replies)
+func (_ Unimplemented) GetApiStatusesIdReplies(w http.ResponseWriter, r *http.Request, id string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Create a post comment
-// (POST /api/posts/{id}/comments)
-func (_ Unimplemented) PostApiPostsIdComments(w http.ResponseWriter, r *http.Request, id int) {
+// Remove a status from your favourites list.
+// (POST /api/statuses/{id}/unfavourite)
+func (_ Unimplemented) PostApiStatusesIdUnfavourite(w http.ResponseWriter, r *http.Request, id string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Get post's likes
-// (GET /api/posts/{id}/likes)
-func (_ Unimplemented) GetApiPostsIdLikes(w http.ResponseWriter, r *http.Request, id int) {
+// Undo a reshare of a status.
+// (POST /api/statuses/{id}/unreblog)
+func (_ Unimplemented) PostApiStatusesIdUnreblog(w http.ResponseWriter, r *http.Request, id string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Create a post like
-// (POST /api/posts/{id}/likes)
-func (_ Unimplemented) PostApiPostsIdLikes(w http.ResponseWriter, r *http.Request, id int) {
+// View statuses liked by logged in user.
+// (GET /api/timelines/favourite)
+func (_ Unimplemented) GetApiTimelinesFavourite(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Get post's shares
-// (GET /api/posts/{id}/shares)
-func (_ Unimplemented) GetApiPostsIdShares(w http.ResponseWriter, r *http.Request, id int) {
+// View statuses from followed users.
+// (GET /api/timelines/home)
+func (_ Unimplemented) GetApiTimelinesHome(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Create a post share
-// (POST /api/posts/{id}/shares)
-func (_ Unimplemented) PostApiPostsIdShares(w http.ResponseWriter, r *http.Request, id int) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
-// Create a user
-// (POST /api/users)
-func (_ Unimplemented) PostApiUsers(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
-// Delete a user by ID
-// (DELETE /api/users/{id})
-func (_ Unimplemented) DeleteApiUsersId(w http.ResponseWriter, r *http.Request, id int) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
-// Get a user by ID
-// (GET /api/users/{id})
-func (_ Unimplemented) GetApiUsersId(w http.ResponseWriter, r *http.Request, id int) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
-// Update a user
-// (PUT /api/users/{id})
-func (_ Unimplemented) PutApiUsersId(w http.ResponseWriter, r *http.Request, id int) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
-// Get liked posts of user with ID
-// (GET /api/users/{id}/favourites)
-func (_ Unimplemented) GetApiUsersIdFavourites(w http.ResponseWriter, r *http.Request, id int) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
-// Get followers of the user with ID
-// (GET /api/users/{id}/followers)
-func (_ Unimplemented) GetApiUsersIdFollowers(w http.ResponseWriter, r *http.Request, id int) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
-// Get followed of the user with ID
-// (GET /api/users/{id}/following)
-func (_ Unimplemented) GetApiUsersIdFollowing(w http.ResponseWriter, r *http.Request, id int) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
-// Get posts of user with ID
-// (GET /api/users/{id}/posts)
-func (_ Unimplemented) GetApiUsersIdPosts(w http.ResponseWriter, r *http.Request, id int) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
-// Get shared posts of user with ID
-// (GET /api/users/{id}/reblogged)
-func (_ Unimplemented) GetApiUsersIdReblogged(w http.ResponseWriter, r *http.Request, id int) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
-// Get timeline posts of the user with ID (posts from followed users)
-// (GET /api/users/{id}/timeline)
-func (_ Unimplemented) GetApiUsersIdTimeline(w http.ResponseWriter, r *http.Request, id int) {
+// View statuses reblogged by logged in user.
+// (GET /api/timelines/reblogged)
+func (_ Unimplemented) GetApiTimelinesReblogged(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -503,13 +359,38 @@ func (siw *ServerInterfaceWrapper) GetApiAccountsLookup(w http.ResponseWriter, r
 	handler.ServeHTTP(w, r)
 }
 
+// GetApiAccountsId operation middleware
+func (siw *ServerInterfaceWrapper) GetApiAccountsId(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetApiAccountsId(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // PostApiAccountsIdFollow operation middleware
 func (siw *ServerInterfaceWrapper) PostApiAccountsIdFollow(w http.ResponseWriter, r *http.Request) {
 
 	var err error
 
 	// ------------- Path parameter "id" -------------
-	var id int
+	var id string
 
 	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
@@ -534,47 +415,38 @@ func (siw *ServerInterfaceWrapper) PostApiAccountsIdFollow(w http.ResponseWriter
 	handler.ServeHTTP(w, r)
 }
 
-// GetApiPosts operation middleware
-func (siw *ServerInterfaceWrapper) GetApiPosts(w http.ResponseWriter, r *http.Request) {
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetApiPosts(w, r)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r)
-}
-
-// PostApiPosts operation middleware
-func (siw *ServerInterfaceWrapper) PostApiPosts(w http.ResponseWriter, r *http.Request) {
-
-	ctx := r.Context()
-
-	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
-
-	r = r.WithContext(ctx)
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.PostApiPosts(w, r)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r)
-}
-
-// DeleteApiPostsId operation middleware
-func (siw *ServerInterfaceWrapper) DeleteApiPostsId(w http.ResponseWriter, r *http.Request) {
+// GetApiAccountsIdFollowers operation middleware
+func (siw *ServerInterfaceWrapper) GetApiAccountsIdFollowers(w http.ResponseWriter, r *http.Request) {
 
 	var err error
 
 	// ------------- Path parameter "id" -------------
-	var id int
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetApiAccountsIdFollowers(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetApiAccountsIdFollowing operation middleware
+func (siw *ServerInterfaceWrapper) GetApiAccountsIdFollowing(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id string
 
 	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
@@ -589,7 +461,7 @@ func (siw *ServerInterfaceWrapper) DeleteApiPostsId(w http.ResponseWriter, r *ht
 	r = r.WithContext(ctx)
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.DeleteApiPostsId(w, r, id)
+		siw.Handler.GetApiAccountsIdFollowing(w, r, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -599,38 +471,13 @@ func (siw *ServerInterfaceWrapper) DeleteApiPostsId(w http.ResponseWriter, r *ht
 	handler.ServeHTTP(w, r)
 }
 
-// GetApiPostsId operation middleware
-func (siw *ServerInterfaceWrapper) GetApiPostsId(w http.ResponseWriter, r *http.Request) {
+// GetApiAccountsIdStatuses operation middleware
+func (siw *ServerInterfaceWrapper) GetApiAccountsIdStatuses(w http.ResponseWriter, r *http.Request) {
 
 	var err error
 
 	// ------------- Path parameter "id" -------------
-	var id int
-
-	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
-		return
-	}
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetApiPostsId(w, r, id)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r)
-}
-
-// PutApiPostsId operation middleware
-func (siw *ServerInterfaceWrapper) PutApiPostsId(w http.ResponseWriter, r *http.Request) {
-
-	var err error
-
-	// ------------- Path parameter "id" -------------
-	var id int
+	var id string
 
 	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
@@ -645,7 +492,7 @@ func (siw *ServerInterfaceWrapper) PutApiPostsId(w http.ResponseWriter, r *http.
 	r = r.WithContext(ctx)
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.PutApiPostsId(w, r, id)
+		siw.Handler.GetApiAccountsIdStatuses(w, r, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -655,38 +502,13 @@ func (siw *ServerInterfaceWrapper) PutApiPostsId(w http.ResponseWriter, r *http.
 	handler.ServeHTTP(w, r)
 }
 
-// GetApiPostsIdComments operation middleware
-func (siw *ServerInterfaceWrapper) GetApiPostsIdComments(w http.ResponseWriter, r *http.Request) {
+// PostApiAccountsIdUnfollow operation middleware
+func (siw *ServerInterfaceWrapper) PostApiAccountsIdUnfollow(w http.ResponseWriter, r *http.Request) {
 
 	var err error
 
 	// ------------- Path parameter "id" -------------
-	var id int
-
-	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
-		return
-	}
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetApiPostsIdComments(w, r, id)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r)
-}
-
-// PostApiPostsIdComments operation middleware
-func (siw *ServerInterfaceWrapper) PostApiPostsIdComments(w http.ResponseWriter, r *http.Request) {
-
-	var err error
-
-	// ------------- Path parameter "id" -------------
-	var id int
+	var id string
 
 	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
@@ -701,7 +523,7 @@ func (siw *ServerInterfaceWrapper) PostApiPostsIdComments(w http.ResponseWriter,
 	r = r.WithContext(ctx)
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.PostApiPostsIdComments(w, r, id)
+		siw.Handler.PostApiAccountsIdUnfollow(w, r, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -711,22 +533,17 @@ func (siw *ServerInterfaceWrapper) PostApiPostsIdComments(w http.ResponseWriter,
 	handler.ServeHTTP(w, r)
 }
 
-// GetApiPostsIdLikes operation middleware
-func (siw *ServerInterfaceWrapper) GetApiPostsIdLikes(w http.ResponseWriter, r *http.Request) {
+// PostApiStatuses operation middleware
+func (siw *ServerInterfaceWrapper) PostApiStatuses(w http.ResponseWriter, r *http.Request) {
 
-	var err error
+	ctx := r.Context()
 
-	// ------------- Path parameter "id" -------------
-	var id int
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
 
-	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
-		return
-	}
+	r = r.WithContext(ctx)
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetApiPostsIdLikes(w, r, id)
+		siw.Handler.PostApiStatuses(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -736,13 +553,13 @@ func (siw *ServerInterfaceWrapper) GetApiPostsIdLikes(w http.ResponseWriter, r *
 	handler.ServeHTTP(w, r)
 }
 
-// PostApiPostsIdLikes operation middleware
-func (siw *ServerInterfaceWrapper) PostApiPostsIdLikes(w http.ResponseWriter, r *http.Request) {
+// GetApiStatusesId operation middleware
+func (siw *ServerInterfaceWrapper) GetApiStatusesId(w http.ResponseWriter, r *http.Request) {
 
 	var err error
 
 	// ------------- Path parameter "id" -------------
-	var id int
+	var id string
 
 	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
@@ -757,7 +574,7 @@ func (siw *ServerInterfaceWrapper) PostApiPostsIdLikes(w http.ResponseWriter, r 
 	r = r.WithContext(ctx)
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.PostApiPostsIdLikes(w, r, id)
+		siw.Handler.GetApiStatusesId(w, r, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -767,38 +584,13 @@ func (siw *ServerInterfaceWrapper) PostApiPostsIdLikes(w http.ResponseWriter, r 
 	handler.ServeHTTP(w, r)
 }
 
-// GetApiPostsIdShares operation middleware
-func (siw *ServerInterfaceWrapper) GetApiPostsIdShares(w http.ResponseWriter, r *http.Request) {
+// PostApiStatusesIdFavourite operation middleware
+func (siw *ServerInterfaceWrapper) PostApiStatusesIdFavourite(w http.ResponseWriter, r *http.Request) {
 
 	var err error
 
 	// ------------- Path parameter "id" -------------
-	var id int
-
-	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
-		return
-	}
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetApiPostsIdShares(w, r, id)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r)
-}
-
-// PostApiPostsIdShares operation middleware
-func (siw *ServerInterfaceWrapper) PostApiPostsIdShares(w http.ResponseWriter, r *http.Request) {
-
-	var err error
-
-	// ------------- Path parameter "id" -------------
-	var id int
+	var id string
 
 	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
@@ -813,7 +605,7 @@ func (siw *ServerInterfaceWrapper) PostApiPostsIdShares(w http.ResponseWriter, r
 	r = r.WithContext(ctx)
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.PostApiPostsIdShares(w, r, id)
+		siw.Handler.PostApiStatusesIdFavourite(w, r, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -823,77 +615,13 @@ func (siw *ServerInterfaceWrapper) PostApiPostsIdShares(w http.ResponseWriter, r
 	handler.ServeHTTP(w, r)
 }
 
-// PostApiUsers operation middleware
-func (siw *ServerInterfaceWrapper) PostApiUsers(w http.ResponseWriter, r *http.Request) {
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.PostApiUsers(w, r)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r)
-}
-
-// DeleteApiUsersId operation middleware
-func (siw *ServerInterfaceWrapper) DeleteApiUsersId(w http.ResponseWriter, r *http.Request) {
+// PostApiStatusesIdReblog operation middleware
+func (siw *ServerInterfaceWrapper) PostApiStatusesIdReblog(w http.ResponseWriter, r *http.Request) {
 
 	var err error
 
 	// ------------- Path parameter "id" -------------
-	var id int
-
-	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
-		return
-	}
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.DeleteApiUsersId(w, r, id)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r)
-}
-
-// GetApiUsersId operation middleware
-func (siw *ServerInterfaceWrapper) GetApiUsersId(w http.ResponseWriter, r *http.Request) {
-
-	var err error
-
-	// ------------- Path parameter "id" -------------
-	var id int
-
-	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
-		return
-	}
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetApiUsersId(w, r, id)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r)
-}
-
-// PutApiUsersId operation middleware
-func (siw *ServerInterfaceWrapper) PutApiUsersId(w http.ResponseWriter, r *http.Request) {
-
-	var err error
-
-	// ------------- Path parameter "id" -------------
-	var id int
+	var id string
 
 	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
@@ -908,7 +636,7 @@ func (siw *ServerInterfaceWrapper) PutApiUsersId(w http.ResponseWriter, r *http.
 	r = r.WithContext(ctx)
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.PutApiUsersId(w, r, id)
+		siw.Handler.PostApiStatusesIdReblog(w, r, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -918,13 +646,13 @@ func (siw *ServerInterfaceWrapper) PutApiUsersId(w http.ResponseWriter, r *http.
 	handler.ServeHTTP(w, r)
 }
 
-// GetApiUsersIdFavourites operation middleware
-func (siw *ServerInterfaceWrapper) GetApiUsersIdFavourites(w http.ResponseWriter, r *http.Request) {
+// GetApiStatusesIdReplies operation middleware
+func (siw *ServerInterfaceWrapper) GetApiStatusesIdReplies(w http.ResponseWriter, r *http.Request) {
 
 	var err error
 
 	// ------------- Path parameter "id" -------------
-	var id int
+	var id string
 
 	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
@@ -932,8 +660,14 @@ func (siw *ServerInterfaceWrapper) GetApiUsersIdFavourites(w http.ResponseWriter
 		return
 	}
 
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetApiUsersIdFavourites(w, r, id)
+		siw.Handler.GetApiStatusesIdReplies(w, r, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -943,13 +677,13 @@ func (siw *ServerInterfaceWrapper) GetApiUsersIdFavourites(w http.ResponseWriter
 	handler.ServeHTTP(w, r)
 }
 
-// GetApiUsersIdFollowers operation middleware
-func (siw *ServerInterfaceWrapper) GetApiUsersIdFollowers(w http.ResponseWriter, r *http.Request) {
+// PostApiStatusesIdUnfavourite operation middleware
+func (siw *ServerInterfaceWrapper) PostApiStatusesIdUnfavourite(w http.ResponseWriter, r *http.Request) {
 
 	var err error
 
 	// ------------- Path parameter "id" -------------
-	var id int
+	var id string
 
 	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
@@ -957,8 +691,14 @@ func (siw *ServerInterfaceWrapper) GetApiUsersIdFollowers(w http.ResponseWriter,
 		return
 	}
 
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetApiUsersIdFollowers(w, r, id)
+		siw.Handler.PostApiStatusesIdUnfavourite(w, r, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -968,13 +708,13 @@ func (siw *ServerInterfaceWrapper) GetApiUsersIdFollowers(w http.ResponseWriter,
 	handler.ServeHTTP(w, r)
 }
 
-// GetApiUsersIdFollowing operation middleware
-func (siw *ServerInterfaceWrapper) GetApiUsersIdFollowing(w http.ResponseWriter, r *http.Request) {
+// PostApiStatusesIdUnreblog operation middleware
+func (siw *ServerInterfaceWrapper) PostApiStatusesIdUnreblog(w http.ResponseWriter, r *http.Request) {
 
 	var err error
 
 	// ------------- Path parameter "id" -------------
-	var id int
+	var id string
 
 	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
@@ -982,8 +722,14 @@ func (siw *ServerInterfaceWrapper) GetApiUsersIdFollowing(w http.ResponseWriter,
 		return
 	}
 
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetApiUsersIdFollowing(w, r, id)
+		siw.Handler.PostApiStatusesIdUnreblog(w, r, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -993,22 +739,17 @@ func (siw *ServerInterfaceWrapper) GetApiUsersIdFollowing(w http.ResponseWriter,
 	handler.ServeHTTP(w, r)
 }
 
-// GetApiUsersIdPosts operation middleware
-func (siw *ServerInterfaceWrapper) GetApiUsersIdPosts(w http.ResponseWriter, r *http.Request) {
+// GetApiTimelinesFavourite operation middleware
+func (siw *ServerInterfaceWrapper) GetApiTimelinesFavourite(w http.ResponseWriter, r *http.Request) {
 
-	var err error
+	ctx := r.Context()
 
-	// ------------- Path parameter "id" -------------
-	var id int
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
 
-	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
-		return
-	}
+	r = r.WithContext(ctx)
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetApiUsersIdPosts(w, r, id)
+		siw.Handler.GetApiTimelinesFavourite(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1018,22 +759,17 @@ func (siw *ServerInterfaceWrapper) GetApiUsersIdPosts(w http.ResponseWriter, r *
 	handler.ServeHTTP(w, r)
 }
 
-// GetApiUsersIdReblogged operation middleware
-func (siw *ServerInterfaceWrapper) GetApiUsersIdReblogged(w http.ResponseWriter, r *http.Request) {
+// GetApiTimelinesHome operation middleware
+func (siw *ServerInterfaceWrapper) GetApiTimelinesHome(w http.ResponseWriter, r *http.Request) {
 
-	var err error
+	ctx := r.Context()
 
-	// ------------- Path parameter "id" -------------
-	var id int
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
 
-	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
-		return
-	}
+	r = r.WithContext(ctx)
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetApiUsersIdReblogged(w, r, id)
+		siw.Handler.GetApiTimelinesHome(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1043,22 +779,17 @@ func (siw *ServerInterfaceWrapper) GetApiUsersIdReblogged(w http.ResponseWriter,
 	handler.ServeHTTP(w, r)
 }
 
-// GetApiUsersIdTimeline operation middleware
-func (siw *ServerInterfaceWrapper) GetApiUsersIdTimeline(w http.ResponseWriter, r *http.Request) {
+// GetApiTimelinesReblogged operation middleware
+func (siw *ServerInterfaceWrapper) GetApiTimelinesReblogged(w http.ResponseWriter, r *http.Request) {
 
-	var err error
+	ctx := r.Context()
 
-	// ------------- Path parameter "id" -------------
-	var id int
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
 
-	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
-		return
-	}
+	r = r.WithContext(ctx)
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetApiUsersIdTimeline(w, r, id)
+		siw.Handler.GetApiTimelinesReblogged(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1216,70 +947,52 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/api/accounts/lookup", wrapper.GetApiAccountsLookup)
 	})
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/accounts/{id}", wrapper.GetApiAccountsId)
+	})
+	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/accounts/{id}/follow", wrapper.PostApiAccountsIdFollow)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/api/posts", wrapper.GetApiPosts)
+		r.Get(options.BaseURL+"/api/accounts/{id}/followers", wrapper.GetApiAccountsIdFollowers)
 	})
 	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/api/posts", wrapper.PostApiPosts)
+		r.Get(options.BaseURL+"/api/accounts/{id}/following", wrapper.GetApiAccountsIdFollowing)
 	})
 	r.Group(func(r chi.Router) {
-		r.Delete(options.BaseURL+"/api/posts/{id}", wrapper.DeleteApiPostsId)
+		r.Get(options.BaseURL+"/api/accounts/{id}/statuses", wrapper.GetApiAccountsIdStatuses)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/api/posts/{id}", wrapper.GetApiPostsId)
+		r.Post(options.BaseURL+"/api/accounts/{id}/unfollow", wrapper.PostApiAccountsIdUnfollow)
 	})
 	r.Group(func(r chi.Router) {
-		r.Put(options.BaseURL+"/api/posts/{id}", wrapper.PutApiPostsId)
+		r.Post(options.BaseURL+"/api/statuses", wrapper.PostApiStatuses)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/api/posts/{id}/comments", wrapper.GetApiPostsIdComments)
+		r.Get(options.BaseURL+"/api/statuses/{id}", wrapper.GetApiStatusesId)
 	})
 	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/api/posts/{id}/comments", wrapper.PostApiPostsIdComments)
+		r.Post(options.BaseURL+"/api/statuses/{id}/favourite", wrapper.PostApiStatusesIdFavourite)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/api/posts/{id}/likes", wrapper.GetApiPostsIdLikes)
+		r.Post(options.BaseURL+"/api/statuses/{id}/reblog", wrapper.PostApiStatusesIdReblog)
 	})
 	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/api/posts/{id}/likes", wrapper.PostApiPostsIdLikes)
+		r.Get(options.BaseURL+"/api/statuses/{id}/replies", wrapper.GetApiStatusesIdReplies)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/api/posts/{id}/shares", wrapper.GetApiPostsIdShares)
+		r.Post(options.BaseURL+"/api/statuses/{id}/unfavourite", wrapper.PostApiStatusesIdUnfavourite)
 	})
 	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/api/posts/{id}/shares", wrapper.PostApiPostsIdShares)
+		r.Post(options.BaseURL+"/api/statuses/{id}/unreblog", wrapper.PostApiStatusesIdUnreblog)
 	})
 	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/api/users", wrapper.PostApiUsers)
+		r.Get(options.BaseURL+"/api/timelines/favourite", wrapper.GetApiTimelinesFavourite)
 	})
 	r.Group(func(r chi.Router) {
-		r.Delete(options.BaseURL+"/api/users/{id}", wrapper.DeleteApiUsersId)
+		r.Get(options.BaseURL+"/api/timelines/home", wrapper.GetApiTimelinesHome)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/api/users/{id}", wrapper.GetApiUsersId)
-	})
-	r.Group(func(r chi.Router) {
-		r.Put(options.BaseURL+"/api/users/{id}", wrapper.PutApiUsersId)
-	})
-	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/api/users/{id}/favourites", wrapper.GetApiUsersIdFavourites)
-	})
-	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/api/users/{id}/followers", wrapper.GetApiUsersIdFollowers)
-	})
-	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/api/users/{id}/following", wrapper.GetApiUsersIdFollowing)
-	})
-	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/api/users/{id}/posts", wrapper.GetApiUsersIdPosts)
-	})
-	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/api/users/{id}/reblogged", wrapper.GetApiUsersIdReblogged)
-	})
-	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/api/users/{id}/timeline", wrapper.GetApiUsersIdTimeline)
+		r.Get(options.BaseURL+"/api/timelines/reblogged", wrapper.GetApiTimelinesReblogged)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/auth/login", wrapper.PostAuthLogin)
@@ -1294,31 +1007,29 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"H4sIAAAAAAAC/+yZS2/jNhCA/wrBFuihapS2N9+yKLJ1N8AGzqY5BIFBSSOJCUVq+YhhGP7vBUm9bMuy",
+	"7Hab9bY3W5ohZ7558KEVjkVRCg5cKzxZYRXnUBD38yqOheHa/iylKEFqCu4FiWP3VC9LwBOstKQ8w+sA",
+	"J1SVjCznnBTQK5AKxsQCpJo3Q1cylGvIQLZClGdDQjTpncBI1v9cgdxj1TrAEj4bKiHBk0c7cEc88M5u",
+	"uebn2XVn1/anoJ5ORM8Qa2vLldH5tZDFLtiSKLUQMvmbLnSsb0bsM+ROE23cxNwwRiIGeKKlgWA33nUg",
+	"vpeQ4gn+LmyzJqxSJqzzZR3gWHANvD9JUvIqjKQaum5GQjAgfOO9OiH+lM8llGw512JemT33otsuDqqO",
+	"VJEQMZEd4lJhbuSzfZ7714NuWwvpMBkj6dgslxS3sdqevycS2/PvQNsbgIZV0GRTX0Y+QJRSbh3ZqQ1G",
+	"+Yv7QTUU6hDzZqAbp7Zu5iJSkqX9r4yf9SCqWjCoTBi0+6a2ctP43Jm66sug/n7lHxwyzWpXsoGfY9c4",
+	"6yrENozLOwvHG/QOiARpO5H9F7l/ticRjSf4j4dPOPArgR3Jy+Jm5FzrEq/XrmRSYfVtChHH0i4CoGJJ",
+	"S00Ft8pCZuhjCfzqdopUCTFNaUzcywBrqhnUQle3UxzgV5DKa15eXF78bFmIEjgpKZ7gX90j29V07twI",
+	"LxbA2E8vXCx4uOgmTwYutDYIbrZpgif4PegHYOyDFW9TzY4nSQEapMKTxxWmdvrPBuQSB9i3XCxBCSNj",
+	"wN0I+Lbgc64vWk9WWJWCK0/9l8vLGlfVHUlZsopH+CyTH5+V9X3VGXNUlvtwbJL/+MEH3xQFkUs8aZMU",
+	"MSFeTAkJqmrxwkmGpKRh9USFXmYI5VVJq5avbrzwKJLVgvrFKB5FsFmzRvDzTiKC6vUVaYEUAKIpohpR",
+	"hcgroW7F6AO6osl6JM5psgelTfyWZNVXz43jnxQWyLYO226o4IhEwmhEUClFSvfDC/3mynVXoXog3gq1",
+	"SfHaK/x7LPs9r9qvm7rbeB+f7DgtGG8u0jmgjL4CHyrPDhDn1ci8um40vsIEG7Wyd3aZm0v6iMyrOaBF",
+	"TuMcpafxts4ex9tq/Id4j833rXDsxMG21Ab53qAot72G8TVwVyuca0jaA8U/HZEaDbINFhK7wI2vDsOP",
+	"btD3tcq5tOja4EEs3YwcBNHJROsXKP1OJMujEmbznHHCGVY1lwAHjkFebufI13PiWG+Haf0lQnFrIkZV",
+	"jgjypqEF1d0m0iZUT2jG7Mbq6JzfbqxuELsNoXlzBOiPkSaU9+7YPM59fMPmAmF0JUyT60bnrXqCtwW1",
+	"91QXRy5rSdImpRZoKYxsR1OIUaX3ImuvlEbymtX3Km8KKycKRQActVdcRzGbgcqJhJab4J6bWPCec8E2",
+	"M3cpNbqcZ5X8/+v/dhjegzuHCaV/UCgWRWHnRdESTX/bB9/wU6r8vqP1xqnbceDYSp9BIV47SZtKURxX",
+	"7oYfXfD3XH4VJW94JNwu8dgdVCIQQbIqeJH2LSOaFsAoB7W5hAxU96dao7t+nHMpuluSOlkQoy+Q2EL0",
+	"zRVR7m6hepHlohhN63dRfFugXAlW9yKJY9SfVxufYsaQmjUK3xKuBsP+3DI6D5nIKD/Qo4zOb5zY6YeZ",
+	"wXuI+qvpqeeLOxPHoFRqGFsiRTPuXN25480od4cIi6BDQEJGla4+TA1CmNWSZ8TBlFscaie6KNbrvwIA",
+	"AP//7KO2eC0gAAA=",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

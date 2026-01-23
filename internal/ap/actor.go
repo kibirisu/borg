@@ -10,6 +10,7 @@ type Actor struct {
 	ID                string
 	Type              string
 	PreferredUsername string
+	Name              string
 	Inbox             string
 	Outbox            string
 	Following         string
@@ -26,6 +27,10 @@ func NewActor(from *domain.ObjectOrLink) Actorer {
 	return &actor{object{from}}
 }
 
+func NewEmptyActor() Actorer {
+	return &actor{object{}}
+}
+
 // GetObject implements Actorer.
 // Subtle: this method shadows the method (object).GetObject of actor.object.
 func (a *actor) GetObject() Actor {
@@ -35,6 +40,7 @@ func (a *actor) GetObject() Actor {
 		ID:                obj.ID,
 		Type:              obj.Type,
 		PreferredUsername: actor.PreferredUsername,
+		Name:              actor.Name,
 		Inbox:             actor.Inbox,
 		Outbox:            actor.Outbox,
 		Following:         actor.Following,
@@ -51,6 +57,7 @@ func (a *actor) SetObject(actor Actor) {
 			Type: actor.Type,
 			Actor: &domain.Actor{
 				PreferredUsername: actor.PreferredUsername,
+				Name:              actor.Name,
 				Inbox:             actor.Inbox,
 				Outbox:            actor.Outbox,
 				Following:         actor.Following,
@@ -58,4 +65,18 @@ func (a *actor) SetObject(actor Actor) {
 			},
 		},
 	}
+}
+
+// WithLink implements Actorer.
+// Subtle: this method shadows the method (object).WithLink of actor.object.
+func (a *actor) WithLink(link string) Objecter[Actor] {
+	a.SetLink(link)
+	return a
+}
+
+// WithObject implements Actorer.
+// Subtle: this method shadows the method (object).WithObject of actor.object.
+func (a *actor) WithObject(actor Actor) Objecter[Actor] {
+	a.SetObject(actor)
+	return a
 }

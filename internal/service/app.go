@@ -4,11 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"log"
-	"net/http"
+	"time"
 
-	"github.com/google/uuid"
+	"github.com/rs/xid"
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/kibirisu/borg/internal/ap"
@@ -17,397 +16,715 @@ import (
 	"github.com/kibirisu/borg/internal/db"
 	proc "github.com/kibirisu/borg/internal/processing"
 	repo "github.com/kibirisu/borg/internal/repository"
+	"github.com/kibirisu/borg/internal/server/auth"
+	"github.com/kibirisu/borg/internal/server/mapper"
 	"github.com/kibirisu/borg/internal/util"
 	"github.com/kibirisu/borg/internal/worker"
 )
 
 type AppService interface {
+	WebfingerAccount(context.Context, api.GetWellKnownWebfingerParams) (*api.Webfinger, error)
 	Register(context.Context, api.AuthForm) error
 	Login(context.Context, api.AuthForm) (string, error)
-	CreateStatus(context.Context, api.NewPost, LoginData) (worker.Job, error)
-	GetAccountFollowers(context.Context, int) ([]db.Account, error)
-	GetAccountFollowing(context.Context, int) ([]db.Account, error)
-	GetLocalAccount(context.Context, string) (*db.Account, error)
-	AddRemoteAccount(ctx context.Context, remote *db.CreateActorParams) (*db.Account, error)
-	CreateFollow(ctx context.Context, follow *db.CreateFollowParams) (*db.Follow, error)
-	AddNote(context.Context, db.CreateStatusParams) (db.Status, error)
-	AddFavourite(context.Context, int, int) (db.Favourite, error)
-	FollowAccount(context.Context, int, int) (*db.Follow, error)
-	GetAccountByID(context.Context, int) (db.Account, error)
-	UpdateAccount(context.Context, int, *string) (db.Account, error)
-	GetAccount(context.Context, db.GetAccountParams) (*db.Account, error)
-	GetLocalPosts(context.Context) ([]db.GetLocalStatusesRow, error)
-	GetPostByAccountID(context.Context, int) ([]db.GetStatusesByAccountIdRow, error)
-	GetPostByID(context.Context, int) (*db.Status, error)
-	UpdatePost(context.Context, int, string) (*db.Status, error)
-	DeletePost(context.Context, int) error
-	GetPostLikes(context.Context, int) ([]db.Favourite, error)
-	GetPostShares(context.Context, int) ([]db.Status, error)
-	GetPostByIDWithMetadata(context.Context, int) (*db.GetStatusByIdWithMetadataRow, error)
-	GetLikedPostsByAccountID(context.Context, int) ([]db.GetLikedPostsByAccountIdRow, error)
-	GetSharedPostsByAccountID(context.Context, int) ([]db.GetSharedPostsByAccountIdRow, error)
-	GetTimelinePostsByAccountID(context.Context, int) ([]db.GetTimelinePostsByAccountIdRow, error)
-	GetCommentsByPostID(context.Context, int) ([]db.GetCommentsByPostIdRow, error)
-	// EW, idk if this should stay here
-	DeliverToFollowers(http.ResponseWriter, *http.Request, int, func(recipientURI string) any)
+	GetAccount(context.Context, string) (*api.Account, error)
+	GetAccountStatuses(context.Context, string) ([]api.Status, error)
+	GetAccountFollowers(context.Context, string) ([]api.Account, error)
+	GetAccountFollowing(context.Context, string) ([]api.Account, error)
+	FollowAccount(context.Context, string) (worker.Job, error)
+	UnfollowAccount(context.Context, string) (worker.Job, error)
+	LookupAccount(context.Context, string) (*api.Account, error)
+	CreateStatus(context.Context, api.PostApiStatusesJSONBody) (worker.Job, error)
+	ViewStatus(context.Context, string) (*api.Status, error)
+	GetStatusReplies(context.Context, string) ([]api.Status, error)
+	FavouriteStatus(context.Context, string) (worker.Job, error)
+	UnfavouriteStatus(context.Context, string) (worker.Job, error)
+	ReblogStatus(context.Context, string) (worker.Job, error)
+	UnreblogStatus(context.Context, string) (worker.Job, error)
+	ViewHomeTimeline(context.Context) ([]api.Status, error)
+	ViewFavouriteTimeline(context.Context) ([]api.Status, error)
+	ViewRebloggedTimeline(context.Context) ([]api.Status, error)
 }
 
 type appService struct {
 	store    repo.Store
 	prcessor proc.Processor
 	conf     *config.Config
-}
-
-type LoginData struct {
-	ID       int
-	Username string
+	builder  util.URIBuilder
 }
 
 var _ AppService = (*appService)(nil)
 
+// WebfingerAccount implements AppService.
+func (s *appService) WebfingerAccount(
+	ctx context.Context,
+	resource api.GetWellKnownWebfingerParams,
+) (*api.Webfinger, error) {
+	webfinger, err := s.store.Accounts().
+		GetWebfinger(ctx, util.ExtractUsernameFromAcct(resource.Resource))
+	if err != nil {
+		return nil, err
+	}
+	links := api.WebfingerLinks(webfinger)
+	return &api.Webfinger{
+		Subject: resource.Resource,
+		Links:   []api.WebfingerLinks{links},
+	}, nil
+}
+
 // Register implements AppService.
 func (s *appService) Register(ctx context.Context, form api.AuthForm) error {
-	uri := fmt.Sprintf("http://%s:%s/user/%s", s.conf.ListenHost, s.conf.ListenPort, form.Username)
-	log.Printf("register: creating actor username=%s uri=%s", form.Username, uri)
-	actor, err := s.store.Accounts().Create(ctx, db.CreateActorParams{
-		Username:    form.Username,
-		Uri:         uri,
-		DisplayName: sql.NullString{}, // hassle to maintain that, gonna abandon display name
-		Domain:      sql.NullString{},
-		InboxUri:    uri + "/inbox",
-		OutboxUri:   uri + "/outbox",
-		Url: fmt.Sprintf(
-			"http://%s:%s/profiles/%s",
-			s.conf.ListenHost,
-			s.conf.ListenPort,
+	id := xid.New()
+	actorURIs := s.builder.ActorURIs(id.String())
+
+	log.Printf("register: creating actor username=%s uri=%s", form.Username, actorURIs.Actor)
+
+	_, err := s.store.WithTX(ctx, func(ctx context.Context, s repo.Store) (any, error) {
+		actor, err := s.Accounts().Create(ctx, db.CreateActorParams{
+			ID:       id,
+			Username: form.Username,
+			Uri:      actorURIs.Actor,
+			DisplayName: sql.NullString{
+				String: form.Username,
+				Valid:  true,
+			},
+			InboxUri:     actorURIs.Inbox,
+			OutboxUri:    actorURIs.Outbox,
+			Domain:       sql.NullString{},
+			FollowersUri: actorURIs.Followers,
+			FollowingUri: actorURIs.Following,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		hash, err := bcrypt.GenerateFromPassword([]byte(form.Password), bcrypt.DefaultCost)
+		if err != nil {
+			return nil, err
+		}
+		if err = s.Users().Create(ctx, db.CreateUserParams{
+			ID:           xid.New(),
+			AccountID:    actor.ID,
+			PasswordHash: string(hash),
+		}); err != nil {
+			return nil, err
+		}
+
+		log.Printf(
+			"register: user and actor created username=%s account_id=%s",
 			form.Username,
-		),
-		FollowersUri: fmt.Sprintf(
-			"http://%s:%s/user/%s/followers",
-			s.conf.ListenHost,
-			s.conf.ListenPort,
-			form.Username,
-		),
-		FollowingUri: fmt.Sprintf(
-			"http://%s:%s/user/%s/following",
-			s.conf.ListenHost,
-			s.conf.ListenPort,
-			form.Username,
-		),
+			actor.ID.String(),
+		)
+		return nil, nil
 	})
-	if err != nil {
-		log.Printf("register: failed to create actor username=%s err=%v", form.Username, err)
-		return err
-	}
-	hash, err := bcrypt.GenerateFromPassword([]byte(form.Password), bcrypt.DefaultCost)
-	if err != nil {
-		log.Printf("register: failed to hash password username=%s err=%v", form.Username, err)
-		return err
-	}
-	if err = s.store.Users().Create(ctx, db.CreateUserParams{
-		AccountID:    actor.ID,
-		PasswordHash: string(hash),
-	}); err != nil {
-		log.Printf("register: failed to create user username=%s err=%v", form.Username, err)
-		return err
-	}
-	log.Printf(
-		"register: user and actor created username=%s account_id=%d",
-		form.Username,
-		actor.ID,
-	)
-	return nil
+	return err
 }
 
 // Login implements AppService.
-func (s *appService) Login(ctx context.Context, form api.AuthForm) (string, error) {
+func (s *appService) Login(ctx context.Context, form api.AuthForm) (token string, err error) {
 	auth, err := s.store.Users().GetByUsername(ctx, form.Username)
 	if err != nil {
-		return "", err
+		return
 	}
-	if err = bcrypt.CompareHashAndPassword([]byte(auth.PasswordHash), []byte(form.Password)); err != nil {
-		return "", err
+	if err = bcrypt.CompareHashAndPassword(
+		[]byte(auth.PasswordHash),
+		[]byte(form.Password),
+	); err != nil {
+		return
 	}
-	token, err := issueToken(auth.ID, form.Username, s.conf.ListenHost, s.conf.JWTSecret)
+	return issueToken(auth.ID.String(), auth.Uri, s.conf.JWTSecret)
+}
+
+// GetAccount implements AppService.
+func (s *appService) GetAccount(ctx context.Context, id string) (*api.Account, error) {
+	accountID, err := xid.FromString(id)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	return token, nil
+	account, err := s.store.Accounts().GetByID(ctx, accountID)
+	if err != nil {
+		return nil, err
+	}
+	return mapper.ToAPIAccount(&account), nil
+}
+
+// GetAccountStatuses implements AppService.
+func (s *appService) GetAccountStatuses(ctx context.Context, id string) ([]api.Status, error) {
+	token, ok := ctx.Value(auth.TokenContextKey).(*auth.TokenData)
+	if !ok {
+		return nil, errors.New("auth failure")
+	}
+	accountID, err := xid.FromString(id)
+	if err != nil {
+		return nil, err
+	}
+	loggedInID, err := xid.FromString(token.ID)
+	if err != nil {
+		return nil, err
+	}
+	statuses, err := s.store.Statuses().GetByAccountID(ctx, db.GetStatusesByAccountIDParams{
+		LoggedInID: loggedInID,
+		AccountID:  accountID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	res := make([]api.Status, len(statuses))
+	for idx, status := range statuses {
+		// _, _ = status, idx
+		s := db.GetStatusByIDRow(status)
+		res[idx] = *mapper.ToAPIStatus(&s)
+	}
+	return res, nil
+}
+
+// GetAccountFollowers implements AppService.
+func (s *appService) GetAccountFollowers(ctx context.Context, id string) ([]api.Account, error) {
+	accountID, err := xid.FromString(id)
+	if err != nil {
+		return nil, err
+	}
+	followers, err := s.store.Accounts().GetFollowersByAccountID(ctx, accountID)
+	if err != nil {
+		return nil, err
+	}
+	res := make([]api.Account, len(followers))
+	for idx, follower := range followers {
+		f := db.GetAccountByIDRow(follower)
+		res[idx] = *mapper.ToAPIAccount(&f)
+	}
+	return res, nil
+}
+
+// GetAccountFollowing implements AppService.
+func (s *appService) GetAccountFollowing(ctx context.Context, id string) ([]api.Account, error) {
+	accountID, err := xid.FromString(id)
+	if err != nil {
+		return nil, err
+	}
+	following, err := s.store.Accounts().GetFollowingByAccountID(ctx, accountID)
+	if err != nil {
+		return nil, err
+	}
+	res := make([]api.Account, len(following))
+	for idx, followed := range following {
+		f := db.GetAccountByIDRow(followed)
+		res[idx] = *mapper.ToAPIAccount(&f)
+	}
+	return res, nil
+}
+
+// FollowAccount implements AppService.
+func (s *appService) FollowAccount(ctx context.Context, accountID string) (worker.Job, error) {
+	token, ok := ctx.Value(auth.TokenContextKey).(*auth.TokenData)
+	if !ok {
+		return nil, errors.New("auth failure")
+	}
+	id := xid.New()
+	followerID, err := xid.FromString(token.ID)
+	if err != nil {
+		return nil, err
+	}
+	targetAccountID, err := xid.FromString(accountID)
+	if err != nil {
+		return nil, err
+	}
+
+	var follow ap.FollowActivitier
+
+	followReq, err := s.store.WithTX(ctx, func(ctx context.Context, store repo.Store) (any, error) {
+		req, err := store.FollowRequests().Create(ctx, db.CreateFollowRequestParams{
+			ID:              id,
+			Uri:             s.builder.FollowRequestURI(token.ID, id.String()),
+			AccountID:       followerID,
+			TargetAccountID: targetAccountID,
+		})
+		if err != nil {
+			return nil, err
+		}
+		if !req.Local {
+			follow = ap.NewEmptyFollowActivity().WithObject(ap.Activity[ap.Actor]{
+				ID:     req.Uri,
+				Type:   "Follow",
+				Actor:  ap.NewEmptyActor().WithLink(token.URI),
+				Object: ap.NewEmptyActor().WithLink(req.TargetAccountUri),
+			})
+			return req, nil
+		}
+		err = store.Follows().Create(ctx, db.CreateFollowParams{
+			ID:              id,
+			Uri:             s.builder.FollowURI(token.ID, id.String()),
+			AccountID:       req.AccountID,
+			TargetAccountID: req.TargetAccountID,
+		})
+		return nil, err
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if follow == nil {
+		return worker.EmptyJob, nil
+	}
+
+	req := followReq.(db.CreateFollowRequestRow)
+
+	return func(ctx context.Context) error {
+		return s.prcessor.SendObject(ctx, follow.GetRaw().Object, req.TargetAccountID)
+	}, nil
+}
+
+// UnfollowAccount implements AppService.
+func (s *appService) UnfollowAccount(ctx context.Context, accountID string) (worker.Job, error) {
+	token, ok := ctx.Value(auth.TokenContextKey).(*auth.TokenData)
+	if !ok {
+		return nil, errors.New("auth failure")
+	}
+
+	targetAccountID, err := xid.FromString(accountID)
+	if err != nil {
+		return nil, err
+	}
+	followerID, err := xid.FromString(token.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	var undo ap.UndoFollowActiviter
+
+	followReq, err := s.store.WithTX(ctx, func(ctx context.Context, store repo.Store) (any, error) {
+		req, err := store.FollowRequests().
+			DeleteByTargetAccountID(ctx, db.DeleteFollowRequestByAccountIDParams{
+				TargetAccountID: targetAccountID,
+				AccountID:       followerID,
+			})
+		if err != nil {
+			return nil, err
+		}
+		if !req.Local {
+			actor := ap.NewEmptyActor().WithLink(token.URI)
+			undo = ap.NewEmptyUndoFollowActivity().WithObject(ap.Activity[ap.Activity[ap.Actor]]{
+				Type:  "Undo",
+				Actor: actor,
+				Object: ap.NewEmptyFollowActivity().WithObject(ap.Activity[ap.Actor]{
+					ID:     req.Uri,
+					Type:   "Follow",
+					Actor:  actor,
+					Object: ap.NewEmptyActor().WithLink(req.TargetAccountUri),
+				}),
+			})
+		}
+		return req, store.Follows().DeleteByID(ctx, req.ID)
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if undo == nil {
+		return worker.EmptyJob, nil
+	}
+
+	req := followReq.(db.DeleteFollowRequestByAccountIDRow)
+
+	return func(ctx context.Context) error {
+		return s.prcessor.SendObject(ctx, undo.GetRaw().Object, req.TargetAccountID)
+	}, nil
+}
+
+// LookupAccount implements AppService.
+func (s *appService) LookupAccount(ctx context.Context, acct string) (*api.Account, error) {
+	handle := util.ExtractHandleParts(acct)
+	if s.conf.Address == handle.Domain.String {
+		handle.Domain.Valid = false
+	}
+
+	queryParams := db.GetAccountByUsernameAndDomainParams(handle)
+	account, err := s.store.Accounts().GetByUsernameAndDomain(ctx, queryParams)
+	if err != nil {
+		if !handle.Domain.Valid {
+			return nil, err
+		}
+		account, err := s.prcessor.FetchAndStoreAccount(ctx, handle.Username, handle.Domain.String)
+		if err != nil {
+			return nil, err
+		}
+		a := &db.GetAccountByIDRow{
+			Account:        account,
+			Acct:           acct,
+			FollowersCount: 0, // we don't check for followers/following collections of freshly fetched actors
+			FollowingCount: 0,
+		}
+		return mapper.ToAPIAccount(a), nil
+	}
+
+	a := db.GetAccountByIDRow(account)
+	return mapper.ToAPIAccount(&a), nil
 }
 
 // CreateStatus implements AppService.
 func (s *appService) CreateStatus(
 	ctx context.Context,
-	status api.NewPost,
-	login LoginData,
+	status api.PostApiStatusesJSONBody,
 ) (worker.Job, error) {
-	actorURI := fmt.Sprintf(
-		"http://%s:%s/user/%s",
-		s.conf.ListenHost,
-		s.conf.ListenPort,
-		login.Username,
-	)
-	statusURI := fmt.Sprintf("%s/statuses/%s", actorURI, uuid.New())
-	createdStatus, err := s.store.Statuses().Create(ctx, db.CreateStatusParams{
-		Local: sql.NullBool{
-			Bool:  true,
-			Valid: true,
-		},
-		Content:   status.Content,
-		AccountID: int32(login.ID),
-		Uri:       statusURI,
+	token, ok := ctx.Value(auth.TokenContextKey).(*auth.TokenData)
+	if !ok {
+		return nil, errors.New("auth failure")
+	}
+
+	statusID := xid.New()
+	statusURIs := s.builder.StatusURIs(token.ID, statusID.String())
+	accountID, err := xid.FromString(token.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	inReplyTo := ap.NewEmptyNote()
+	if status.InReplyToId != nil {
+		id, err := xid.FromString(*status.InReplyToId)
+		if err != nil {
+			return nil, err
+		}
+		reply, err := s.store.Statuses().CreateReply(ctx, db.CreateReplyParams{
+			InReplyToID: id,
+			ID:          statusID,
+			Uri:         statusURIs.Status,
+			Content: sql.NullString{
+				String: status.Status,
+				Valid:  true,
+			},
+			AccountID: accountID,
+		})
+		if err != nil {
+			return nil, err
+		}
+		inReplyTo.SetLink(reply.InReplyToUri)
+	} else {
+		_, err = s.store.Statuses().Create(ctx, db.CreateStatusParams{
+			ID:  statusID,
+			Uri: statusURIs.Status,
+			Content: sql.NullString{
+				String: status.Status,
+				Valid:  true,
+			},
+			AccountID: accountID,
+		})
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	actor := ap.NewEmptyActor().WithLink(token.URI)
+	create := ap.NewEmptyCreateActivity().WithObject(ap.Activity[ap.Note]{
+		ID:    statusURIs.Create,
+		Type:  "Create",
+		Actor: actor,
+		Object: ap.NewEmptyNote().WithObject(ap.Note{
+			ID:           statusURIs.Status,
+			Type:         "Note",
+			Content:      status.Status,
+			InReplyTo:    inReplyTo,
+			Published:    time.Now(),
+			AttributedTo: actor,
+			Replies: ap.NewEmptyNoteCollection().WithObject(ap.Collection[ap.Note]{
+				ID:   statusURIs.Replies,
+				Type: "Collection",
+				First: ap.NewEmptyNoteCollectionPage().WithObject(ap.CollectionPage[ap.Note]{
+					ID:     "None",
+					Type:   "CollectionPage",
+					Next:   ap.NewEmptyNoteCollectionPage(),
+					PartOf: ap.NewEmptyNoteCollection().WithLink(statusURIs.Replies),
+				}),
+			}),
+		}),
+	})
+
+	return func(ctx context.Context) error {
+		return s.prcessor.DistributeObject(ctx, create.GetRaw().Object, accountID)
+	}, nil
+}
+
+// ViewStatus implements AppService.
+func (s *appService) ViewStatus(ctx context.Context, id string) (*api.Status, error) {
+	token, ok := ctx.Value(auth.TokenContextKey).(*auth.TokenData)
+	if !ok {
+		return nil, errors.New("auth failure")
+	}
+
+	statusID, err := xid.FromString(id)
+	if err != nil {
+		return nil, err
+	}
+	accountID, err := xid.FromString(token.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	status, err := s.store.Statuses().GetByID(ctx, db.GetStatusByIDParams{
+		ID:        statusID,
+		AccountID: accountID,
 	})
 	if err != nil {
 		return nil, err
 	}
+
+	return mapper.ToAPIStatus(&status), nil
+}
+
+// FavouriteStatus implements AppService.
+func (s *appService) FavouriteStatus(ctx context.Context, favouritedID string) (worker.Job, error) {
+	token, ok := ctx.Value(auth.TokenContextKey).(*auth.TokenData)
+	if !ok {
+		return nil, errors.New("auth failure")
+	}
+
+	id := xid.New()
+	statusID, err := xid.FromString(favouritedID)
+	if err != nil {
+		return nil, err
+	}
+	accountID, err := xid.FromString(token.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	favourite, err := s.store.Favourites().Create(ctx, db.CreateFavouriteParams{
+		ID:        id,
+		AccountID: accountID,
+		StatusID:  statusID,
+		Uri:       s.builder.LikeRequestURI(token.ID, id.String()),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if favourite.Local.Bool {
+		return worker.EmptyJob, nil
+	}
+
+	like := ap.NewEmptyLikeActivity().WithObject(ap.Activity[ap.Note]{
+		ID:     favourite.Uri,
+		Type:   "Like",
+		Actor:  ap.NewEmptyActor().WithLink(token.URI),
+		Object: ap.NewEmptyNote().WithLink(favourite.StatusUri),
+	})
+
 	return func(ctx context.Context) error {
-		actor := ap.NewActor(nil)
-		actor.SetLink(actorURI)
-		status := ap.NewNote(nil)
-		replies := ap.NewNoteCollection(nil)
-		page := ap.NewNoteCollectionPage(nil)
-		page.SetObject(ap.CollectionPage[ap.Note]{
-			ID:     "None",
-			Type:   "CollectionPage",
-			Next:   ap.NewNoteCollectionPage(nil),
-			PartOf: replies,
-			Items:  []ap.Objecter[ap.Note]{},
-		})
-		replies.SetObject(ap.Collection[ap.Note]{
-			ID:    fmt.Sprintf("%s/replies", statusURI),
-			Type:  "Collection",
-			First: nil,
-		})
-		status.SetObject(ap.Note{
-			ID:           createdStatus.Uri,
-			Type:         "Note",
-			Content:      createdStatus.Content,
-			InReplyTo:    ap.NewNote(nil),
-			Published:    createdStatus.CreatedAt,
-			AttributedTo: actor,
-			To:           []string{},
-			CC:           []string{},
-			Replies:      replies,
-		})
-		return s.prcessor.PropagateStatus(ctx, status)
+		return s.prcessor.SendObject(ctx, like.GetRaw().Object, favourite.TargetAccountID)
 	}, nil
 }
 
-// GetLocalAccount implements AppService.
-func (s *appService) GetLocalAccount(ctx context.Context, username string) (*db.Account, error) {
-	user, err := s.store.Accounts().GetLocalByUsername(ctx, username)
-	return &user, err
-}
-
-func (s *appService) AddRemoteAccount(
-	ctx context.Context,
-	remote *db.CreateActorParams,
-) (*db.Account, error) {
-	if !remote.Domain.Valid {
-		return nil, errors.New("domain must be a remote server")
+// ReblogStatus implements AppService.
+func (s *appService) ReblogStatus(ctx context.Context, statusID string) (worker.Job, error) {
+	token, ok := ctx.Value(auth.TokenContextKey).(*auth.TokenData)
+	if !ok {
+		return nil, errors.New("auth failure")
 	}
-	acc, err := s.store.Accounts().Create(ctx, *remote)
-	return &acc, err
-}
 
-func (s *appService) CreateFollow(
-	ctx context.Context,
-	follow *db.CreateFollowParams,
-) (*db.Follow, error) {
-	if follow.Uri == "" {
-		follow.Uri = fmt.Sprintf(
-			"http://%s:%s/follows/%s",
-			s.conf.ListenHost,
-			s.conf.ListenPort,
-			uuid.NewString(),
-		)
-	}
-	return s.store.Follows().Create(ctx, *follow)
-}
-
-// AddNote implements AppService.
-func (s *appService) AddNote(ctx context.Context, note db.CreateStatusParams) (db.Status, error) {
-	if note.Uri == "" {
-		note.Uri = fmt.Sprintf(
-			"http://%s:%s/statuses/%s",
-			s.conf.ListenHost,
-			s.conf.ListenPort,
-			uuid.NewString(),
-		)
-	}
-	if note.Url == "" {
-		note.Url = note.Uri
-	}
-	return s.store.Statuses().Create(ctx, note)
-}
-
-// GetAccount implements AppService.
-func (s *appService) GetAccount(
-	ctx context.Context,
-	account db.GetAccountParams,
-) (*db.Account, error) {
-	res, err := s.store.Accounts().Get(ctx, account)
-	return &res, err
-}
-
-// GetAccountByID implements AppService.
-func (s *appService) GetAccountByID(
-	ctx context.Context, accountID int,
-) (db.Account, error) {
-	return s.store.Accounts().GetByID(ctx, accountID)
-}
-
-// UpdateAccount implements AppService.
-func (s *appService) UpdateAccount(
-	ctx context.Context, accountID int, bio *string,
-) (db.Account, error) {
-	return s.store.Accounts().Update(ctx, accountID, bio)
-}
-
-// AddFavourite implements AppService.
-func (s *appService) AddFavourite(
-	ctx context.Context, accountID int, postID int,
-) (db.Favourite, error) {
-	params := db.CreateFavouriteParams{
-		AccountID: int32(accountID),
-		StatusID:  int32(postID),
-		Uri: fmt.Sprintf(
-			"http://%s:%s/likes/%s",
-			s.conf.ListenHost,
-			s.conf.ListenPort,
-			uuid.NewString(),
-		),
-	}
-	return s.store.Favourites().Create(ctx, params)
-}
-
-// GetAccountFollowers implements AppService.
-func (s *appService) GetAccountFollowers(
-	ctx context.Context, accountID int,
-) ([]db.Account, error) {
-	return s.store.Accounts().GetFollowers(ctx, accountID)
-}
-
-// GetAccountFollowing implements AppService.
-func (s *appService) GetAccountFollowing(
-	ctx context.Context, accountID int,
-) ([]db.Account, error) {
-	return s.store.Accounts().GetFollowing(ctx, accountID)
-}
-
-func (s *appService) GetPostByIDWithMetadata(
-	ctx context.Context,
-	id int,
-) (*db.GetStatusByIdWithMetadataRow, error) {
-	status, err := s.store.Statuses().GetByIDWithMetadata(ctx, id)
-	if err != nil {
-		return nil, err
-	} else {
-		return &status, nil
-	}
-}
-
-func (s *appService) GetPostByID(ctx context.Context, id int) (*db.Status, error) {
-	status, err := s.store.Statuses().GetByID(ctx, id)
-	if err != nil {
-		return nil, err
-	} else {
-		return &status, nil
-	}
-}
-
-func (s *appService) UpdatePost(ctx context.Context, id int, content string) (*db.Status, error) {
-	status, err := s.store.Statuses().Update(ctx, id, content)
+	id := xid.New()
+	reblogOfID, err := xid.FromString(statusID)
 	if err != nil {
 		return nil, err
 	}
-	return &status, nil
-}
-
-func (s *appService) DeletePost(ctx context.Context, id int) error {
-	return s.store.Statuses().DeleteByID(ctx, int32(id))
-}
-
-func (s *appService) GetPostLikes(ctx context.Context, id int) ([]db.Favourite, error) {
-	return s.store.Favourites().GetByPost(ctx, id)
-}
-
-func (s *appService) GetPostShares(ctx context.Context, id int) ([]db.Status, error) {
-	return s.store.Statuses().GetShares(ctx, id)
-}
-
-// FollowAccount implements AppService.
-func (s *appService) FollowAccount(
-	ctx context.Context,
-	follower int,
-	followee int,
-) (*db.Follow, error) {
-	createParams := db.CreateFollowParams{
-		Uri: fmt.Sprintf(
-			"http://%s:%s/follows/%s",
-			s.conf.ListenHost,
-			s.conf.ListenPort,
-			uuid.NewString(),
-		),
-		AccountID:       int32(follower),
-		TargetAccountID: int32(followee),
-	}
-	return s.store.Follows().Create(ctx, createParams)
-}
-
-func (s *appService) DeliverToFollowers(
-	w http.ResponseWriter, r *http.Request, userID int,
-	build func(recipientURI string) any,
-) {
-	followers, err := s.GetAccountFollowers(r.Context(), userID)
+	accountID, err := xid.FromString(token.ID)
 	if err != nil {
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
-		return
+		return nil, err
 	}
-	for _, follower := range followers {
-		if !follower.Domain.Valid {
-			continue
-		}
-		payload := build(follower.Uri)
-		util.DeliverToEndpoint(follower.InboxUri, payload)
+
+	uri := s.builder.AnnounceURI(token.ID, id.String())
+
+	reblog, err := s.store.Statuses().ReblogStatus(ctx, db.CreateReblogParams{
+		ID:         id,
+		Uri:        uri,
+		AccountID:  accountID,
+		ReblogOfID: reblogOfID,
+	})
+	if err != nil {
+		return nil, err
 	}
+
+	announce := ap.NewEmptyAnnounceActivity().WithObject(ap.Activity[ap.Note]{
+		ID:     uri,
+		Type:   "Announce",
+		Actor:  ap.NewEmptyActor().WithLink(token.URI),
+		Object: ap.NewEmptyNote().WithLink(reblog.ReblofOfUri),
+	})
+
+	return func(ctx context.Context) error {
+		return s.prcessor.DistributeObject(ctx, announce.GetRaw().Object, accountID)
+	}, nil
 }
 
-func (s *appService) GetPostByAccountID(
-	ctx context.Context,
-	id int,
-) ([]db.GetStatusesByAccountIdRow, error) {
-	return s.store.Accounts().GetPosts(ctx, id)
+// UnfavouriteStatus implements AppService.
+func (s *appService) UnfavouriteStatus(ctx context.Context, id string) (worker.Job, error) {
+	token, ok := ctx.Value(auth.TokenContextKey).(*auth.TokenData)
+	if !ok {
+		return nil, errors.New("auth failure")
+	}
+	loggedInID, err := xid.FromString(token.ID)
+	if err != nil {
+		return nil, err
+	}
+	statusID, err := xid.FromString(id)
+	if err != nil {
+		return nil, err
+	}
+	fav, err := s.store.Favourites().DeleteByStatusID(ctx, statusID, loggedInID)
+	if err != nil {
+		return nil, err
+	}
+
+	if fav.Local.Bool {
+		return worker.EmptyJob, nil
+	}
+
+	actor := ap.NewEmptyActor().WithLink(token.URI)
+	undo := ap.NewEmptyUndoActivity().WithObject(ap.Activity[ap.Activity[ap.Note]]{
+		ID:    "nope",
+		Type:  "Undo",
+		Actor: actor,
+		Object: ap.NewEmptyLikeActivity().WithObject(ap.Activity[ap.Note]{
+			ID:     fav.Uri,
+			Type:   "Like",
+			Actor:  actor,
+			Object: ap.NewEmptyNote().WithLink(fav.StatusUri),
+		}),
+	})
+
+	return func(ctx context.Context) error {
+		return s.prcessor.SendObject(ctx, undo.GetRaw().Object, fav.TargetAccountID)
+	}, nil
 }
 
-func (s *appService) GetLocalPosts(ctx context.Context) ([]db.GetLocalStatusesRow, error) {
-	return s.store.Statuses().GetLocalStatuses(ctx)
+// UnreblogStatus implements AppService.
+func (s *appService) UnreblogStatus(ctx context.Context, id string) (worker.Job, error) {
+	token, ok := ctx.Value(auth.TokenContextKey).(*auth.TokenData)
+	if !ok {
+		return nil, errors.New("auth failure")
+	}
+
+	accountID, err := xid.FromString(token.ID)
+	if err != nil {
+		return nil, err
+	}
+	statusID, err := xid.FromString(id)
+	if err != nil {
+		return nil, err
+	}
+
+	status, err := s.store.Statuses().DeleteReblogByStatusID(ctx, statusID, accountID)
+	if err != nil {
+		return nil, err
+	}
+
+	actor := ap.NewEmptyActor().WithLink(token.URI)
+	undo := ap.NewEmptyUndoActivity().WithObject(ap.Activity[ap.Activity[ap.Note]]{
+		ID:    "does it matter?",
+		Type:  "Undo",
+		Actor: actor,
+		Object: ap.NewEmptyAnnounceActivity().WithObject(ap.Activity[ap.Note]{
+			ID:     status.Status.Uri,
+			Type:   "Announce",
+			Actor:  actor,
+			Object: ap.NewEmptyNote().WithLink(status.ReblogOfUri),
+		}),
+	})
+
+	return func(ctx context.Context) error {
+		return s.prcessor.DistributeObject(ctx, undo.GetRaw().Object, accountID)
+	}, nil
 }
 
-func (s *appService) GetLikedPostsByAccountID(
-	ctx context.Context,
-	accountID int,
-) ([]db.GetLikedPostsByAccountIdRow, error) {
-	return s.store.Favourites().GetLikedPostsByAccountID(ctx, accountID)
+// GetStatusReplies implements AppService.
+func (s *appService) GetStatusReplies(ctx context.Context, id string) ([]api.Status, error) {
+	token, ok := ctx.Value(auth.TokenContextKey).(*auth.TokenData)
+	if !ok {
+		return nil, errors.New("auth failure")
+	}
+	loggedInID, err := xid.FromString(token.ID)
+	if err != nil {
+		return nil, err
+	}
+	statusID, err := xid.FromString(id)
+	if err != nil {
+		return nil, err
+	}
+	statuses, err := s.store.Statuses().GetReplies(ctx, loggedInID, statusID)
+	if err != nil {
+		return nil, err
+	}
+	res := make([]api.Status, len(statuses))
+	for idx, status := range statuses {
+		s := db.GetStatusByIDRow(status)
+		res[idx] = *mapper.ToAPIStatus(&s)
+	}
+	return res, nil
 }
 
-func (s *appService) GetSharedPostsByAccountID(
-	ctx context.Context,
-	accountID int,
-) ([]db.GetSharedPostsByAccountIdRow, error) {
-	return s.store.Statuses().GetSharedPostsByAccountID(ctx, accountID)
+// ViewHomeTimeline implements AppService.
+func (s *appService) ViewHomeTimeline(ctx context.Context) ([]api.Status, error) {
+	token, ok := ctx.Value(auth.TokenContextKey).(*auth.TokenData)
+	if !ok {
+		return nil, errors.New("auth failure")
+	}
+	loggedInID, err := xid.FromString(token.ID)
+	if err != nil {
+		return nil, err
+	}
+	statuses, err := s.store.Statuses().GetHomeTimelineByAccountID(ctx, loggedInID)
+	if err != nil {
+		return nil, err
+	}
+
+	res := make([]api.Status, len(statuses))
+	for idx, status := range statuses {
+		s := db.GetStatusByIDRow(status)
+		res[idx] = *mapper.ToAPIStatus(&s)
+	}
+	return res, nil
 }
 
-func (s *appService) GetTimelinePostsByAccountID(
-	ctx context.Context,
-	accountID int,
-) ([]db.GetTimelinePostsByAccountIdRow, error) {
-	return s.store.Statuses().GetTimelinePostsByAccountID(ctx, accountID)
+// ViewFavouriteTimeline implements AppService.
+func (s *appService) ViewFavouriteTimeline(ctx context.Context) ([]api.Status, error) {
+	token, ok := ctx.Value(auth.TokenContextKey).(*auth.TokenData)
+	if !ok {
+		return nil, errors.New("auth failure")
+	}
+	loggedInID, err := xid.FromString(token.ID)
+	if err != nil {
+		return nil, err
+	}
+	statuses, err := s.store.Statuses().GetFavouriteByAccountID(ctx, loggedInID)
+	if err != nil {
+		return nil, err
+	}
+
+	res := make([]api.Status, len(statuses))
+	for idx, status := range statuses {
+		s := db.GetStatusByIDRow(status)
+		res[idx] = *mapper.ToAPIStatus(&s)
+	}
+	return res, nil
 }
 
-func (s *appService) GetCommentsByPostID(
-	ctx context.Context,
-	postID int,
-) ([]db.GetCommentsByPostIdRow, error) {
-	return s.store.Statuses().GetCommentsByPostID(ctx, postID)
+// ViewRebloggedTimeline implements AppService.
+func (s *appService) ViewRebloggedTimeline(ctx context.Context) ([]api.Status, error) {
+	token, ok := ctx.Value(auth.TokenContextKey).(*auth.TokenData)
+	if !ok {
+		return nil, errors.New("auth failure")
+	}
+	loggedInID, err := xid.FromString(token.ID)
+	if err != nil {
+		return nil, err
+	}
+	statuses, err := s.store.Statuses().GetRebloggedByAccountID(ctx, loggedInID)
+	if err != nil {
+		return nil, err
+	}
+
+	res := make([]api.Status, len(statuses))
+	for idx, status := range statuses {
+		s := db.GetStatusByIDRow(status)
+		res[idx] = *mapper.ToAPIStatus(&s)
+	}
+	return res, nil
 }

@@ -3,15 +3,20 @@ package repository
 import (
 	"context"
 
+	"github.com/rs/xid"
+
 	"github.com/kibirisu/borg/internal/db"
 )
 
 type FollowRepository interface {
-	Create(context.Context, db.CreateFollowParams) (*db.Follow, error)
+	Create(context.Context, db.CreateFollowParams) error
+	AddByRequestURI(context.Context, string) error
+	AddByActorURI(context.Context, db.AddFollowByActorURIParams) (string, error)
+	GetLocalFollowByID(context.Context, xid.ID) (db.GetLocalFollowByIDRow, error)
 	GetFollowerCollection(context.Context, string) (db.GetFollowerCollectionRow, error)
 	GetFollowingCollection(context.Context, string) (db.GetFollowingCollectionRow, error)
-	GetByURI(context.Context, string) (db.Follow, error)
-	DeleteByID(context.Context, int32) error
+	DeleteByID(context.Context, xid.ID) error
+	DeleteByURI(context.Context, string) error
 }
 
 type followRepository struct {
@@ -20,16 +25,30 @@ type followRepository struct {
 
 var _ FollowRepository = (*followRepository)(nil)
 
-// Create implements FollowRepository.
-func (r *followRepository) Create(
+// AddByActorURI implements FollowRepository.
+func (r *followRepository) AddByActorURI(
 	ctx context.Context,
-	followCreate db.CreateFollowParams,
-) (*db.Follow, error) {
-	follow, err := r.q.CreateFollow(ctx, followCreate)
-	if err != nil {
-		return nil, err
-	}
-	return &follow, err
+	follow db.AddFollowByActorURIParams,
+) (string, error) {
+	return r.q.AddFollowByActorURI(ctx, follow)
+}
+
+// AddByRequestURI implements FollowRepository.
+func (r *followRepository) AddByRequestURI(ctx context.Context, uri string) error {
+	return r.q.AddFollowByRequestURI(ctx, uri)
+}
+
+// GetLocalFollowByID implements FollowRepository.
+func (r *followRepository) GetLocalFollowByID(
+	ctx context.Context,
+	id xid.ID,
+) (db.GetLocalFollowByIDRow, error) {
+	return r.q.GetLocalFollowByID(ctx, id)
+}
+
+// Create implements FollowRepository.
+func (r *followRepository) Create(ctx context.Context, follow db.CreateFollowParams) error {
+	return r.q.CreateFollow(ctx, follow)
 }
 
 // GetFollowerCollection implements FollowRepository.
@@ -48,13 +67,12 @@ func (r *followRepository) GetFollowingCollection(
 	return r.q.GetFollowingCollection(ctx, username)
 }
 
-func (r *followRepository) GetByURI(
-	ctx context.Context, uri string,
-) (db.Follow, error) {
-	return r.q.GetFollowByURI(ctx, uri)
+// DeleteByID implements FollowRepository.
+func (r *followRepository) DeleteByID(ctx context.Context, id xid.ID) error {
+	return r.q.DeleteFollowByID(ctx, id)
 }
 
-// DeleteByID implements FollowRepository.
-func (r *followRepository) DeleteByID(ctx context.Context, id int32) error {
-	return r.q.DeleteFollowByID(ctx, id)
+// DeleteByURI implements FollowRepository.
+func (r *followRepository) DeleteByURI(ctx context.Context, uri string) error {
+	return r.q.DeleteFollowByURI(ctx, uri)
 }

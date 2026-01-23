@@ -36,18 +36,30 @@ const App = () => {
   const decoded = useMemo(() => {
     return decodeToken(token);
   }, [token]);
-  const username = decoded?.username ?? null;
+  const [username, setUsername] = useState<string | null>(
+    decoded?.username ?? null,
+  );
   const userId = decoded?.userId ?? null;
 
   useEffect(() => {
     tokenRef.current = token;
   }, [token]);
+  useEffect(() => {
+    if (!token) {
+      setUsername(null);
+      return;
+    }
+    if (decoded?.username) {
+      setUsername(decoded.username);
+    }
+  }, [token, decoded?.username]);
 
   return (
     <AppStateProvider
       token={[token, setToken]}
       tokenRef={tokenRef}
       username={username}
+      setUsername={setUsername}
       userId={userId}
     >
       <ClientProvider client={client}>

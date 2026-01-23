@@ -9,15 +9,18 @@ import { PostItem } from "./PostItem";
 export const loader =
   (client: AppClient) =>
   async ({ params }: LoaderFunctionArgs) => {
-    const handle = params.handle;
-    const userId = handle ? Number(handle) : NaN;
-    if (!handle || Number.isNaN(userId)) {
+    const handle = params.id;
+    if (!handle) {
       return { opts: undefined };
     }
 
-    const opts = client.$api.queryOptions("get", "/api/users/{id}/posts", {
-      params: { path: { id: userId } },
-    });
+    const opts = client.$api.queryOptions(
+      "get",
+      "/api/accounts/{id}/statuses",
+      {
+        params: { path: { id: String(handle) } },
+      },
+    );
     await client.queryClient.ensureQueryData(opts);
     return { opts };
   };
@@ -32,7 +35,7 @@ export default function Feed() {
     opts ??
     ({
       queryKey: ["posts-feed-disabled"],
-      queryFn: async () => [] as components["schemas"]["Post"][],
+      queryFn: async () => [] as components["schemas"]["Status"][],
       enabled: false,
     } satisfies Parameters<typeof useQuery>[0]);
 
@@ -54,7 +57,7 @@ export default function Feed() {
 
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm divide-y">
-      {posts.map((post: components["schemas"]["Post"]) => (
+      {posts.map((post: components["schemas"]["Status"]) => (
         <PostItem key={post.id} post={{ data: post }} client={client} />
       ))}
     </div>

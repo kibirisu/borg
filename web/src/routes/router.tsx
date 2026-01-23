@@ -13,7 +13,7 @@ import { SignUp } from "../components/auth/SignUp";
 import { signInAction } from "../components/auth/signInAction";
 import { signUpAction } from "../components/auth/signUpAction";
 import ErrorPage from "../components/common/ErrorPage";
-import Feed, { loader as feedLoader } from "../components/common/PostsFeed";
+import Feed from "../components/common/PostsFeed";
 import { action as addCommentAction } from "../components/feed/CommentForm";
 import CommentView, {
   CommentsFeed,
@@ -27,6 +27,7 @@ import { action as addPostAction } from "../components/feed/NewPostForm";
 import ExplorePage, {
   loader as exploreLoader,
 } from "../components/pages/ExplorePage";
+import LandingPage from "../components/pages/LandingPage";
 import LikesPage, {
   loader as likesLoader,
 } from "../components/pages/LikesPage";
@@ -67,6 +68,10 @@ function router(client: AppClient) {
           return null;
         },
         children: [
+          {
+            index: true,
+            Component: LandingPage,
+          },
           {
             path: "home",
             Component: Home,
@@ -113,17 +118,10 @@ function router(client: AppClient) {
             ],
           },
           {
-            path: "profile/:handle",
+            path: "profile/:id",
             Component: ProfileChooser,
             loader: userPageLoader(client),
             errorElement: <ErrorPage />,
-            children: [
-              {
-                index: true,
-                Component: Feed,
-                loader: feedLoader(client),
-              },
-            ],
           },
           {
             path: "post/:postId",
@@ -154,17 +152,10 @@ function router(client: AppClient) {
 }
 
 function ProfileChooser() {
-  const { handle } = useParams();
+  const { id } = useParams();
   const appState = useContext(AppContext);
   const tokenUserId = appState?.userId;
-  console.log(
-    "[ProfileChooser] handle param",
-    handle,
-    "tokenUserId",
-    tokenUserId,
-  );
-  const matchOwnProfile =
-    tokenUserId !== null && handle === String(tokenUserId);
+  const matchOwnProfile = tokenUserId !== null && id === String(tokenUserId);
   useLoaderData();
   // Provide loader data to the chosen component via context.
   return matchOwnProfile ? <UserPage /> : <OtherUserPage />;

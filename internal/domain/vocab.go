@@ -2,17 +2,6 @@ package domain
 
 import "time"
 
-type ActivityType string
-
-const (
-	ActivityTypeAccept        ActivityType = "Accept"
-	ActivityTypeAnnounce      ActivityType = "Announce"
-	ActivityTypeCreate        ActivityType = "Create"
-	ActivityTypeFollow        ActivityType = "Follow"
-	ActivityTypeLike          ActivityType = "Like"
-	ActivityTypeUnimplemented ActivityType = "Unimplemented"
-)
-
 type Object struct {
 	Context        any             `json:"@context,omitempty"`
 	ID             string          `json:"id"`
@@ -28,6 +17,7 @@ type Object struct {
 
 type Actor struct {
 	PreferredUsername string `json:"preferredUsername"`
+	Name              string `json:"name"`
 	Inbox             string `json:"inbox"`
 	Outbox            string `json:"outbox"`
 	Following         string `json:"following"`

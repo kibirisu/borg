@@ -2,8 +2,10 @@ package processing
 
 import (
 	"context"
-	"database/sql"
 	"errors"
+	"log"
+
+	"github.com/rs/xid"
 
 	"github.com/kibirisu/borg/internal/ap"
 	"github.com/kibirisu/borg/internal/db"
@@ -12,29 +14,38 @@ import (
 func (p *processor) AnnounceStatus(
 	ctx context.Context,
 	activity ap.AnnounceActivitier,
-) (db.Status, error) {
+) (*xid.ID, error) {
 	uri := activity.GetURI()
+	log.Printf("[Processing] [Announce] processing Activity with ID=%s", uri)
 	if uri == "" {
-		return db.Status{}, errors.New("invalid object")
+		return nil, errors.New("invalid object")
 	}
 	status, err := p.store.Statuses().GetByURI(ctx, uri)
 	if err != nil {
 		activityData := activity.GetObject()
-		actor, err := p.LookupActor(ctx, activityData.Actor)
+		log.Printf(
+			"[Processing] [Announce] processing Actor with ID=%s",
+			activityData.Actor.GetURI(),
+		)
+		actorID, err := p.LookupActor(ctx, activityData.Actor)
 		if err != nil {
-			return status, err
+			return nil, err
 		}
-		announcedStatus, err := p.LookupStatus(ctx, activityData.Object)
+		log.Printf(
+			"[Processing] [Announce] processing Status with ID=%s",
+			activityData.Object.GetURI(),
+		)
+		reblogOfID, err := p.LookupStatus(ctx, activityData.Object)
 		if err != nil {
-			return status, err
+			return nil, err
 		}
-		return p.store.Statuses().Create(ctx, db.CreateStatusParams{
-			AccountID: actor.ID,
-			ReblogOfID: sql.NullInt32{
-				Int32: announcedStatus.ID,
-				Valid: true,
-			},
+		status, err = p.store.Statuses().AddReblog(ctx, db.AddReblogParams{
+			ID:         xid.New(),
+			ReblogUri:  uri,
+			AccountID:  *actorID,
+			ReblogOfID: reblogOfID,
 		})
+		return &status.ID, err
 	}
-	return status, nil
+	return &status.ID, err
 }
