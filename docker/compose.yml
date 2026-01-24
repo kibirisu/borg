@@ -1,5 +1,6 @@
 x-borg-default: &borg
-  build: .
+  build:
+    context: ..
   networks:
     - net
 

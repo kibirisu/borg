@@ -66,11 +66,20 @@ dev-frontend: $(NODE_MODULES)
 .PHONY: dev-db
 dev-db:
 	@echo Starting dev database...
-	@docker compose -f compose.dev.yml up -d
+	@docker compose -f docker/postgres-compose.yml up -d
 
 .PHONY: stop-db
 stop-db:
-	@docker compose -f compose.dev.yml down
+	@docker compose -f docker/postgres-compose.yml down
+
+.PHONY: cluster
+cluster:
+	@echo Starting federation cluster...
+	@docker compose -f docker/compose.yml up -d
+
+.PHONY: stop-cluster
+stop-cluster:
+	@docker compose -f docker/compose.yml down
 
 .PHONY: gen-sql
 gen-sql: setup
