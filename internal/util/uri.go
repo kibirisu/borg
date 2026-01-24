@@ -92,7 +92,7 @@ func ExtractHandleParts(acct string) HandleParts {
 			},
 		}
 	}
-	return HandleParts{res[0], sql.NullString{}}
+	return HandleParts{Username: res[0]}
 }
 
 func BuildWebfingerURL(username, domain string) string {
