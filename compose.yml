@@ -1,61 +1,72 @@
+x-borg-default: &borg
+  build: .
+  networks:
+    - net
+
+x-db-default: &db
+  image: postgres:18-alpine
+  networks:
+    - net
+  environment:
+    - POSTGRES_DB=borg
+    - POSTGRES_USER=borg
+    - POSTGRES_PASSWORD=borg
+  healthcheck:
+    test: ["CMD-SHELL", "pg_isready -U borg"]
+    interval: 5s
+    timeout: 5s
+    retries: 5
+
 services:
   app-alice:
-    build: .
-    container_name: app_alice
+    <<: *borg
+    container_name: app-alice
     environment:
       - DATABASE_URL=postgres://borg:borg@db-alice:5432/borg?sslmode=disable
-      - LISTEN_PORT=8080
-      - ADDRESS=app-alice:8080
-      - JWT_SECRET=secret_alice
+      - ADDRESS=borg-alice
     depends_on:
       db-alice:
         condition: service_healthy
-    ports:
-      - "8080:8080"
+  db-alice:
+    <<: *db
+    container_name: db-alice
+    volumes:
+      - db-data-alice:/var/lib/postgresql
 
   app-bob:
-    build: .
-    container_name: app_bob
+    <<: *borg
+    container_name: app-bob
     environment:
-      - DATABASE_URL=postgres://borg:borg@db-bob:5432/borg
-      - LISTEN_PORT=8081
-      - ADDRESS=app-bob:8081
-      - JWT_SECRET=secret_bob
+      - DATABASE_URL=postgres://borg:borg@db-bob:5432/borg?sslmode=disable
+      - ADDRESS=borg-bob
     depends_on:
       db-bob:
         condition: service_healthy
-    ports:
-      - "8081:8081"
-
-  db-alice:
-    image: postgres:18-alpine
-    container_name: db_alice
-    volumes:
-      - db-data-alice:/var/lib/postgresql/data
-    environment:
-      - POSTGRES_DB=borg
-      - POSTGRES_USER=borg
-      - POSTGRES_PASSWORD=borg
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U borg"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
   db-bob:
-    image: postgres:18-alpine
-    container_name: db_bob
+    <<: *db
+    container_name: db-bob
     volumes:
-      - db-data-bob:/var/lib/postgresql/data
-    environment:
-      - POSTGRES_DB=borg
-      - POSTGRES_USER=borg
-      - POSTGRES_PASSWORD=borg
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U borg"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+      - db-data-bob:/var/lib/postgresql
+
+  nginx:
+    image: nginx:stable-alpine
+    container_name: nginx
+    networks:
+      net:
+        aliases:
+          - borg-alice
+          - borg-bob
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - app-alice
+      - app-bob
+
+networks:
+  net:
+    driver: bridge
 
 volumes:
   db-data-alice:
