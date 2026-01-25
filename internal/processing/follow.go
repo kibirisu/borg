@@ -3,6 +3,7 @@ package processing
 import (
 	"context"
 	"database/sql"
+	"errors"
 
 	"github.com/rs/xid"
 
@@ -25,12 +26,16 @@ func (p *processor) AcceptFollow(
 		TargetAccountID: targetAccountID,
 	})
 	if err != nil {
-		if activity.Actor.GetValueType() != ap.ObjectType {
-			obj, err := p.client.Get(ctx, activity.Actor.GetURI())
+		switch activity.Actor.GetValueType() {
+		case ap.LinkType:
+			obj, err := p.client.Get(ctx, activity.Actor.GetLink())
 			if err != nil {
 				return err
 			}
 			*activity.Actor.GetRaw() = *obj
+		case ap.ObjectType:
+		default:
+			return errors.New("domain object not set")
 		}
 		actor := activity.Actor.GetObject()
 		if err = p.store.Follows().AddWithActor(ctx, db.AddFollowWithActorParams{
