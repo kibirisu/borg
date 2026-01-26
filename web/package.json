@@ -17,7 +17,7 @@
     "@tanstack/react-query-devtools": "^5.91.1",
     "bootstrap-icons": "^1.13.1",
     "daisyui": "^5.5.14",
-    "lucide-react": "^0.562.0",
+    "lucide-react": "^0.563.0",
     "openapi-fetch": "^0.15.0",
     "openapi-react-query": "^0.5.1",
     "react": "^19.2.3",
