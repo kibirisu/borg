@@ -31,7 +31,7 @@
     "@redocly/cli": "^2.14.5",
     "@rsbuild/core": "^1.7.2",
     "@rsbuild/plugin-react": "^1.4.3",
-    "@types/react": "^19.2.7",
+    "@types/react": "^19.2.9",
     "@types/react-dom": "^19.2.3",
     "openapi-typescript": "^7.10.1",
     "typescript": "^5.9.3"
